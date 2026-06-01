@@ -130,7 +130,7 @@ function SeekIcon({ seconds, direction }: { seconds: number; direction: 'back' |
 
 function PlayerUI({
   title, mediaLogo, currentStream, streams, subtitles,
-  mediaId, mediaType, onBack, onSwitchStream, playerRef,
+  mediaId, mediaType, onBack, onSwitchStream, onPlaybackStalled, playerRef,
 }: {
   title: string;
   mediaLogo?: string;
@@ -141,6 +141,7 @@ function PlayerUI({
   mediaType: string;
   onBack: () => void;
   onSwitchStream: (s: StreamItem) => void;
+  onPlaybackStalled: () => void;
   playerRef: React.RefObject<MediaPlayerInstance | null>;
 }) {
   const paused = useMediaState('paused');
@@ -173,6 +174,12 @@ function PlayerUI({
   }, [paused, resetHide]);
 
   useEffect(() => () => { if (hideTimer.current) clearTimeout(hideTimer.current); }, []);
+
+  useEffect(() => {
+    if (!waiting || canPlay) return;
+    const timer = setTimeout(onPlaybackStalled, 9000);
+    return () => clearTimeout(timer);
+  }, [canPlay, currentStream.url, onPlaybackStalled, waiting]);
 
   const VolumeIcon = muted || volume === 0 ? VolumeX : volume < 0.5 ? Volume1 : Volume2;
   const currentMeta = parseStreamMeta(currentStream);
@@ -567,6 +574,7 @@ export default function Player({
           mediaType={mediaType}
           onBack={onBack}
           onSwitchStream={onSwitchStream}
+          onPlaybackStalled={onError}
           playerRef={playerRef}
         />
       </MediaPlayer>
