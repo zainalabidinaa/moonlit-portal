@@ -86,6 +86,8 @@ export interface StreamItem {
     bingeGroup?: string;
     filename?: string;
     videoSize?: number;
+    webPlayableType?: 'video/mp4' | 'application/x-mpegurl';
+    webNotReadyReason?: string;
     proxyHeaders?: { request?: Record<string, string> };
   };
 }

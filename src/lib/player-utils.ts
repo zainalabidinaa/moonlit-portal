@@ -39,7 +39,8 @@ export function sortStreamsForBrowserPlayback(streams: StreamItem[]): StreamItem
     .sort((a, b) => browserPlaybackScore(b) - browserPlaybackScore(a));
 }
 
-export function getInitialSourceType(_url: string): VidstackSourceType {
+export function getInitialSourceType(_url: string, stream?: Pick<StreamItem, 'behaviorHints'>): VidstackSourceType {
+  if (stream?.behaviorHints?.webPlayableType) return stream.behaviorHints.webPlayableType;
   return 'application/x-mpegurl';
 }
 

@@ -176,10 +176,10 @@ function PlayerUI({
   useEffect(() => () => { if (hideTimer.current) clearTimeout(hideTimer.current); }, []);
 
   useEffect(() => {
-    if (!waiting || canPlay) return;
+    if (!waiting) return;
     const timer = setTimeout(onPlaybackStalled, 9000);
     return () => clearTimeout(timer);
-  }, [canPlay, currentStream.url, onPlaybackStalled, waiting]);
+  }, [currentStream.url, onPlaybackStalled, waiting]);
 
   const VolumeIcon = muted || volume === 0 ? VolumeX : volume < 0.5 ? Volume1 : Volume2;
   const currentMeta = parseStreamMeta(currentStream);
@@ -463,11 +463,11 @@ export default function Player({
   const savedFailoverPosition = useRef(0);
   const { currentProfile } = useAuth();
 
-  const [srcType, setSrcType] = useState<VidstackSourceType>(() => getInitialSourceType(streamUrl));
+  const [srcType, setSrcType] = useState<VidstackSourceType>(() => getInitialSourceType(streamUrl, currentStream));
   const [failedUrls, setFailedUrls] = useState<Set<string>>(() => new Set());
   const src = { src: streamUrl, type: srcType };
 
-  useEffect(() => { setSrcType(getInitialSourceType(streamUrl)); }, [streamUrl]);
+  useEffect(() => { setSrcType(getInitialSourceType(streamUrl, currentStream)); }, [currentStream, streamUrl]);
   useEffect(() => { setFailedUrls(new Set()); }, [mediaId]);
 
   const onProviderChange = useCallback((provider: MediaProviderAdapter | null) => {

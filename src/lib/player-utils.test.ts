@@ -21,6 +21,10 @@ describe('player utils', () => {
     expect(getInitialSourceType('https://debrid.example.com/cache/movie.mkv')).toBe('application/x-mpegurl');
   });
 
+  it('uses verified stream playable type when provided by the stream API', () => {
+    expect(getInitialSourceType('https://example.com/playback/token', { behaviorHints: { webPlayableType: 'video/mp4' } })).toBe('video/mp4');
+  });
+
   it('falls back from HLS to direct video after provider error', () => {
     expect(getFallbackSourceType('application/x-mpegurl')).toBe('video/mp4');
     expect(getFallbackSourceType('video/mp4')).toBeNull();

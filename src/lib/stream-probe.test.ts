@@ -19,4 +19,13 @@ describe('stream probe classification', () => {
 
     expect(classifyStreamProbe({ status: 502, contentType: 'text/html', bytes }).playable).toBe(false);
   });
+
+  it('accepts mislabeled hls playlists by sniffing bytes', () => {
+    const bytes = new TextEncoder().encode('#EXTM3U\n#EXT-X-VERSION:3');
+
+    expect(classifyStreamProbe({ status: 200, contentType: 'text/plain', bytes })).toMatchObject({
+      playable: true,
+      type: 'application/x-mpegurl',
+    });
+  });
 });
