@@ -10,6 +10,35 @@ export function getPlayableStreamUrl(stream: Pick<StreamItem, 'url'>): string | 
   return stream.url;
 }
 
+function streamSearchText(stream: StreamItem): string {
+  return `${stream.name ?? ''} ${stream.title ?? ''} ${stream.description ?? ''} ${stream.behaviorHints?.filename ?? ''} ${stream.url ?? ''}`.toLowerCase();
+}
+
+export function browserPlaybackScore(stream: StreamItem): number {
+  const text = streamSearchText(stream);
+  let score = getPlayableStreamUrl(stream) ? 100 : -1000;
+  if (stream.infoHash || stream.behaviorHints?.notWebReady) score -= 1000;
+  if (text.includes('.mp4') || text.includes(' h.264') || text.includes(' h264') || text.includes('x264') || text.includes(' avc')) score += 80;
+  if (text.includes('aac')) score += 30;
+  if (text.includes('eac3') || text.includes('dd+') || text.includes('ddp')) score += 10;
+  if (text.includes('720')) score += 35;
+  if (text.includes('1080')) score += 25;
+  if (text.includes('2160') || text.includes('4k')) score -= 35;
+  if (text.includes('.mkv')) score -= 80;
+  if (text.includes('hevc') || text.includes('h.265') || text.includes('h265') || text.includes('x265')) score -= 100;
+  if (text.includes('dolby vision') || text.includes(' dv ') || text.includes('hdr')) score -= 45;
+  if (text.includes('truehd') || text.includes('atmos') || text.includes('dts')) score -= 60;
+  const size = stream.behaviorHints?.videoSize;
+  if (size && size > 8_000_000_000) score -= 25;
+  return score;
+}
+
+export function sortStreamsForBrowserPlayback(streams: StreamItem[]): StreamItem[] {
+  return [...streams]
+    .filter(stream => getPlayableStreamUrl(stream) && !stream.infoHash && !stream.behaviorHints?.notWebReady)
+    .sort((a, b) => browserPlaybackScore(b) - browserPlaybackScore(a));
+}
+
 export function getInitialSourceType(_url: string): VidstackSourceType {
   return 'application/x-mpegurl';
 }

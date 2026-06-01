@@ -18,7 +18,7 @@ import { StreamItem } from '@/lib/types';
 import { SubtitleItem } from '@/lib/stremio';
 import { updateWatchProgress } from '@/lib/services/api';
 import { useAuth } from '@/app/AuthProvider';
-import { getFallbackSourceType, getInitialSourceType, streamMatchesUrl, VidstackSourceType } from '@/lib/player-utils';
+import { browserPlaybackScore, getFallbackSourceType, getInitialSourceType, getPlayableStreamUrl, sortStreamsForBrowserPlayback, streamMatchesUrl, VidstackSourceType } from '@/lib/player-utils';
 
 interface PlayerProps {
   streamUrl: string;
@@ -50,7 +50,7 @@ interface StreamMeta {
 }
 
 function parseStreamMeta(s: StreamItem): StreamMeta {
-  const raw = `${s.name ?? ''} ${s.title ?? ''} ${s.description ?? ''}`;
+  const raw = `${s.name ?? ''} ${s.title ?? ''} ${s.description ?? ''} ${s.behaviorHints?.filename ?? ''}`;
   const t = raw.toLowerCase();
 
   // Resolution
@@ -177,6 +177,7 @@ function PlayerUI({
   const VolumeIcon = muted || volume === 0 ? VolumeX : volume < 0.5 ? Volume1 : Volume2;
   const currentMeta = parseStreamMeta(currentStream);
   const sourceName = currentStream.addonName && currentStream.addonName !== 'Direct' ? currentStream.addonName : 'Source';
+  const sortedStreams = sortStreamsForBrowserPlayback(streams);
 
   function selectSubtitle(subtitleId: string) {
     setSelectedSubtitleId(subtitleId);
@@ -192,20 +193,17 @@ function PlayerUI({
       {/* Subtitle overlay */}
       <Captions className="absolute bottom-24 left-0 right-0 z-10 text-center pointer-events-none" />
 
-      {/* Buffering — show title/source branding instead of a spinner-first state. */}
-      {(waiting || !canPlay) && !showControls && (
+      {/* Buffering — Stremio-style source/title identity, no spinner. */}
+      {(waiting || !canPlay) && (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-5 z-20 pointer-events-none">
-          {mediaLogo ? <img src={mediaLogo} alt={title} className="max-h-24 max-w-xs object-contain animate-pulse select-none" draggable={false} /> : <span className="text-white/75 text-3xl font-bold tracking-wide animate-pulse">{title}</span>}
-          <div className="w-56 h-1 rounded-full bg-white/10 overflow-hidden">
+          {mediaLogo ? <img src={mediaLogo} alt={title} className="max-h-28 max-w-sm object-contain animate-pulse select-none" draggable={false} /> : <span className="text-white/80 text-4xl font-black tracking-tight animate-pulse">{title}</span>}
+          <div className="flex items-center gap-3 rounded-full border border-white/10 bg-black/45 px-4 py-2 backdrop-blur-xl">
+            <span className="h-2 w-2 rounded-full bg-luna-accent animate-pulse" />
+            <span className="text-sm font-semibold text-white/70">{sourceName}</span>
+          </div>
+          <div className="h-1 w-72 overflow-hidden rounded-full bg-white/10">
             <div className="h-full w-1/2 rounded-full bg-luna-accent animate-pulse" />
           </div>
-          <p className="text-sm text-white/45">Loading from {sourceName}</p>
-        </div>
-      )}
-      {/* Spinner when controls are visible (user is interacting) */}
-      {(waiting || !canPlay) && showControls && (
-        <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
-          <div className="w-12 h-12 rounded-full border-2 border-white/20 border-t-white animate-spin" />
         </div>
       )}
 
@@ -259,47 +257,38 @@ function PlayerUI({
             </TimeSlider.Preview>
           </TimeSlider.Root>
 
-          {/* Controls row — Netflix layout: time left | seek+play+seek center | icons right */}
-          <div className="flex items-center justify-between">
-            {/* Left: time */}
-            <div className="flex items-center gap-1.5 text-sm font-medium text-white/50 tabular-nums w-28">
-              <Time type="current" />
-              <span className="text-white/25">·</span>
-              <Time type="duration" />
-            </div>
-
-            {/* Center: seek back, play/pause, seek forward */}
-            <div className="flex items-center gap-4">
+          {/* Controls row — Netflix-style: transport left, title center, utility right */}
+          <div className="flex flex-wrap items-center justify-between gap-3 md:flex-nowrap md:gap-6">
+            <div className="flex min-w-0 items-center gap-2 sm:gap-4 md:min-w-[320px] lg:min-w-[360px]">
+              <PlayButton className="hover:scale-110 active:scale-95 transition-transform">
+                {paused
+                  ? <Play className="h-12 w-12 sm:h-16 sm:w-16" strokeWidth={0} fill="white" />
+                  : <Pause className="h-12 w-12 sm:h-16 sm:w-16" strokeWidth={0} fill="white" />}
+              </PlayButton>
               <SeekButton seconds={-15} className="opacity-75 hover:opacity-100 transition-opacity active:scale-90">
                 <SeekIcon seconds={15} direction="back" />
               </SeekButton>
-
-              <PlayButton className="hover:scale-110 active:scale-95 transition-transform">
-                {paused
-                  ? <Play size={70} strokeWidth={0} fill="white" />
-                  : <Pause size={70} strokeWidth={0} fill="white" />}
-              </PlayButton>
-
               <SeekButton seconds={15} className="opacity-75 hover:opacity-100 transition-opacity active:scale-90">
                 <SeekIcon seconds={15} direction="fwd" />
               </SeekButton>
-            </div>
-
-            {/* Right: volume, captions, speed, fullscreen */}
-            <div className="flex items-center gap-2 w-64 justify-end">
               <MuteButton className="w-12 h-12 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors active:scale-95">
-                <VolumeIcon size={30} strokeWidth={1.8} className="text-white/90" />
+                <VolumeIcon size={32} strokeWidth={1.8} className="text-white/90" />
               </MuteButton>
-
-              <VolumeSlider.Root className="group relative flex w-24 items-center h-8 cursor-pointer">
+              <VolumeSlider.Root className="group relative hidden w-28 items-center h-8 cursor-pointer sm:flex">
                 <VolumeSlider.Track className="relative h-1 w-full rounded-full bg-white/20 group-hover:h-[5px] transition-all duration-150">
                   <VolumeSlider.TrackFill className="absolute h-full rounded-full bg-white" style={{ width: 'var(--slider-fill, 0%)' }} />
                 </VolumeSlider.Track>
                 <VolumeSlider.Thumb className="absolute top-1/2 -translate-y-1/2 w-3.5 h-3.5 rounded-full bg-white shadow-lg -translate-x-1/2" style={{ left: 'var(--slider-fill, 0%)' }} />
               </VolumeSlider.Root>
+            </div>
 
+            <div className="hidden flex-1 min-w-0 px-4 text-center md:block lg:px-8">
+              <p className="truncate text-xl font-bold text-white">{title}</p>
+            </div>
+
+            <div className="flex min-w-0 items-center gap-2 justify-end sm:gap-4 md:min-w-[320px] lg:min-w-[360px]">
               <button onClick={() => setShowTracks(true)} className="w-12 h-12 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors active:scale-95">
-                <CaptionsIcon size={30} strokeWidth={1.8} className="text-white/90" />
+                <CaptionsIcon size={32} strokeWidth={1.8} className="text-white/90" />
               </button>
 
               <div className="relative">
@@ -323,8 +312,8 @@ function PlayerUI({
 
               <FullscreenButton className="w-12 h-12 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors active:scale-95">
                 {fullscreen
-                  ? <Minimize size={28} strokeWidth={1.8} className="text-white/90" />
-                  : <Maximize size={28} strokeWidth={1.8} className="text-white/90" />}
+                  ? <Minimize size={32} strokeWidth={1.8} className="text-white/90" />
+                  : <Maximize size={32} strokeWidth={1.8} className="text-white/90" />}
               </FullscreenButton>
             </div>
           </div>
@@ -335,40 +324,43 @@ function PlayerUI({
       {showSources && (
         <div className="absolute inset-0 z-40 flex justify-end">
           <div className="absolute inset-0 bg-black/60" onClick={() => setShowSources(false)} />
-          <div className="relative w-[420px] max-w-[92vw] h-full bg-[#090910]/95 backdrop-blur-2xl border-l border-white/10 overflow-y-auto shadow-2xl">
-            <div className="p-5 border-b border-white/8 flex items-center justify-between sticky top-0 bg-[#090910]/95 backdrop-blur-xl z-10">
+          <div className="relative w-[460px] max-w-[92vw] h-full bg-[radial-gradient(circle_at_top_right,rgba(124,58,237,0.18),rgba(8,8,12,0.98)_42%)] border-l border-white/10 overflow-y-auto shadow-2xl backdrop-blur-2xl">
+            <div className="p-6 border-b border-white/8 sticky top-0 bg-[#090910]/90 backdrop-blur-xl z-10">
+              <div className="flex items-start justify-between gap-4">
               <div>
-                <h3 className="text-lg font-semibold text-white">Sources</h3>
-                <p className="text-xs text-white/35 mt-0.5">{streams.length} available · {sourceName}</p>
+                <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-luna-accent">Now Playing</p>
+                <h3 className="mt-1 text-2xl font-black text-white">Sources</h3>
+                <p className="text-sm text-white/45 mt-1">Best browser-compatible streams first</p>
               </div>
-              <button onClick={() => setShowSources(false)} className="p-2 rounded-full hover:bg-white/10">
-                <X size={14} className="text-white/50" />
+              <button onClick={() => setShowSources(false)} className="p-2 rounded-full bg-white/5 hover:bg-white/10">
+                <X size={18} className="text-white/60" />
               </button>
+              </div>
             </div>
 
-            {streams.length === 0 ? (
+            {sortedStreams.length === 0 ? (
               <div className="px-4 py-12 text-center">
-                <p className="text-white/40 text-sm">No sources found</p>
+                <p className="text-white/40 text-sm">{streams.length === 0 ? 'No sources found' : 'No browser-playable sources found'}</p>
               </div>
             ) : (
-              <div className="p-3 space-y-2">
-                {streams.map((s, i) => {
+              <div className="p-4 space-y-3">
+                {sortedStreams.map((s, i) => {
                   const meta = parseStreamMeta(s);
                   const streamUrl = s.url || '';
                   const activeUrl = currentStream.url || currentStream.externalUrl || '';
                   const isActive = streamUrl ? streamMatchesUrl(s, activeUrl) : s.title === currentStream.title;
                   const sourceLabel = [meta.debrid, meta.indexer].filter(Boolean).join(' · ') || s.addonName || 'Unknown';
+                  const score = browserPlaybackScore(s);
 
                   return (
                     <button
                       key={streamUrl || `stream-${i}`}
                       onClick={() => { setShowSources(false); onSwitchStream(s); }}
-                      className={`w-full text-left px-4 py-3.5 rounded-2xl border transition-colors ${isActive ? 'border-luna-accent/70 bg-luna-accent/10' : 'border-white/8 bg-white/[0.035] hover:bg-white/[0.07]'}`}
+                      className={`w-full text-left p-4 rounded-3xl border transition-all duration-200 ${isActive ? 'border-luna-accent/80 bg-luna-accent/15 shadow-[0_0_30px_rgba(139,92,246,0.18)]' : 'border-white/10 bg-white/[0.045] hover:bg-white/[0.08] hover:border-white/20'}`}
                     >
-                      {/* Top row: badges + size */}
-                      <div className="flex items-center justify-between gap-2 mb-1.5">
+                      <div className="flex items-center justify-between gap-3 mb-3">
                         <div className="flex items-center gap-1 flex-wrap">
-                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${meta.resolutionColor}`}>
+                          <span className={`text-[11px] font-black px-2 py-1 rounded-lg ${meta.resolutionColor}`}>
                             {meta.resolution}
                           </span>
                           {meta.videoCodec && (
@@ -387,16 +379,19 @@ function PlayerUI({
                             </span>
                           )}
                         </div>
-                        {meta.sizeFmt && (
-                          <span className="text-[11px] text-white/35 font-medium flex-shrink-0">{meta.sizeFmt}</span>
-                        )}
+                        <span className="text-xs text-white/40 font-semibold flex-shrink-0">#{i + 1}</span>
                       </div>
 
-                      {/* Source line */}
-                      <p className="text-sm text-white/70 mb-0.5">{sourceLabel}</p>
-
-                      {/* Release title */}
-                      <p className="text-[11px] text-white/25 truncate leading-relaxed">{meta.releaseTitle}</p>
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="text-base font-bold text-white/85 truncate">{sourceLabel}</p>
+                          <p className="mt-1 text-xs text-white/35 truncate leading-relaxed">{meta.releaseTitle}</p>
+                        </div>
+                        <div className="flex-shrink-0 text-right">
+                          {meta.sizeFmt && <p className="text-xs font-semibold text-white/45">{meta.sizeFmt}</p>}
+                          <p className={`mt-1 text-[10px] font-bold uppercase ${score > 120 ? 'text-emerald-400' : score > 60 ? 'text-yellow-300' : 'text-red-300'}`}>{score > 120 ? 'Best' : score > 60 ? 'OK' : 'Risky'}</p>
+                        </div>
+                      </div>
                     </button>
                   );
                 })}
@@ -458,12 +453,15 @@ export default function Player({
   onSwitchStream, onBack,
 }: PlayerProps) {
   const playerRef = useRef<MediaPlayerInstance>(null);
+  const savedFailoverPosition = useRef(0);
   const { currentProfile } = useAuth();
 
   const [srcType, setSrcType] = useState<VidstackSourceType>(() => getInitialSourceType(streamUrl));
+  const [failedUrls, setFailedUrls] = useState<Set<string>>(() => new Set());
   const src = { src: streamUrl, type: srcType };
 
   useEffect(() => { setSrcType(getInitialSourceType(streamUrl)); }, [streamUrl]);
+  useEffect(() => { setFailedUrls(new Set()); }, [mediaId]);
 
   const onProviderChange = useCallback((provider: MediaProviderAdapter | null) => {
     if (isHLSProvider(provider)) {
@@ -482,8 +480,28 @@ export default function Player({
 
   const onError = useCallback(() => {
     const fallback = getFallbackSourceType(srcType);
-    if (fallback) setSrcType(fallback);
-  }, [srcType]);
+    if (fallback) {
+      const p = playerRef.current;
+      if (p?.currentTime) savedFailoverPosition.current = p.currentTime;
+      setSrcType(fallback);
+      return;
+    }
+
+    const nextFailed = new Set(failedUrls);
+    nextFailed.add(streamUrl);
+    setFailedUrls(nextFailed);
+
+    const nextStream = sortStreamsForBrowserPlayback(streams).find(stream => {
+      const url = getPlayableStreamUrl(stream);
+      return url && url !== streamUrl && !nextFailed.has(url);
+    });
+
+    if (nextStream) {
+      const p = playerRef.current;
+      if (p?.currentTime) savedFailoverPosition.current = p.currentTime;
+      onSwitchStream(nextStream);
+    }
+  }, [failedUrls, onSwitchStream, srcType, streamUrl, streams]);
 
   useEffect(() => {
     if (!currentProfile) return;
@@ -503,8 +521,10 @@ export default function Player({
   }, [currentProfile, mediaId, mediaType, title]);
 
   const onCanPlay = useCallback(() => {
-    if (startPosition && startPosition > 0 && playerRef.current) {
-      playerRef.current.currentTime = startPosition;
+    const resumeAt = savedFailoverPosition.current > 0 ? savedFailoverPosition.current : startPosition;
+    if (resumeAt && resumeAt > 0 && playerRef.current) {
+      playerRef.current.currentTime = resumeAt;
+      savedFailoverPosition.current = 0;
     }
   }, [startPosition]);
 

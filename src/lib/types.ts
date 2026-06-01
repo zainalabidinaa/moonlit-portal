@@ -81,7 +81,13 @@ export interface StreamItem {
   infoHash?: string;
   addonName?: string;
   addonId?: string;
-  behaviorHints?: { notWebReady?: boolean; bingeGroup?: string; proxyHeaders?: { request?: Record<string, string> } };
+  behaviorHints?: {
+    notWebReady?: boolean;
+    bingeGroup?: string;
+    filename?: string;
+    videoSize?: number;
+    proxyHeaders?: { request?: Record<string, string> };
+  };
 }
 
 export interface AddonManifest {

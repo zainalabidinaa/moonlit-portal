@@ -5,6 +5,7 @@ import {
   getFallbackSourceType,
   formatContinueWatchingTitle,
   getPlayableStreamUrl,
+  sortStreamsForBrowserPlayback,
   getStreamUrl,
   getInitialSourceType,
   streamMatchesUrl,
@@ -33,6 +34,15 @@ describe('player utils', () => {
   it('does not treat externalUrl as playable inside the video player', () => {
     expect(getPlayableStreamUrl({ url: 'https://example.com/a.mp4' })).toBe('https://example.com/a.mp4');
     expect(getPlayableStreamUrl({ externalUrl: 'https://example.com/player-page' })).toBeUndefined();
+  });
+
+  it('prefers browser-friendly H264 sources over 4K HEVC MKV sources', () => {
+    const streams: StreamItem[] = [
+      { url: 'https://example.com/hevc.mkv', name: '4K WEB-DL', behaviorHints: { filename: 'Movie.2160p.DV.HDR.H.265.Atmos.mkv' } },
+      { url: 'https://example.com/h264', name: '720P WEB-DL', behaviorHints: { filename: 'Movie.720p.WEB-DL.H.264.AAC' } },
+    ];
+
+    expect(sortStreamsForBrowserPlayback(streams)[0].url).toBe('https://example.com/h264');
   });
 
   it('matches cached streams by url or externalUrl', () => {
