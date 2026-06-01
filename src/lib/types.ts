@@ -131,6 +131,8 @@ export interface WatchProgressEntry {
   duration_seconds: number;
   completed: boolean;
   updated_at: string;
+  name?: string;
+  poster?: string;
 }
 
 export interface LibraryItem {

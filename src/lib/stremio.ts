@@ -1,7 +1,7 @@
 import { AddonManifest, MetaPreview, MetaDetail, StreamItem } from './types';
 
 export async function fetchManifest(url: string): Promise<AddonManifest> {
-  const res = await fetch(url);
+  const res = await fetch(`/api/stremio/manifest?url=${encodeURIComponent(url)}`);
   const json = await res.json();
 
   const baseURL = json.transportUrl || url.replace(/\/manifest\.json$/, '');
@@ -25,19 +25,11 @@ export async function fetchCatalog(
   id: string,
   extras?: Record<string, string>
 ): Promise<MetaPreview[]> {
-  // Stremio extras are path segments, NOT query params
-  // Correct format: /catalog/{type}/{id}/{key1}={val1}&{key2}={val2}.json
-  let url: string;
+  const params = new URLSearchParams({ url: baseURL, type, id });
   if (extras && Object.keys(extras).length > 0) {
-    const extraParts = Object.entries(extras)
-      .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
-      .join('&');
-    url = `${baseURL}/catalog/${type}/${id}/${extraParts}.json`;
-  } else {
-    url = `${baseURL}/catalog/${type}/${id}.json`;
+    params.set('extras', JSON.stringify(extras));
   }
-
-  const res = await fetch(url);
+  const res = await fetch(`/api/stremio/catalog?${params}`);
   const json = await res.json();
 
   return (json.metas || []).map((m: any) => ({
@@ -62,8 +54,8 @@ export async function fetchMeta(
   id: string
 ): Promise<MetaDetail | null> {
   try {
-    const url = `${baseURL}/meta/${type}/${id}.json`;
-    const res = await fetch(url);
+    const params = new URLSearchParams({ url: baseURL, type, id });
+    const res = await fetch(`/api/stremio/meta?${params}`);
     const json = await res.json();
     const m = json.meta;
 
@@ -137,8 +129,8 @@ export async function fetchStreams(
   id: string
 ): Promise<StreamItem[]> {
   try {
-    const url = `${baseURL}/stream/${type}/${id}.json`;
-    const res = await fetch(url);
+    const params = new URLSearchParams({ url: baseURL, type, id });
+    const res = await fetch(`/api/stremio/stream?${params}`);
     const json = await res.json();
     return json.streams || [];
   } catch {
@@ -159,7 +151,8 @@ export interface SubtitleItem {
 
 async function fetchSubtitles(baseURL: string, type: string, id: string): Promise<SubtitleItem[]> {
   try {
-    const res = await fetch(`${baseURL}/subtitles/${type}/${id}.json`);
+    const params = new URLSearchParams({ url: baseURL, type, id });
+    const res = await fetch(`/api/stremio/subtitles?${params}`);
     const json = await res.json();
     return (json.subtitles || []).map((s: any, i: number) => ({
       id: s.id || s.url || String(i),

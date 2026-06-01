@@ -96,7 +96,9 @@ export async function updateWatchProgress(
   mediaType: string,
   positionSeconds: number,
   durationSeconds: number,
-  completed: boolean = false
+  completed: boolean = false,
+  name?: string,
+  poster?: string
 ) {
   const { data: existing } = await supabase
     .from('watch_progress')
@@ -110,7 +112,9 @@ export async function updateWatchProgress(
       position_seconds: positionSeconds,
       duration_seconds: durationSeconds,
       completed,
-      updated_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
+      ...(name !== undefined && { name }),
+      ...(poster !== undefined && { poster }),
     }).eq('id', existing.id);
   } else {
     await supabase.from('watch_progress').insert({
@@ -119,7 +123,9 @@ export async function updateWatchProgress(
       media_type: mediaType,
       position_seconds: positionSeconds,
       duration_seconds: durationSeconds,
-      completed
+      completed,
+      name,
+      poster,
     });
   }
 }
