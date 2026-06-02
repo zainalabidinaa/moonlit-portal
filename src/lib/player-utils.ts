@@ -11,7 +11,7 @@ export function getPlayableStreamUrl(stream: Pick<StreamItem, 'url'>): string | 
 }
 
 function streamSearchText(stream: StreamItem): string {
-  return `${stream.name ?? ''} ${stream.title ?? ''} ${stream.description ?? ''} ${stream.behaviorHints?.filename ?? ''} ${stream.url ?? ''}`.toLowerCase();
+  return `${stream.name ?? ''} ${stream.title ?? ''} ${stream.description ?? ''} ${stream.behaviorHints?.filename ?? ''}`.toLowerCase();
 }
 
 export function browserPlaybackScore(stream: StreamItem): number {
@@ -39,9 +39,25 @@ export function sortStreamsForBrowserPlayback(streams: StreamItem[]): StreamItem
     .sort((a, b) => browserPlaybackScore(b) - browserPlaybackScore(a));
 }
 
-export function getInitialSourceType(_url: string, stream?: Pick<StreamItem, 'behaviorHints'>): VidstackSourceType {
+const HLS_URL_PATTERNS = ['.m3u8', '.m3u', '/manifest', '/playlist', '/hls/', 'type=hls'];
+const HLS_DOMAIN_PATTERNS = ['real-debrid.com', 'alldebrid.com', 'premiumize.me', 'debrid.it', 'debrid.net'];
+
+export function getInitialSourceType(url: string, stream?: Pick<StreamItem, 'behaviorHints'>): VidstackSourceType {
   if (stream?.behaviorHints?.webPlayableType) return stream.behaviorHints.webPlayableType;
-  return 'application/x-mpegurl';
+
+  const lower = url.toLowerCase();
+
+  for (const p of HLS_URL_PATTERNS) {
+    if (lower.includes(p)) return 'application/x-mpegurl';
+  }
+
+  if (stream?.behaviorHints?.proxyHeaders) return 'application/x-mpegurl';
+
+  for (const d of HLS_DOMAIN_PATTERNS) {
+    if (lower.includes(d)) return 'application/x-mpegurl';
+  }
+
+  return 'video/mp4';
 }
 
 export function getFallbackSourceType(currentType: VidstackSourceType): VidstackSourceType | null {

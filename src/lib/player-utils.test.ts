@@ -16,9 +16,27 @@ describe('player utils', () => {
     expect(getInitialSourceType('https://example.com/movie/master.m3u8')).toBe('application/x-mpegurl');
   });
 
-  it('starts unknown direct/debrid URLs as HLS because some providers hide HLS behind signed URLs', () => {
-    expect(getInitialSourceType('https://debrid.example.com/cache/movie.mp4?token=abc')).toBe('application/x-mpegurl');
-    expect(getInitialSourceType('https://debrid.example.com/cache/movie.mkv')).toBe('application/x-mpegurl');
+  it('uses video/mp4 by default for unknown URLs to avoid hls.js failing on direct mp4/webm content', () => {
+    expect(getInitialSourceType('https://cdn.example.com/movie.mp4')).toBe('video/mp4');
+    expect(getInitialSourceType('https://example.com/cache/movie.mkv')).toBe('video/mp4');
+  });
+
+  it('starts known debrid/CDN domains as HLS because they often hide HLS behind signed URLs', () => {
+    expect(getInitialSourceType('https://real-debrid.com/cache/movie.mp4?token=abc')).toBe('application/x-mpegurl');
+    expect(getInitialSourceType('https://alldebrid.com/stream/xyz')).toBe('application/x-mpegurl');
+  });
+
+  it('detects HLS from URL path patterns regardless of domain', () => {
+    expect(getInitialSourceType('https://unknown-cdn.example.com/stream/master.m3u8')).toBe('application/x-mpegurl');
+    expect(getInitialSourceType('https://unknown-cdn.example.com/manifest')).toBe('application/x-mpegurl');
+    expect(getInitialSourceType('https://unknown-cdn.example.com/playlist.m3u8')).toBe('application/x-mpegurl');
+    expect(getInitialSourceType('https://unknown-cdn.example.com/live/hls/stream')).toBe('application/x-mpegurl');
+  });
+
+  it('starts streams with proxyHeaders as HLS regardless of URL', () => {
+    expect(getInitialSourceType('https://unknown-cdn.example.com/movie.mp4', {
+      behaviorHints: { proxyHeaders: { request: { 'Origin': 'https://example.com' } } }
+    })).toBe('application/x-mpegurl');
   });
 
   it('uses verified stream playable type when provided by the stream API', () => {
