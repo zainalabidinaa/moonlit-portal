@@ -4,8 +4,10 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/app/AuthProvider';
 import { Sidebar } from '@/components/Sidebar';
 import { MetaDetail, StreamItem, Season } from '@/lib/types';
-import { fetchMeta } from '@/lib/stremio';
+import { fetchMeta, fetchStreamsFromAll } from '@/lib/stremio';
 import { isInLibrary, toggleLibrary, getWatchProgress } from '@/lib/services/api';
+import { cacheStreams } from '@/lib/stream-cache';
+import { getPlayableStreamUrl } from '@/lib/player-utils';
 
 const PlayIcon = () => (
   <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 ml-0.5">
