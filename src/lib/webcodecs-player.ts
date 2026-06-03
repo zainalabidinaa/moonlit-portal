@@ -23,7 +23,7 @@ export interface WebCodecsPlayerState {
 
 type StateListener = (state: WebCodecsPlayerState) => void;
 
-const WASM_PATH = '/web-demuxer.wasm';
+const WASM_PATH = '/web-demuxer-mini.wasm';
 
 export class WebCodecsPlayerEngine {
   private demuxer: WebDemuxer | null = null;
