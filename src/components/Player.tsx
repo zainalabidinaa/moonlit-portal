@@ -167,6 +167,13 @@ function PlayerUI({
 
   useEffect(() => () => { if (hideTimer.current) clearTimeout(hideTimer.current); }, []);
 
+  // Auto-unmute: player starts muted for reliable autoplay, unmute as soon as playback begins
+  useEffect(() => {
+    if (!paused && playerRef.current?.muted) {
+      playerRef.current.muted = false;
+    }
+  }, [paused]);
+
   // Stall during buffering: waiting=true for 9s → try next stream
   useEffect(() => {
     if (!waiting) return;
@@ -467,6 +474,7 @@ export default function Player({
   useEffect(() => { setFailedUrls(new Set()); setPlaybackError(null); }, [mediaId]);
 
   const onProviderChange = useCallback((provider: MediaProviderAdapter | null) => {
+    console.log('[player] provider:', provider?.constructor?.name ?? 'null', '| src:', streamUrl, '| type:', srcType);
     if (isHLSProvider(provider)) {
       const headers = currentStream.behaviorHints?.proxyHeaders?.request;
       // Mirror Stremio's hlsConfig.js — aggressive retries for slow/unstable debrid CDNs
@@ -498,6 +506,7 @@ export default function Player({
   }, [currentStream]);
 
   const onError = useCallback(() => {
+    console.log('[player] error | srcType:', srcType, '| url:', streamUrl);
     // First try flipping HLS ↔ MP4 before stream failover
     const fallback = getFallbackSourceType(srcType);
     if (fallback) {
@@ -570,6 +579,7 @@ export default function Player({
         key={streamUrl}
         src={src}
         autoPlay
+        muted
         playsInline
         style={{ width: '100%', height: '100%', position: 'absolute', inset: 0 }}
         onProviderChange={onProviderChange}
