@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useParams, useSearch, useRouter } from '@tanstack/react-router';
 import { useAuth } from '@/app/AuthProvider';
 import Player from '@/components/Player';
+import WebCodecsPlayer from '@/components/WebCodecsPlayer';
 import { StreamItem } from '@/lib/types';
 import { SubtitleItem, fetchSubtitlesFromAll, fetchStreamsFromAll } from '@/lib/stremio';
 import { getCachedStreams, getCachedStream, cacheStreams } from '@/lib/stream-cache';
@@ -166,6 +167,23 @@ export default function WatchPage() {
           Back
         </button>
       </div>
+    );
+  }
+
+  // Use WebCodecs player for streams that need remux/transcode (MKV, HEVC, etc.)
+  // The Render server is disabled — we handle these client-side via WebAssembly.
+  const tier = getStreamCompatibility(activeStream);
+  if (tier !== 'direct') {
+    return (
+      <WebCodecsPlayer
+        streamUrl={activeUrl}
+        streams={allStreams}
+        currentStream={activeStream}
+        title={resolvedTitle}
+        mediaLogo={mediaLogo}
+        onSwitchStream={handleSwitchStream}
+        onBack={() => router.history.back()}
+      />
     );
   }
 
