@@ -54,17 +54,13 @@ export default function WatchPage() {
           const tier = getStreamCompatibility(best);
           console.log(`[watch] stream tier: ${tier} | server: ${serverUrl ? 'configured' : 'none'}`);
 
-          // Mixed content: HTTP stream on an HTTPS page → browser will block it.
-          // Route through the server even for direct-tier streams in this case.
-          const isMixedContent = serverUrl && rawUrl.startsWith('http:') && window.location.protocol === 'https:';
-
-          if (serverUrl && (tier !== 'direct' || isMixedContent)) {
-            // Tier 2 (remux): container wrong, codecs fine → broad codec list,
-            //   server copies all streams — fast (~1s extra).
-            // Tier 3 (transcode): codecs need conversion → browser-detected list,
-            //   server re-encodes only what's needed.
-            // Tier 1 (direct) via server: mixed-content bypass — server proxies
-            //   the HTTP stream over HTTPS so the browser accepts it.
+          if (serverUrl) {
+            // Always route through the server when one is configured.
+            // Debrid/proxy streams rarely include CORS headers, so direct browser
+            // play fails regardless of HTTP vs HTTPS. The server fetches server-side
+            // and serves HLS segments back over the same HTTPS origin — no CORS.
+            // direct → 'remux' (broad codecs → stream-copy, no re-encode, fast)
+            // remux/transcode → keep their tier
             const effectiveTier = tier === 'direct' ? 'remux' : tier;
             const remuxed = buildRemuxUrl(serverUrl, rawUrl, effectiveTier);
             console.log(`[watch] routing via server (${effectiveTier}): ${remuxed}`);
@@ -74,8 +70,6 @@ export default function WatchPage() {
             });
             setActiveUrl(remuxed);
           } else {
-            // Tier 1 (direct): browser-native — zero added latency.
-            // Also used when no server is configured.
             setActiveStream(best);
             setActiveUrl(rawUrl);
           }
@@ -97,12 +91,20 @@ export default function WatchPage() {
   }, [type, id, addons]);
 
   function handleSwitchStream(newStream: StreamItem) {
-    const url = getPlayableStreamUrl(newStream);
-    if (!url) return;
+    const rawUrl = getPlayableStreamUrl(newStream);
+    if (!rawUrl) return;
     const video = document.querySelector('video');
     savedPosition.current = video?.currentTime || 0;
-    setActiveStream(newStream);
-    setActiveUrl(url);
+    const serverUrl = getStreamingServerUrl();
+    const tier = getStreamCompatibility(newStream);
+    if (serverUrl && !rawUrl.startsWith(serverUrl)) {
+      const effectiveTier = tier === 'direct' ? 'remux' : tier;
+      setActiveStream({ ...newStream, behaviorHints: { ...newStream.behaviorHints, webPlayableType: 'application/x-mpegurl' } });
+      setActiveUrl(buildRemuxUrl(serverUrl, rawUrl, effectiveTier));
+    } else {
+      setActiveStream(newStream);
+      setActiveUrl(rawUrl);
+    }
   }
 
   // Still fetching streams — show loading screen
