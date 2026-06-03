@@ -54,13 +54,16 @@ export default function WatchPage() {
           const tier = getStreamCompatibility(best);
           console.log(`[watch] stream tier: ${tier} | server: ${serverUrl ? 'configured' : 'none'}`);
 
-          if (serverUrl) {
-            // Always route through the server when one is configured.
-            // Debrid/proxy streams rarely include CORS headers, so direct browser
-            // play fails regardless of HTTP vs HTTPS. The server fetches server-side
-            // and serves HLS segments back over the same HTTPS origin — no CORS.
-            // direct → 'remux' (broad codecs → stream-copy, no re-encode, fast)
-            // remux/transcode → keep their tier
+          // Only route through server for streams that actually need it.
+          // direct-tier HTTPS streams: try the browser first — elfhosted and
+          // similar proxies often redirect to CDN URLs the browser can load.
+          // HTTP streams still need the server to avoid mixed-content blocking.
+          const needsServer = serverUrl && (
+            tier !== 'direct' ||
+            (rawUrl.startsWith('http:') && window.location.protocol === 'https:')
+          );
+
+          if (needsServer) {
             const effectiveTier = tier === 'direct' ? 'remux' : tier;
             const remuxed = buildRemuxUrl(serverUrl, rawUrl, effectiveTier);
             console.log(`[watch] routing via server (${effectiveTier}): ${remuxed}`);
@@ -70,6 +73,7 @@ export default function WatchPage() {
             });
             setActiveUrl(remuxed);
           } else {
+            console.log(`[watch] direct play (${tier}): ${rawUrl}`);
             setActiveStream(best);
             setActiveUrl(rawUrl);
           }
@@ -97,7 +101,11 @@ export default function WatchPage() {
     savedPosition.current = video?.currentTime || 0;
     const serverUrl = getStreamingServerUrl();
     const tier = getStreamCompatibility(newStream);
-    if (serverUrl && !rawUrl.startsWith(serverUrl)) {
+    const needsServer = serverUrl && !rawUrl.startsWith(serverUrl) && (
+      tier !== 'direct' ||
+      (rawUrl.startsWith('http:') && window.location.protocol === 'https:')
+    );
+    if (needsServer) {
       const effectiveTier = tier === 'direct' ? 'remux' : tier;
       setActiveStream({ ...newStream, behaviorHints: { ...newStream.behaviorHints, webPlayableType: 'application/x-mpegurl' } });
       setActiveUrl(buildRemuxUrl(serverUrl, rawUrl, effectiveTier));

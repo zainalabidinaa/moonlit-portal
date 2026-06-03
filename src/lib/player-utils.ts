@@ -94,7 +94,10 @@ export function getInitialSourceType(url: string, stream?: Pick<StreamItem, 'beh
     if (lower.includes(p)) return 'application/x-mpegurl';
   }
 
-  if (stream?.behaviorHints?.proxyHeaders) return 'application/x-mpegurl';
+  // proxyHeaders means auth headers are needed, not that the stream is HLS.
+  // Only treat as HLS if the URL doesn't already look like a direct video file.
+  const looksLikeVideo = lower.endsWith('.mp4') || lower.endsWith('.mkv') || lower.endsWith('.avi') || lower.endsWith('.webm') || lower.includes('.mp4?') || lower.includes('/mp4/');
+  if (stream?.behaviorHints?.proxyHeaders && !looksLikeVideo) return 'application/x-mpegurl';
 
   for (const d of HLS_DOMAIN_PATTERNS) {
     if (lower.includes(d)) return 'application/x-mpegurl';
