@@ -28,7 +28,9 @@ export default function WatchPage() {
   const [allStreams, setAllStreams] = useState<StreamItem[]>(cachedStreams);
   const [subtitles, setSubtitles] = useState<SubtitleItem[]>([]);
   // null = still fetching, string = error message, '' = ready
-  const [fetchError, setFetchError] = useState<string | null>(initialUrl ? '' : null);
+  // Skip fetch if we already have cached streams from the browse page prefetch
+  const hasCachedStreams = cachedStreams.length > 0;
+  const [fetchError, setFetchError] = useState<string | null>(initialUrl || hasCachedStreams ? '' : null);
   const savedPosition = useRef(0);
 
   // Pre-warm the streaming server so it's ready if a non-direct stream is picked.
@@ -42,17 +44,25 @@ export default function WatchPage() {
   useEffect(() => {
     if (initialUrl || authLoading) return;
     if (addons.length === 0) return;
+    // If the browse page prefetched and cached streams, use them immediately.
+    if (hasCachedStreams) {
+      setAllStreams(cachedStreams);
+    }
 
     let cancelled = false;
-    setFetchError(null);
+    // Still fetch in the background to refresh the list, but if we have cached
+    // streams we already set fetchError='' so the player shows immediately.
+    if (!hasCachedStreams) setFetchError(null);
 
     (async () => {
       try {
-        const fetched = await fetchStreamsFromAll(type, id, addons);
+        const fetched = hasCachedStreams ? cachedStreams : await fetchStreamsFromAll(type, id, addons);
         if (cancelled) return;
-        const cacheKey = `${type}:${id}`;
-        cacheStreams(cacheKey, fetched);
-        setAllStreams(fetched);
+        if (!hasCachedStreams) {
+          const cacheKey = `${type}:${id}`;
+          cacheStreams(cacheKey, fetched);
+          setAllStreams(fetched);
+        }
 
         const best = sortStreamsForBrowserPlayback(fetched)[0];
         if (best) {

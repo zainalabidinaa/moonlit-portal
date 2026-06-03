@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, Link, useNavigate } from '@tanstack/react-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/app/AuthProvider';
@@ -28,6 +28,7 @@ export default function DetailPage() {
   const [loadingStreams, setLoadingStreams] = useState(false);
   const [selectedSeason, setSelectedSeason] = useState<Season | null>(null);
   const [selectedEpisodeId, setSelectedEpisodeId] = useState<string | null>(null);
+  const prefetchedRef = useRef<string | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ['browse', type, id, currentProfile?.id],
@@ -101,6 +102,19 @@ export default function DetailPage() {
     queryClient.invalidateQueries({ queryKey: ['browse', type, id, currentProfile.id] });
   }
 
+  // Background prefetch: start fetching streams as soon as the page loads so
+  // clicking Play is instant instead of waiting for addon responses.
+  useEffect(() => {
+    if (!addons.length) return;
+    const sid = selectedEpisodeId || id;
+    const cacheKey = `${type}:${sid}`;
+    if (prefetchedRef.current === cacheKey) return;
+    prefetchedRef.current = cacheKey;
+    fetchStreamsFromAll(type, sid, addons).then(fetched => {
+      if (fetched.length > 0) cacheStreams(cacheKey, fetched);
+    }).catch(() => {});
+  }, [addons, id, type, selectedEpisodeId]);
+
   async function loadStreams(streamId?: string) {
     const sid = streamId || id;
     setShowStreams(true);
@@ -128,6 +142,7 @@ export default function DetailPage() {
 
   function handleAutoPlay(streamId?: string) {
     const sid = streamId || id;
+    const cacheKey = `${type}:${sid}`;
     const ep = streamId && selectedSeason ? selectedSeason.episodes?.find(e => e.id === streamId) : null;
     const watchTitle = ep
       ? `${detail?.name || ''} — S${selectedSeason!.number}:E${ep.episode}: ${ep.title}`
@@ -135,7 +150,7 @@ export default function DetailPage() {
     navigate({
       to: '/watch/$type/$id',
       params: { type, id: sid },
-      search: { url: '', cid: '', title: watchTitle, logo: detail?.logo ?? undefined, pos: savedPositionSeconds > 0 ? savedPositionSeconds : undefined },
+      search: { url: '', cid: cacheKey, title: watchTitle, logo: detail?.logo ?? undefined, pos: savedPositionSeconds > 0 ? savedPositionSeconds : undefined },
     });
   }
 
