@@ -19,6 +19,8 @@ import { SubtitleItem } from '@/lib/stremio';
 import { updateWatchProgress } from '@/lib/services/api';
 import { useAuth } from '@/app/AuthProvider';
 import { browserPlaybackScore, getFallbackSourceType, getInitialSourceType, getPlayableStreamUrl, sortStreamsForBrowserPlayback, streamMatchesUrl, VidstackSourceType } from '@/lib/player-utils';
+import { getStreamingServerUrl } from '@/lib/config';
+import { buildRemuxUrl } from '@/lib/streaming-server';
 
 interface PlayerProps {
   streamUrl: string;
@@ -507,7 +509,7 @@ export default function Player({
 
   const onError = useCallback(() => {
     console.log('[player] error | srcType:', srcType, '| url:', streamUrl);
-    // First try flipping HLS ↔ MP4 before stream failover
+    // 1. Try flipping HLS ↔ MP4 (cheap, same URL)
     const fallback = getFallbackSourceType(srcType);
     if (fallback) {
       const p = playerRef.current;
@@ -516,6 +518,23 @@ export default function Player({
       return;
     }
 
+    // 2. Remux fallback: a direct-play stream failed — retry the SAME stream
+    //    through the remux server before giving up on it. Skip if already remuxed.
+    const serverUrl = getStreamingServerUrl();
+    const rawUrl = currentStream.url || '';
+    if (serverUrl && rawUrl && !streamUrl.startsWith(serverUrl)) {
+      console.log('[player] direct play failed → retrying via remux server');
+      const p = playerRef.current;
+      if (p?.currentTime) savedFailoverPosition.current = p.currentTime;
+      onSwitchStream({
+        ...currentStream,
+        url: buildRemuxUrl(serverUrl, rawUrl, 'transcode'),
+        behaviorHints: { ...currentStream.behaviorHints, webPlayableType: 'application/x-mpegurl' },
+      });
+      return;
+    }
+
+    // 3. Failover to the next source
     const nextFailed = new Set(failedUrls);
     nextFailed.add(streamUrl);
     setFailedUrls(nextFailed);
@@ -532,7 +551,7 @@ export default function Player({
     } else {
       setPlaybackError('No playable sources found');
     }
-  }, [failedUrls, onSwitchStream, srcType, streamUrl, streams]);
+  }, [failedUrls, onSwitchStream, srcType, streamUrl, streams, currentStream]);
 
   useEffect(() => {
     if (!currentProfile) return;

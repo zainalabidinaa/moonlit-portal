@@ -39,11 +39,50 @@ export function sortStreamsForBrowserPlayback(streams: StreamItem[]): StreamItem
     .sort((a, b) => browserPlaybackScore(b) - browserPlaybackScore(a));
 }
 
+/**
+ * Three-tier stream compatibility classification.
+ *
+ * 'direct'    — Browser can play natively (MP4/WebM, H.264/VP9, AAC/MP3).
+ *               No server needed, zero latency added.
+ *
+ * 'remux'     — Container is wrong (MKV) but codecs are browser-compatible
+ *               (H.264 video, AAC/E-AC3 audio). The remux server just
+ *               repackages into HLS segments — copies both streams, no quality
+ *               loss, very fast startup (~1s extra).
+ *
+ * 'transcode' — Codecs need conversion (HEVC→H.264, TrueHD→AAC, DTS→AAC).
+ *               The server must re-encode. Slower startup, slight quality
+ *               trade-off, but necessary for playback.
+ */
+export type StreamTier = 'direct' | 'remux' | 'transcode';
+
+export function getStreamCompatibility(stream: StreamItem): StreamTier {
+  const text = streamSearchText(stream);
+
+  // Codec-level issues → transcode (regardless of container)
+  const badVideo =
+    text.includes('hevc') || text.includes('h.265') || text.includes('h265') || text.includes('x265') ||
+    text.includes('dolby vision') || text.includes('[dv]') || / dv[ \].]/.test(text);
+  const badAudio =
+    text.includes('truehd') || text.includes('atmos') || text.includes('dts');
+
+  if (badVideo || badAudio) return 'transcode';
+
+  // Container-level issue only → remux (copy streams, just repackage)
+  if (text.includes('.mkv')) return 'remux';
+
+  return 'direct';
+}
+
+/** Convenience alias — true for anything that needs the remux server. */
+export function isLikelyIncompatible(stream: StreamItem): boolean {
+  return getStreamCompatibility(stream) !== 'direct';
+}
+
 const HLS_URL_PATTERNS = ['.m3u8', '.m3u', '/manifest', '/playlist', '/hls/', 'type=hls'];
-// Debrid domains removed — they primarily serve MP4 files (not HLS manifests).
-// Type is now resolved by the client-side probe in stream-resolver.ts which
-// follows redirects and reads the actual content. Keeping domain guesses here
-// caused Vidstack to always try HLS first for debrid links, wasting a round-trip.
+// Debrid domains removed — they primarily serve MP4/MKV files, not HLS manifests.
+// Incompatible containers (MKV/HEVC) are now routed through the remux server
+// (see streaming-server.ts), so we no longer guess HLS by domain.
 const HLS_DOMAIN_PATTERNS: string[] = [];
 
 export function getInitialSourceType(url: string, stream?: Pick<StreamItem, 'behaviorHints'>): VidstackSourceType {

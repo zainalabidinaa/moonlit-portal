@@ -5,8 +5,9 @@ import Player from '@/components/Player';
 import { StreamItem } from '@/lib/types';
 import { SubtitleItem, fetchSubtitlesFromAll, fetchStreamsFromAll } from '@/lib/stremio';
 import { getCachedStreams, getCachedStream, cacheStreams } from '@/lib/stream-cache';
-import { getPlayableStreamUrl, sortStreamsForBrowserPlayback } from '@/lib/player-utils';
-import { probeStreamClient } from '@/lib/stream-resolver';
+import { getPlayableStreamUrl, sortStreamsForBrowserPlayback, getStreamCompatibility } from '@/lib/player-utils';
+import { getStreamingServerUrl } from '@/lib/config';
+import { buildRemuxUrl } from '@/lib/streaming-server';
 import { ChevronLeft } from 'lucide-react';
 
 export default function WatchPage() {
@@ -49,20 +50,28 @@ export default function WatchPage() {
         const best = sortStreamsForBrowserPlayback(fetched)[0];
         if (best) {
           const rawUrl = getPlayableStreamUrl(best) ?? '';
-          // Probe for type detection only — NEVER use probe.finalUrl.
-          // Debrid CDN URLs (returned after following redirects) have short
-          // expiry times and become stale by the time the player uses them.
-          // Always keep the original URL so the player gets a fresh redirect.
-          const probe = await Promise.race([
-            probeStreamClient(rawUrl, { headers: best.behaviorHints?.proxyHeaders?.request }),
-            new Promise<null>(r => setTimeout(() => r(null), 2500)),
-          ]);
-          if (cancelled) return;
-          const streamWithType = probe?.type
-            ? { ...best, behaviorHints: { ...best.behaviorHints, webPlayableType: probe.type } }
-            : best;
-          setActiveStream(streamWithType);
-          setActiveUrl(rawUrl);
+          const serverUrl = getStreamingServerUrl();
+          const tier = getStreamCompatibility(best);
+          console.log(`[watch] stream tier: ${tier} | server: ${serverUrl ? 'configured' : 'none'}`);
+
+          if (serverUrl && tier !== 'direct') {
+            // Tier 2 (remux): container wrong, codecs fine → broad codec list,
+            //   server copies all streams — fast (~1s extra).
+            // Tier 3 (transcode): codecs need conversion → browser-detected list,
+            //   server re-encodes only what's needed.
+            const remuxed = buildRemuxUrl(serverUrl, rawUrl, tier);
+            console.log(`[watch] routing via server (${tier}): ${remuxed}`);
+            setActiveStream({
+              ...best,
+              behaviorHints: { ...best.behaviorHints, webPlayableType: 'application/x-mpegurl' },
+            });
+            setActiveUrl(remuxed);
+          } else {
+            // Tier 1 (direct): browser-native — zero added latency.
+            // Also used when no server is configured.
+            setActiveStream(best);
+            setActiveUrl(rawUrl);
+          }
           setFetchError('');
         } else {
           setFetchError('No playable sources found for this title.');

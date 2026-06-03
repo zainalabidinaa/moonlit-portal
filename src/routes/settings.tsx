@@ -7,6 +7,8 @@ import { fetchManifest } from '@/lib/stremio';
 import { DEFAULT_ADDONS } from '@/lib/supabase';
 import { AddonManifest } from '@/lib/types';
 import { useNavigate } from '@tanstack/react-router';
+import { getStreamingServerUrl, setStreamingServerUrl } from '@/lib/config';
+import { pingServer } from '@/lib/streaming-server';
 
 // ── Addon capability helpers ──────────────────────────────────────────────
 
@@ -43,6 +45,23 @@ export default function SettingsPage() {
   const [newUrl, setNewUrl] = useState('');
   const [installing, setInstalling] = useState(false);
   const [installError, setInstallError] = useState('');
+
+  // Streaming (remux) server
+  const [serverUrl, setServerUrlState] = useState(() => getStreamingServerUrl());
+  const [testing, setTesting] = useState(false);
+  const [serverStatus, setServerStatus] = useState<'idle' | 'ok' | 'fail'>('idle');
+
+  async function handleSaveServer() {
+    const url = serverUrl.trim().replace(/\/+$/, '');
+    setStreamingServerUrl(url);
+    setServerUrlState(url);
+    if (!url) { setServerStatus('idle'); return; }
+    setTesting(true);
+    setServerStatus('idle');
+    const ok = await pingServer(url);
+    setServerStatus(ok ? 'ok' : 'fail');
+    setTesting(false);
+  }
 
   const { data: addonData, isLoading } = useQuery({
     queryKey: ['addons', currentProfile?.id],
@@ -215,6 +234,42 @@ export default function SettingsPage() {
             {installError && <p className="text-xs text-red-400">{installError}</p>}
             <p className="text-[11px] text-luna-muted">
               Paste a Stremio addon manifest URL. Streaming addons will appear immediately in Sources.
+            </p>
+          </div>
+        </div>
+
+        {/* Streaming server card */}
+        <div className="rounded-2xl bg-luna-surface border border-luna-border overflow-hidden">
+          <div className="px-5 py-3 border-b border-luna-border flex items-center justify-between">
+            <p className="text-xs font-bold text-white/40 uppercase tracking-wider">Streaming server</p>
+            {serverStatus === 'ok' && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full text-emerald-400 bg-emerald-400/10 border border-emerald-400/20">Connected</span>}
+            {serverStatus === 'fail' && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full text-red-400 bg-red-400/10 border border-red-400/20">Unreachable</span>}
+            {serverStatus === 'idle' && serverUrl && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full text-white/40 bg-white/5 border border-white/10">Not tested</span>}
+            {!serverUrl && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full text-white/40 bg-white/5 border border-white/10">Off</span>}
+          </div>
+          <div className="p-5 space-y-2">
+            <div className="flex gap-2">
+              <input
+                value={serverUrl}
+                onChange={e => { setServerUrlState(e.target.value); setServerStatus('idle'); }}
+                onKeyDown={e => e.key === 'Enter' && !testing && handleSaveServer()}
+                placeholder="https://luna-stremio-server.up.railway.app"
+                className="flex-1 px-4 py-2.5 bg-luna-elevated rounded-xl text-white placeholder-luna-muted focus:outline-none focus:ring-1 focus:ring-luna-accent text-sm border border-luna-border"
+              />
+              <button
+                onClick={handleSaveServer}
+                disabled={testing}
+                className="px-4 py-2.5 bg-luna-accent rounded-xl text-sm font-semibold disabled:opacity-40 hover:bg-luna-accent/90 transition-colors min-w-[110px] flex items-center justify-center"
+              >
+                {testing
+                  ? <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+                  : 'Save & Test'}
+              </button>
+            </div>
+            <p className="text-[11px] text-luna-muted leading-relaxed">
+              Plays streams the browser can't (MKV, etc.) by remuxing them. Deploy the server from
+              <span className="text-white/50"> deploy/stremio-server/</span> on Railway or Render, then paste its URL.
+              Leave blank to disable (direct play only).
             </p>
           </div>
         </div>
