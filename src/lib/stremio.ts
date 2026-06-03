@@ -2,6 +2,10 @@ import { AddonManifest, MetaPreview, MetaDetail, StreamItem } from './types';
 
 export async function fetchManifest(url: string): Promise<AddonManifest> {
   const res = await fetch(`/api/stremio/manifest?url=${encodeURIComponent(url)}`);
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error(`Manifest fetch failed (${res.status}): ${text.slice(0, 120)}`);
+  }
   const json = await res.json();
 
   const baseURL = json.transportUrl || url.replace(/\/manifest\.json(\?.*)?$/, '');

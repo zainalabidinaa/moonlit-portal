@@ -96,8 +96,9 @@ export default function SettingsPage() {
       queryClient.invalidateQueries({ queryKey: ['addons', currentProfile.id] });
       await refreshAddons();
       setNewUrl('');
-    } catch {
-      setInstallError('Could not load manifest. Check the URL and try again.');
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : '';
+      setInstallError(msg ? `Could not load manifest: ${msg}` : 'Could not load manifest. Check the URL and try again.');
     } finally {
       setInstalling(false);
     }
