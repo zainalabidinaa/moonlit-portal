@@ -176,11 +176,13 @@ export default function WatchPage() {
   }
 
   // Use WebCodecs player for streams that need remux/transcode (MKV, HEVC, etc.)
-  // Only use it when no remux server is configured — if a server is available it
-  // already handled the remux and activeUrl points at an HLS stream.
+  // Skip it when:
+  // - a remux server is configured (it already handled the conversion), or
+  // - the URL is already going through a proxy like MediaFlow Proxy (/proxy/ path)
   const tier = getStreamCompatibility(activeStream);
   const serverUrl = getStreamingServerUrl();
-  if (tier !== 'direct' && !serverUrl) {
+  const isProxiedUrl = activeUrl.includes('/proxy/') || activeUrl.includes('/_token_');
+  if (tier !== 'direct' && !serverUrl && !isProxiedUrl) {
     return (
       <WebCodecsPlayer
         streamUrl={activeUrl}
