@@ -16,7 +16,10 @@ function streamSearchText(stream: StreamItem): string {
 
 export function browserPlaybackScore(stream: StreamItem): number {
   const text = streamSearchText(stream);
-  let score = getPlayableStreamUrl(stream) ? 100 : -1000;
+  const streamUrl = getPlayableStreamUrl(stream) ?? '';
+  let score = streamUrl ? 100 : -1000;
+  // Penalise MKV URLs even when the stream metadata doesn't mention MKV
+  if (streamUrl.toLowerCase().includes('.mkv')) score -= 80;
   if (stream.infoHash || stream.behaviorHints?.notWebReady) score -= 1000;
   if (text.includes('.mp4') || text.includes(' h.264') || text.includes(' h264') || text.includes('x264') || text.includes(' avc')) score += 80;
   if (text.includes('aac')) score += 30;
@@ -107,6 +110,11 @@ export function getInitialSourceType(url: string, stream?: Pick<StreamItem, 'beh
   for (const d of HLS_DOMAIN_PATTERNS) {
     if (lower.includes(d)) return 'application/x-mpegurl';
   }
+
+  // MKV is not natively playable as video/mp4 in most browsers.
+  // Try HLS first — if the proxy (MFP) transcoded it to HLS it'll work;
+  // if not, getFallbackSourceType will flip back to video/mp4.
+  if (urlPath.endsWith('.mkv')) return 'application/x-mpegurl';
 
   return 'video/mp4';
 }
