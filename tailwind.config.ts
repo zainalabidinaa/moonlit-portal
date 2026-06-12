@@ -5,13 +5,14 @@ export default {
   theme: {
     extend: {
       colors: {
-        bg: '#f2f6fc',
-        surface: '#ffffff',
-        accent: '#6d28d9',
-        'accent-light': '#ede9fe',
-        border: '#e2e8f0',
-        text: '#0f172a',
-        muted: '#64748b',
+        bg: '#09090b',
+        surface: '#111117',
+        'surface-2': '#18181b',
+        accent: '#8b5cf6',
+        'accent-light': '#2e1065',
+        border: '#3f3f46',
+        text: '#f4f4f5',
+        muted: '#a1a1aa',
       },
     },
   },

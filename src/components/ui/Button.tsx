@@ -4,10 +4,10 @@ type Variant = 'primary' | 'secondary' | 'ghost' | 'danger';
 type Size = 'sm' | 'md' | 'lg';
 
 const variantClasses: Record<Variant, string> = {
-  primary: 'bg-accent text-white hover:bg-purple-800',
-  secondary: 'bg-accent-light text-accent hover:bg-purple-100',
-  ghost: 'bg-transparent text-muted hover:bg-border',
-  danger: 'bg-red-500 text-white hover:bg-red-600',
+  primary: 'bg-accent text-white hover:bg-violet-400',
+  secondary: 'bg-accent-light text-accent border border-accent/30 hover:bg-violet-950',
+  ghost: 'bg-transparent text-muted hover:bg-surface-2 hover:text-text',
+  danger: 'bg-red-600 text-white hover:bg-red-500',
 };
 
 const sizeClasses: Record<Size, string> = {

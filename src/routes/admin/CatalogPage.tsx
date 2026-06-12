@@ -8,6 +8,7 @@ import type { Collection } from '../../types';
 
 export default function CatalogPage() {
   const [collections, setCollections] = useState<Collection[]>([]);
+  const [folderCounts, setFolderCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | 'new' | null>(null);
   const dragIndex = useRef<number | null>(null);
@@ -15,8 +16,22 @@ export default function CatalogPage() {
   useEffect(() => { load(); }, []);
 
   async function load() {
-    const { data } = await supabase.from('collections').select('*').order('sort_order');
-    setCollections(data ?? []);
+    const { data: cols } = await supabase.from('collections').select('*').order('sort_order');
+    const rows = cols ?? [];
+    setCollections(rows);
+
+    if (rows.length > 0) {
+      const { data: folders } = await supabase
+        .from('folders')
+        .select('collection_id')
+        .in('collection_id', rows.map(c => c.id));
+      const counts: Record<string, number> = {};
+      for (const f of folders ?? []) {
+        counts[f.collection_id] = (counts[f.collection_id] ?? 0) + 1;
+      }
+      setFolderCounts(counts);
+    }
+
     setLoading(false);
   }
 
@@ -43,20 +58,33 @@ export default function CatalogPage() {
 
   return (
     <AppShell>
-      <div className="max-w-2xl mx-auto">
+      <div className="max-w-3xl mx-auto">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold text-text">Catalog</h1>
+          <div>
+            <h1 className="text-2xl font-bold text-text">Catalog</h1>
+            <p className="text-sm text-muted mt-0.5">{collections.length} collection{collections.length !== 1 ? 's' : ''}</p>
+          </div>
           <Button onClick={() => setEditingId('new')}>+ New Collection</Button>
         </div>
 
         {loading ? (
-          <p className="text-muted text-sm">Loading…</p>
+          <div className="flex flex-col gap-2">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="h-16 bg-surface rounded-xl animate-pulse" />
+            ))}
+          </div>
+        ) : collections.length === 0 ? (
+          <div className="text-center py-16 text-muted">
+            <p className="text-sm">No collections yet.</p>
+            <Button className="mt-4" onClick={() => setEditingId('new')}>Create your first collection</Button>
+          </div>
         ) : (
           <div className="flex flex-col gap-2">
             {collections.map((c, i) => (
               <CollectionRow
                 key={c.id}
                 collection={c}
+                folderCount={folderCounts[c.id] ?? 0}
                 onEdit={() => setEditingId(c.id)}
                 onDelete={() => handleDelete(c.id)}
                 onDragStart={() => handleDragStart(i)}
