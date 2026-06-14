@@ -51,7 +51,7 @@ export function FolderTile({ folder, showGlow = false }: FolderTileProps) {
             className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
           />
         ) : (
-          <div className="w-full h-full bg-luna-elevated flex items-center justify-center">
+          <div className="w-full h-full bg-nightarc-elevated flex items-center justify-center">
             <span className="text-xs font-bold text-white/40 text-center px-2">{folder.name}</span>
           </div>
         )}

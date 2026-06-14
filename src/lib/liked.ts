@@ -15,7 +15,7 @@ export interface UpcomingInfo {
   releaseDate?: string;
 }
 
-const STORAGE_KEY = 'luna.liked.items';
+const STORAGE_KEY = 'nightarc.liked.items';
 
 export function getLikedItems(): LikedItem[] {
   try {
@@ -28,13 +28,13 @@ export function addLiked(item: Omit<LikedItem, 'id' | 'likedAt'>): void {
   const items = getLikedItems().filter(i => i.mediaId !== item.mediaId);
   items.unshift({ ...item, id: item.mediaId, likedAt: new Date().toISOString() });
   localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
-  window.dispatchEvent(new Event('luna-liked-changed'));
+  window.dispatchEvent(new Event('nightarc-liked-changed'));
 }
 
 export function removeLiked(mediaId: string): void {
   const items = getLikedItems().filter(i => i.mediaId !== mediaId);
   localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
-  window.dispatchEvent(new Event('luna-liked-changed'));
+  window.dispatchEvent(new Event('nightarc-liked-changed'));
 }
 
 export function isLiked(mediaId: string): boolean {
@@ -43,7 +43,7 @@ export function isLiked(mediaId: string): boolean {
 
 // ── Upcoming (TMDB-based, matches iOS UpcomingItemsService) ───────────────
 
-const CACHE_KEY = 'luna.upcoming.cache';
+const CACHE_KEY = 'nightarc.upcoming.cache';
 const CACHE_TTL_MS = 4 * 60 * 60 * 1000; // 4 hours
 
 interface CacheEntry { data: Record<string, UpcomingInfo>; ts: number }

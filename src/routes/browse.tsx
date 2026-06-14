@@ -229,7 +229,7 @@ export default function DetailPage() {
     return (
       <Sidebar>
         <div className="flex items-center justify-center min-h-screen">
-          <div className="animate-spin rounded-full h-6 w-6 border-2 border-luna-accent border-t-transparent" />
+          <div className="animate-spin rounded-full h-6 w-6 border-2 border-nightarc-accent border-t-transparent" />
         </div>
       </Sidebar>
     );
@@ -246,7 +246,7 @@ export default function DetailPage() {
         {trailers.map(trailer => (
           <a key={trailer.id} href={`https://www.youtube.com/watch?v=${trailer.youtubeId}`}
             target="_blank" rel="noopener noreferrer" className="flex-shrink-0 w-52 group cursor-pointer">
-            <div className="relative w-52 h-[117px] rounded-xl overflow-hidden bg-luna-elevated mb-2">
+            <div className="relative w-52 h-[117px] rounded-xl overflow-hidden bg-nightarc-elevated mb-2">
               <img src={`https://img.youtube.com/vi/${trailer.youtubeId}/mqdefault.jpg`} alt={trailer.title}
                 className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
               <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
@@ -272,8 +272,8 @@ export default function DetailPage() {
           </div>
         )}
         <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-[#080808] to-transparent" />
-        <div className="absolute inset-0 bg-gradient-to-t from-luna-bg via-luna-bg/30 to-transparent" />
-        <div className="absolute inset-0 bg-gradient-to-r from-luna-bg/60 via-transparent to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-nightarc-bg via-nightarc-bg/30 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-r from-nightarc-bg/60 via-transparent to-transparent" />
 
         <div className="relative z-10 w-full px-6 pt-28 pb-10 max-w-5xl">
           <div className="max-w-xl">
@@ -337,7 +337,7 @@ export default function DetailPage() {
                 </button>
               ) : null}
               <button onClick={handleToggleLibrary}
-                className={`flex items-center gap-2 px-6 py-2.5 rounded-md font-semibold transition-all text-sm border ${inLibrary ? 'bg-luna-accent/20 border-luna-accent/40 text-luna-accent' : 'bg-white/10 border-white/10 text-white hover:bg-white/15'}`}>
+                className={`flex items-center gap-2 px-6 py-2.5 rounded-md font-semibold transition-all text-sm border ${inLibrary ? 'bg-nightarc-accent/20 border-nightarc-accent/40 text-nightarc-accent' : 'bg-white/10 border-white/10 text-white hover:bg-white/15'}`}>
                 <svg viewBox="0 0 24 24" fill={inLibrary ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.5" className="w-5 h-5">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z" />
                 </svg>
@@ -390,7 +390,7 @@ export default function DetailPage() {
               <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
                 {similar.slice(0, 15).map(item => (
                   <Link key={item.id} to="/browse/$type/$id" params={{ type: item.type, id: item.id }} className="group cursor-pointer">
-                    <div className="relative aspect-[2/3] rounded-lg overflow-hidden bg-luna-elevated mb-2">
+                    <div className="relative aspect-[2/3] rounded-lg overflow-hidden bg-nightarc-elevated mb-2">
                       {item.poster ? (
                         <img src={item.poster} alt={item.name} className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" loading="lazy" />
                       ) : (
@@ -439,7 +439,7 @@ export default function DetailPage() {
             </h3>
             {loadingStreams ? (
               <div className="flex items-center gap-2 text-white/30 text-sm">
-                <div className="animate-spin rounded-full h-4 w-4 border-2 border-luna-accent border-t-transparent" />
+                <div className="animate-spin rounded-full h-4 w-4 border-2 border-nightarc-accent border-t-transparent" />
                 Fetching streams...
               </div>
             ) : streams.length === 0 ? (
@@ -453,7 +453,7 @@ export default function DetailPage() {
                       <p className="text-sm text-white truncate">{s.title || s.name || s.description || 'Unknown'}</p>
                       <p className="text-xs text-white/30 mt-0.5">{s.addonName}</p>
                     </div>
-                    <div className="flex-shrink-0 w-7 h-7 rounded-full bg-white/10 group-hover:bg-luna-accent/20 flex items-center justify-center ml-3 transition-colors opacity-0 group-hover:opacity-100">
+                    <div className="flex-shrink-0 w-7 h-7 rounded-full bg-white/10 group-hover:bg-nightarc-accent/20 flex items-center justify-center ml-3 transition-colors opacity-0 group-hover:opacity-100">
                       <PlayIcon />
                     </div>
                   </button>
@@ -479,8 +479,8 @@ export default function DetailPage() {
             <div className="flex gap-4 overflow-x-auto pb-3 scrollbar-hide -mx-6 px-6">
               {selectedSeason.episodes.map(ep => (
                 <button key={ep.id} onClick={() => { setSelectedEpisodeId(ep.id); handleAutoPlay(ep.id); }}
-                  className={`flex-shrink-0 w-52 text-left group rounded-xl overflow-hidden transition-all ${selectedEpisodeId === ep.id ? 'ring-2 ring-luna-accent' : ''}`}>
-                  <div className="relative w-full aspect-video bg-luna-elevated rounded-xl overflow-hidden mb-2">
+                  className={`flex-shrink-0 w-52 text-left group rounded-xl overflow-hidden transition-all ${selectedEpisodeId === ep.id ? 'ring-2 ring-nightarc-accent' : ''}`}>
+                  <div className="relative w-full aspect-video bg-nightarc-elevated rounded-xl overflow-hidden mb-2">
                     {ep.thumbnail ? (
                       <img src={ep.thumbnail} alt={ep.title} className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
                     ) : (
@@ -493,7 +493,7 @@ export default function DetailPage() {
                     </div>
                     {epProgress[ep.id] !== undefined && epProgress[ep.id] > 0 && (
                       <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-white/20">
-                        <div className="h-full bg-luna-accent" style={{ width: `${Math.round(epProgress[ep.id] * 100)}%` }} />
+                        <div className="h-full bg-nightarc-accent" style={{ width: `${Math.round(epProgress[ep.id] * 100)}%` }} />
                       </div>
                     )}
                   </div>

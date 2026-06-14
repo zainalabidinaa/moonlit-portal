@@ -5,7 +5,7 @@ export default {
     extend: {
       fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
       colors: {
-        luna: {
+        nightarc: {
           bg: '#080808',
           surface: '#111111',
           elevated: '#1c1c1e',

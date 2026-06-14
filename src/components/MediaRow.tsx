@@ -11,7 +11,7 @@ function MediaCard({ item }: { item: MetaPreview }) {
       params={{ type: item.type, id: item.id }}
       className="flex-shrink-0 group cursor-pointer"
     >
-      <div className="relative w-[152px] md:w-[168px] aspect-[2/3] overflow-hidden rounded-xl bg-luna-elevated mb-2.5">
+      <div className="relative w-[152px] md:w-[168px] aspect-[2/3] overflow-hidden rounded-xl bg-nightarc-elevated mb-2.5">
         {item.poster && !imgError ? (
           <img
             src={item.poster}
@@ -21,7 +21,7 @@ function MediaCard({ item }: { item: MetaPreview }) {
             onError={() => setImgError(true)}
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center bg-luna-elevated">
+          <div className="w-full h-full flex items-center justify-center bg-nightarc-elevated">
             <span className="text-xs text-white/20 text-center px-3 line-clamp-3">{item.name}</span>
           </div>
         )}

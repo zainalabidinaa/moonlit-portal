@@ -134,7 +134,7 @@ export default function AdminPage() {
     return (
       <Sidebar>
         <div className="flex items-center justify-center min-h-screen">
-          <div className="animate-spin rounded-full h-6 w-6 border-2 border-luna-accent border-t-transparent" />
+          <div className="animate-spin rounded-full h-6 w-6 border-2 border-nightarc-accent border-t-transparent" />
         </div>
       </Sidebar>
     );
@@ -142,7 +142,7 @@ export default function AdminPage() {
 
   return (
     <Sidebar>
-      <div className="-mt-14 pt-14 pb-8 bg-gradient-to-b from-luna-elevated to-transparent">
+      <div className="-mt-14 pt-14 pb-8 bg-gradient-to-b from-nightarc-elevated to-transparent">
         <div className="px-6 pt-8 max-w-4xl">
           <h1 className="text-2xl font-bold text-white mb-6">Admin Panel</h1>
           <div className="inline-flex items-center gap-1 p-1.5 bg-[#1e1e1e]/90 border border-white/10 rounded-full">
@@ -159,14 +159,14 @@ export default function AdminPage() {
       <div className="px-6 pb-12 max-w-4xl">
         {section === 'collections' && (
           <div>
-            <div className="bg-luna-surface rounded-2xl p-4 mb-8">
-              <p className="text-xs text-luna-muted uppercase tracking-widest mb-3">System Addon</p>
+            <div className="bg-nightarc-surface rounded-2xl p-4 mb-8">
+              <p className="text-xs text-nightarc-muted uppercase tracking-widest mb-3">System Addon</p>
               <div className="flex gap-2">
                 <input value={addonUrlInput} onChange={e => setAddonUrlInput(e.target.value)}
                   placeholder="https://your-addon.xyz/manifest.json"
-                  className="flex-1 px-3 py-2 bg-luna-elevated rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-luna-accent" />
+                  className="flex-1 px-3 py-2 bg-nightarc-elevated rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-nightarc-accent" />
                 <button onClick={handleSaveAddon} disabled={addonSaving}
-                  className="px-4 py-2 bg-luna-accent rounded-xl text-sm disabled:opacity-50">
+                  className="px-4 py-2 bg-nightarc-accent rounded-xl text-sm disabled:opacity-50">
                   {addonSaving ? 'Saving...' : 'Save'}
                 </button>
               </div>
@@ -177,38 +177,38 @@ export default function AdminPage() {
               <input value={newRowName} onChange={e => setNewRowName(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleAddRow()}
                 placeholder="New collection row name…"
-                className="flex-1 px-3 py-2 bg-luna-elevated rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-luna-accent" />
-              <button onClick={handleAddRow} className="px-4 py-2 bg-luna-accent rounded-xl text-sm">+ Add Row</button>
+                className="flex-1 px-3 py-2 bg-nightarc-elevated rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-nightarc-accent" />
+              <button onClick={handleAddRow} className="px-4 py-2 bg-nightarc-accent rounded-xl text-sm">+ Add Row</button>
             </div>
 
             <div className="space-y-3">
               {collections.map(col => (
-                <div key={col.id} className="bg-luna-surface rounded-2xl overflow-hidden">
+                <div key={col.id} className="bg-nightarc-surface rounded-2xl overflow-hidden">
                   <div className="flex items-center justify-between px-4 py-3">
                     <button onClick={() => toggleExpand(col.id)} className="flex items-center gap-2 text-left flex-1">
                       <span className="text-sm font-semibold text-white">{col.name}</span>
-                      <span className="text-xs text-luna-muted">{col.folders?.length || 0} folders</span>
-                      <span className="text-luna-muted text-xs ml-1">{expandedRows.has(col.id) ? '▲' : '▼'}</span>
+                      <span className="text-xs text-nightarc-muted">{col.folders?.length || 0} folders</span>
+                      <span className="text-nightarc-muted text-xs ml-1">{expandedRows.has(col.id) ? '▲' : '▼'}</span>
                     </button>
                     <button onClick={() => handleDeleteRow(col.id)} className="text-xs text-red-400 hover:text-red-300 ml-4">Delete</button>
                   </div>
                   {expandedRows.has(col.id) && (
-                    <div className="border-t border-white/5 px-4 py-3 bg-luna-elevated/30">
+                    <div className="border-t border-white/5 px-4 py-3 bg-nightarc-elevated/30">
                       <div className="flex flex-wrap gap-3 mb-3">
                         {(col.folders || []).map(folder => (
                           <div key={folder.id} className="relative group">
-                            <div className="w-28 h-16 rounded-lg overflow-hidden bg-luna-elevated cursor-pointer" onClick={() => openEditFolder(col.id, folder)}>
+                            <div className="w-28 h-16 rounded-lg overflow-hidden bg-nightarc-elevated cursor-pointer" onClick={() => openEditFolder(col.id, folder)}>
                               {folder.cover_image
                                 ? <img src={folder.cover_image} alt={folder.name} className="w-full h-full object-cover" />
-                                : <div className="w-full h-full flex items-center justify-center"><span className="text-xs text-luna-muted text-center px-1">{folder.name}</span></div>}
+                                : <div className="w-full h-full flex items-center justify-center"><span className="text-xs text-nightarc-muted text-center px-1">{folder.name}</span></div>}
                             </div>
-                            <p className="text-xs text-luna-muted mt-1 truncate w-28">{folder.name}</p>
+                            <p className="text-xs text-nightarc-muted mt-1 truncate w-28">{folder.name}</p>
                             <button onClick={() => handleDeleteFolder(folder.id)}
                               className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full text-white text-xs hidden group-hover:flex items-center justify-center">×</button>
                           </div>
                         ))}
                         <button onClick={() => openAddFolder(col.id)}
-                          className="w-28 h-16 rounded-lg border-2 border-dashed border-luna-muted/30 hover:border-luna-accent flex items-center justify-center text-luna-muted hover:text-luna-accent transition-colors text-xs">
+                          className="w-28 h-16 rounded-lg border-2 border-dashed border-nightarc-muted/30 hover:border-nightarc-accent flex items-center justify-center text-nightarc-muted hover:text-nightarc-accent transition-colors text-xs">
                           + Add Folder
                         </button>
                       </div>
@@ -216,7 +216,7 @@ export default function AdminPage() {
                   )}
                 </div>
               ))}
-              {collections.length === 0 && <p className="text-sm text-luna-muted text-center py-8">No collection rows yet. Add one above.</p>}
+              {collections.length === 0 && <p className="text-sm text-nightarc-muted text-center py-8">No collection rows yet. Add one above.</p>}
             </div>
           </div>
         )}
@@ -225,17 +225,17 @@ export default function AdminPage() {
           <div>
             <div className="flex gap-2 mb-4 items-center">
               <input type="number" value={maxUses} onChange={e => setMaxUses(Number(e.target.value))} min={1} max={100}
-                className="w-20 px-3 py-2 bg-luna-elevated rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-luna-accent text-sm" />
-              <span className="text-sm text-luna-muted">uses per code</span>
-              <button onClick={handleGenerate} className="ml-auto px-4 py-2 bg-luna-accent rounded-xl text-sm">Generate Code</button>
+                className="w-20 px-3 py-2 bg-nightarc-elevated rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-nightarc-accent text-sm" />
+              <span className="text-sm text-nightarc-muted">uses per code</span>
+              <button onClick={handleGenerate} className="ml-auto px-4 py-2 bg-nightarc-accent rounded-xl text-sm">Generate Code</button>
             </div>
             <div className="space-y-2">
-              <p className="text-sm text-luna-muted mb-2">Active: {codes.filter(c => c.is_active && !c.used_by).length} | Total: {codes.length}</p>
+              <p className="text-sm text-nightarc-muted mb-2">Active: {codes.filter(c => c.is_active && !c.used_by).length} | Total: {codes.length}</p>
               {codes.map(code => (
-                <div key={code.code} className="p-3 bg-luna-surface rounded-xl flex items-center justify-between">
+                <div key={code.code} className="p-3 bg-nightarc-surface rounded-xl flex items-center justify-between">
                   <div>
                     <p className="font-mono font-bold">{code.code}</p>
-                    <p className="text-xs text-luna-muted">Created: {new Date(code.created_at).toLocaleDateString()}{code.used_by && ' • Used'}{!code.is_active && ' • Revoked'}</p>
+                    <p className="text-xs text-nightarc-muted">Created: {new Date(code.created_at).toLocaleDateString()}{code.used_by && ' • Used'}{!code.is_active && ' • Revoked'}</p>
                   </div>
                   <div className="flex gap-2 items-center">
                     <span className={`w-2 h-2 rounded-full ${code.is_active && !code.used_by ? 'bg-green-500' : code.used_by ? 'bg-red-500' : 'bg-gray-500'}`} />
@@ -255,9 +255,9 @@ export default function AdminPage() {
               { label: 'Used Codes', value: codes.filter(c => c.used_by).length },
               { label: 'Collection Rows', value: collections.length },
             ].map(stat => (
-              <div key={stat.label} className="p-4 bg-luna-surface rounded-xl text-center">
+              <div key={stat.label} className="p-4 bg-nightarc-surface rounded-xl text-center">
                 <p className="text-2xl font-bold">{stat.value}</p>
-                <p className="text-xs text-luna-muted">{stat.label}</p>
+                <p className="text-xs text-nightarc-muted">{stat.label}</p>
               </div>
             ))}
           </div>
@@ -266,7 +266,7 @@ export default function AdminPage() {
 
       {folderModal.open && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-luna-surface rounded-2xl p-6 w-full max-w-md">
+          <div className="bg-nightarc-surface rounded-2xl p-6 w-full max-w-md">
             <h2 className="text-lg font-bold mb-4">{folderModal.folder?.id ? 'Edit Folder' : 'Add Folder'}</h2>
             <div className="space-y-3">
               {[
@@ -275,35 +275,35 @@ export default function AdminPage() {
                 { label: 'Hover GIF URL', key: 'focus_gif', placeholder: 'https://cdn.example.com/netflix.gif' },
               ].map(({ label, key, placeholder }) => (
                 <div key={key}>
-                  <label className="text-xs text-luna-muted mb-1 block">{label}</label>
+                  <label className="text-xs text-nightarc-muted mb-1 block">{label}</label>
                   <input value={(folderModal.folder as any)?.[key] || ''} placeholder={placeholder}
                     onChange={e => setFolderModal(prev => ({ ...prev, folder: { ...prev.folder, [key]: e.target.value } }))}
-                    className="w-full px-3 py-2 bg-luna-elevated rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-luna-accent" />
+                    className="w-full px-3 py-2 bg-nightarc-elevated rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-nightarc-accent" />
                 </div>
               ))}
               <div>
-                <label className="text-xs text-luna-muted mb-1 block">Tile Shape</label>
+                <label className="text-xs text-nightarc-muted mb-1 block">Tile Shape</label>
                 <div className="flex gap-2">
                   {(['PORTRAIT', 'LANDSCAPE'] as const).map(shape => (
                     <button key={shape} type="button"
                       onClick={() => setFolderModal(prev => ({ ...prev, folder: { ...prev.folder, tile_shape: shape } }))}
-                      className={`flex-1 py-2 rounded-xl text-sm font-medium transition-all border ${(folderModal.folder?.tile_shape ?? 'PORTRAIT') === shape ? 'bg-luna-accent/20 border-luna-accent/40 text-luna-accent' : 'bg-luna-elevated border-transparent text-luna-muted hover:text-white'}`}>
+                      className={`flex-1 py-2 rounded-xl text-sm font-medium transition-all border ${(folderModal.folder?.tile_shape ?? 'PORTRAIT') === shape ? 'bg-nightarc-accent/20 border-nightarc-accent/40 text-nightarc-accent' : 'bg-nightarc-elevated border-transparent text-nightarc-muted hover:text-white'}`}>
                       {shape === 'PORTRAIT' ? '▭ Portrait' : '▬ Landscape'}
                     </button>
                   ))}
                 </div>
               </div>
               <div>
-                <label className="text-xs text-luna-muted mb-1 block">Catalogs <span className="opacity-50">(catalog_id:media_type, comma-separated)</span></label>
+                <label className="text-xs text-nightarc-muted mb-1 block">Catalogs <span className="opacity-50">(catalog_id:media_type, comma-separated)</span></label>
                 <input value={folderModal.catalogInput} placeholder="netflix-movies:movie, netflix-series:series"
                   onChange={e => setFolderModal(prev => ({ ...prev, catalogInput: e.target.value }))}
-                  className="w-full px-3 py-2 bg-luna-elevated rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-luna-accent" />
+                  className="w-full px-3 py-2 bg-nightarc-elevated rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-nightarc-accent" />
               </div>
             </div>
             <div className="flex gap-2 mt-5">
               <button onClick={() => setFolderModal({ open: false, collectionId: '', folder: null, catalogInput: '' })}
-                className="flex-1 py-2 bg-luna-elevated rounded-xl text-sm">Cancel</button>
-              <button onClick={handleSaveFolder} className="flex-1 py-2 bg-luna-accent rounded-xl text-sm">Save</button>
+                className="flex-1 py-2 bg-nightarc-elevated rounded-xl text-sm">Cancel</button>
+              <button onClick={handleSaveFolder} className="flex-1 py-2 bg-nightarc-accent rounded-xl text-sm">Save</button>
             </div>
           </div>
         </div>

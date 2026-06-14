@@ -1,5 +1,5 @@
 // Mirrors iOS LastPlaybackSourceStore — persists the last-chosen stream URL per media item.
-// localStorage key: luna.lastPlaybackSource.<mediaId>
+// localStorage key: nightarc.lastPlaybackSource.<mediaId>
 
 export interface LastStream {
   url: string;
@@ -8,7 +8,7 @@ export interface LastStream {
   savedAt: number;
 }
 
-const PREFIX = 'luna.lastPlaybackSource.';
+const PREFIX = 'nightarc.lastPlaybackSource.';
 const MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 
 export function saveLastStream(mediaId: string, stream: { url: string; addonName?: string; streamTitle?: string }) {

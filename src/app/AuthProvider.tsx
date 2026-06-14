@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { supabase } from '@/lib/supabase';
-import { LunaProfile, AddonManifest } from '@/lib/types';
+import { NightarcProfile, AddonManifest } from '@/lib/types';
 import { getProfiles, getInstalledAddons } from '@/lib/services/api';
 import { fetchManifest } from '@/lib/stremio';
 import { DEFAULT_ADDONS } from '@/lib/supabase';
@@ -8,14 +8,14 @@ import { DEFAULT_ADDONS } from '@/lib/supabase';
 interface AuthContextType {
   user: any;
   session: any;
-  profiles: LunaProfile[];
-  currentProfile: LunaProfile | null;
+  profiles: NightarcProfile[];
+  currentProfile: NightarcProfile | null;
   addons: AddonManifest[];
   isLoading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, inviteCode: string) => Promise<void>;
   signOut: () => Promise<void>;
-  selectProfile: (profile: LunaProfile) => void;
+  selectProfile: (profile: NightarcProfile) => void;
   createProfile: (name: string) => Promise<void>;
   deleteProfile: (profileId: string) => Promise<void>;
   refreshProfiles: () => Promise<void>;
@@ -27,8 +27,8 @@ const AuthContext = createContext<AuthContextType | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<any>(null);
   const [session, setSession] = useState<any>(null);
-  const [profiles, setProfiles] = useState<LunaProfile[]>([]);
-  const [currentProfile, setCurrentProfile] = useState<LunaProfile | null>(null);
+  const [profiles, setProfiles] = useState<NightarcProfile[]>([]);
+  const [currentProfile, setCurrentProfile] = useState<NightarcProfile | null>(null);
   const [addons, setAddons] = useState<AddonManifest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -119,7 +119,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setAddons([]);
   }
 
-  function handleSelectProfile(profile: LunaProfile) {
+  function handleSelectProfile(profile: NightarcProfile) {
     setCurrentProfile(profile);
     loadAddons(profile.id);
   }

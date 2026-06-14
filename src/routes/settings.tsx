@@ -72,7 +72,7 @@ function SettingsRow({ iconBg, icon, title, subtitle, value, chevron = true, onC
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium text-white">{title}</p>
-        {subtitle && <p className="text-xs text-luna-muted truncate">{subtitle}</p>}
+        {subtitle && <p className="text-xs text-nightarc-muted truncate">{subtitle}</p>}
       </div>
       {value && <span className="text-xs text-white/40 shrink-0">{value}</span>}
       {chevron && (
@@ -170,7 +170,7 @@ export default function SettingsPage() {
 
   return (
     <Sidebar>
-      <div className="-mt-14 pt-14 pb-8 bg-gradient-to-b from-luna-elevated to-transparent">
+      <div className="-mt-14 pt-14 pb-8 bg-gradient-to-b from-nightarc-elevated to-transparent">
         <div className="px-6 pt-8 max-w-2xl mx-auto">
           <h1 className="text-2xl font-bold text-white">Settings</h1>
         </div>
@@ -179,7 +179,7 @@ export default function SettingsPage() {
       <div className="px-6 pb-16 max-w-2xl mx-auto">
 
         {/* ── Profile card ── */}
-        <div className="mt-2 rounded-2xl bg-luna-surface border border-luna-border overflow-hidden">
+        <div className="mt-2 rounded-2xl bg-nightarc-surface border border-nightarc-border overflow-hidden">
           <div className="px-4 py-3.5 flex items-center gap-3">
             <div className="w-11 h-11 rounded-full flex items-center justify-center text-base font-bold shrink-0"
               style={{ backgroundColor: currentProfile?.avatar_color || '#c084fc' }}>
@@ -187,7 +187,7 @@ export default function SettingsPage() {
             </div>
             <div className="flex-1 min-w-0">
               <p className="font-semibold text-white text-sm">{currentProfile?.name}</p>
-              <p className="text-xs text-luna-muted mt-0.5">{currentProfile?.role === 'admin' ? 'Administrator' : 'Member'}</p>
+              <p className="text-xs text-nightarc-muted mt-0.5">{currentProfile?.role === 'admin' ? 'Administrator' : 'Member'}</p>
             </div>
             <button onClick={() => navigate({ to: '/profiles' })}
               className="text-xs text-white/80 font-semibold px-3 py-1.5 rounded-lg bg-white/8 border border-white/[0.12] hover:bg-white/15 transition-colors shrink-0">
@@ -198,7 +198,7 @@ export default function SettingsPage() {
 
         {/* ── GENERAL ── */}
         <SectionLabel>General</SectionLabel>
-        <div className="rounded-2xl bg-luna-surface border border-luna-border overflow-hidden">
+        <div className="rounded-2xl bg-nightarc-surface border border-nightarc-border overflow-hidden">
           <SettingsRow
             iconBg="#2C7DE8"
             icon={<svg viewBox="0 0 24 24" fill="white" className="w-4 h-4"><path d="M3 3h18v2H3zm0 4h18v2H3zm0 4h12v2H3zm0 4h12v2H3zm0 4h18v2H3z"/></svg>}
@@ -211,7 +211,7 @@ export default function SettingsPage() {
 
         {/* ── CONTENT MANAGEMENT ── */}
         <SectionLabel>Content Management</SectionLabel>
-        <div className="rounded-2xl bg-luna-surface border border-luna-border overflow-hidden">
+        <div className="rounded-2xl bg-nightarc-surface border border-nightarc-border overflow-hidden">
           <SettingsRow
             iconBg="#5956D6"
             icon={<svg viewBox="0 0 24 24" fill="white" className="w-4 h-4"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/></svg>}
@@ -242,13 +242,13 @@ export default function SettingsPage() {
           )}
 
           {showAddons && (
-            <div className="border-t border-luna-border">
+            <div className="border-t border-nightarc-border">
               {isLoading ? (
                 <div className="p-5 flex justify-center">
-                  <div className="animate-spin rounded-full h-5 w-5 border-2 border-luna-accent border-t-transparent" />
+                  <div className="animate-spin rounded-full h-5 w-5 border-2 border-nightarc-accent border-t-transparent" />
                 </div>
               ) : (
-                <div className="divide-y divide-luna-border">
+                <div className="divide-y divide-nightarc-border">
                   {addonUrls.map(url => {
                     const manifest = manifestCache[url];
                     const caps = manifest ? getAddonCapabilities(manifest) : [];
@@ -292,19 +292,19 @@ export default function SettingsPage() {
               )}
 
               {/* Install input */}
-              <div className="p-4 border-t border-luna-border space-y-2">
+              <div className="p-4 border-t border-nightarc-border space-y-2">
                 <div className="flex gap-2">
                   <input
                     value={newUrl}
                     onChange={e => { setNewUrl(e.target.value); setInstallError(''); }}
                     onKeyDown={e => e.key === 'Enter' && !installing && handleInstall()}
                     placeholder="https://.../manifest.json"
-                    className="flex-1 px-4 py-2.5 bg-luna-elevated rounded-xl text-white placeholder-luna-muted focus:outline-none focus:ring-1 focus:ring-luna-accent text-sm border border-luna-border"
+                    className="flex-1 px-4 py-2.5 bg-nightarc-elevated rounded-xl text-white placeholder-nightarc-muted focus:outline-none focus:ring-1 focus:ring-nightarc-accent text-sm border border-nightarc-border"
                   />
                   <button
                     onClick={handleInstall}
                     disabled={!newUrl.trim() || installing}
-                    className="px-4 py-2.5 bg-luna-accent rounded-xl text-sm font-semibold disabled:opacity-40 hover:bg-luna-accent/90 transition-colors min-w-[80px] flex items-center justify-center"
+                    className="px-4 py-2.5 bg-nightarc-accent rounded-xl text-sm font-semibold disabled:opacity-40 hover:bg-nightarc-accent/90 transition-colors min-w-[80px] flex items-center justify-center"
                   >
                     {installing
                       ? <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
@@ -312,7 +312,7 @@ export default function SettingsPage() {
                   </button>
                 </div>
                 {installError && <p className="text-xs text-red-400">{installError}</p>}
-                <p className="text-[11px] text-luna-muted">
+                <p className="text-[11px] text-nightarc-muted">
                   Paste a Stremio addon manifest URL. Streaming addons will appear immediately in Sources.
                 </p>
               </div>
@@ -322,7 +322,7 @@ export default function SettingsPage() {
 
         {/* ── PLAYBACK ── */}
         <SectionLabel>Playback</SectionLabel>
-        <div className="rounded-2xl bg-luna-surface border border-luna-border overflow-hidden">
+        <div className="rounded-2xl bg-nightarc-surface border border-nightarc-border overflow-hidden">
           <SettingsRow
             iconBg="#FF3B30"
             icon={<svg viewBox="0 0 24 24" fill="white" className="w-4 h-4"><path d="M4 4h16a1 1 0 011 1v14a1 1 0 01-1 1H4a1 1 0 01-1-1V5a1 1 0 011-1zm6 7.5l5 2.5-5 2.5v-5z"/></svg>}
@@ -360,26 +360,26 @@ export default function SettingsPage() {
           />
 
           {showServer && (
-            <div className="p-4 border-t border-luna-border space-y-2">
+            <div className="p-4 border-t border-nightarc-border space-y-2">
               <div className="flex gap-2">
                 <input
                   value={serverUrl}
                   onChange={e => { setServerUrlState(e.target.value); setServerStatus('idle'); }}
                   onKeyDown={e => e.key === 'Enter' && !testing && handleSaveServer()}
-                  placeholder="https://luna-stremio-server.up.railway.app"
-                  className="flex-1 px-4 py-2.5 bg-luna-elevated rounded-xl text-white placeholder-luna-muted focus:outline-none focus:ring-1 focus:ring-luna-accent text-sm border border-luna-border"
+                  placeholder="https://nightarc-stremio-server.up.railway.app"
+                  className="flex-1 px-4 py-2.5 bg-nightarc-elevated rounded-xl text-white placeholder-nightarc-muted focus:outline-none focus:ring-1 focus:ring-nightarc-accent text-sm border border-nightarc-border"
                 />
                 <button
                   onClick={handleSaveServer}
                   disabled={testing}
-                  className="px-4 py-2.5 bg-luna-accent rounded-xl text-sm font-semibold disabled:opacity-40 hover:bg-luna-accent/90 transition-colors min-w-[110px] flex items-center justify-center"
+                  className="px-4 py-2.5 bg-nightarc-accent rounded-xl text-sm font-semibold disabled:opacity-40 hover:bg-nightarc-accent/90 transition-colors min-w-[110px] flex items-center justify-center"
                 >
                   {testing
                     ? <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
                     : 'Save & Test'}
                 </button>
               </div>
-              <p className="text-[11px] text-luna-muted leading-relaxed">
+              <p className="text-[11px] text-nightarc-muted leading-relaxed">
                 Plays streams the browser can't (MKV, etc.) by remuxing them. Deploy from
                 <span className="text-white/50"> deploy/stremio-server/</span> on Railway or Render.
                 Leave blank to use direct play only.
@@ -390,11 +390,11 @@ export default function SettingsPage() {
 
         {/* ── APP ── */}
         <SectionLabel>App</SectionLabel>
-        <div className="rounded-2xl bg-luna-surface border border-luna-border overflow-hidden">
+        <div className="rounded-2xl bg-nightarc-surface border border-nightarc-border overflow-hidden">
           <SettingsRow
             iconBg="#3A3A3C"
             icon={<svg viewBox="0 0 24 24" fill="white" className="w-4 h-4"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>}
-            title="Luna v1.0.0"
+            title="Nightarc v1.0.0"
             subtitle="Powered by Stremio addon ecosystem"
             chevron={false}
           />
@@ -403,7 +403,7 @@ export default function SettingsPage() {
         {/* ── Sign Out ── */}
         <button
           onClick={signOut}
-          className="mt-6 w-full py-3.5 rounded-2xl bg-luna-surface border border-luna-border text-red-400 text-sm font-semibold hover:bg-red-500/5 transition-colors"
+          className="mt-6 w-full py-3.5 rounded-2xl bg-nightarc-surface border border-nightarc-border text-red-400 text-sm font-semibold hover:bg-red-500/5 transition-colors"
         >
           Sign Out
         </button>

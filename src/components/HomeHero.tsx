@@ -50,7 +50,7 @@ export function HomeHero({ featuredItems, activeIndex, metas, backdrops, onIndex
           className="absolute inset-0 w-full h-full object-cover object-[center_18%] animate-fade-in"
         />
       ) : (
-        <div className="absolute inset-0 bg-luna-elevated" />
+        <div className="absolute inset-0 bg-nightarc-elevated" />
       )}
 
       {/* Gradients */}

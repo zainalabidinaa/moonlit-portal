@@ -1,5 +1,5 @@
 import { supabase } from '../supabase';
-import { LunaProfile, WatchProgressEntry, LibraryItem, InviteCode, AdminStats, SystemAddon, Collection, Folder, FolderCatalog } from '../types';
+import { NightarcProfile, WatchProgressEntry, LibraryItem, InviteCode, AdminStats, SystemAddon, Collection, Folder, FolderCatalog } from '../types';
 
 export async function signIn(email: string, password: string) {
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
@@ -45,7 +45,7 @@ export async function validateInviteCode(code: string): Promise<boolean> {
   return !!data && data.is_active && !data.used_by;
 }
 
-export async function getProfiles(userId: string): Promise<LunaProfile[]> {
+export async function getProfiles(userId: string): Promise<NightarcProfile[]> {
   const { data } = await supabase
     .from('profiles')
     .select('*')

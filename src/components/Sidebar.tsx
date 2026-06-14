@@ -42,7 +42,7 @@ export function Sidebar({ children }: { children: ReactNode }) {
               to={href}
               className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[13px] font-medium transition-all duration-200 ${
                 active
-                  ? 'bg-luna-accent/90 text-white shadow-[0_0_12px_rgba(139,92,246,0.45)]'
+                  ? 'bg-nightarc-accent/90 text-white shadow-[0_0_12px_rgba(139,92,246,0.45)]'
                   : 'text-white/50 hover:text-white hover:bg-white/8'
               }`}
             >
@@ -57,7 +57,7 @@ export function Sidebar({ children }: { children: ReactNode }) {
           to="/settings"
           className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[13px] font-medium transition-all duration-200 ${
             pathname === '/settings'
-              ? 'bg-luna-accent/90 text-white shadow-[0_0_12px_rgba(139,92,246,0.45)]'
+              ? 'bg-nightarc-accent/90 text-white shadow-[0_0_12px_rgba(139,92,246,0.45)]'
               : 'text-white/50 hover:text-white hover:bg-white/8'
           }`}
         >
@@ -71,7 +71,7 @@ export function Sidebar({ children }: { children: ReactNode }) {
             to={href}
             className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[13px] font-medium transition-all duration-200 ${
               pathname === href
-                ? 'bg-luna-accent/90 text-white shadow-[0_0_12px_rgba(139,92,246,0.45)]'
+                ? 'bg-nightarc-accent/90 text-white shadow-[0_0_12px_rgba(139,92,246,0.45)]'
                 : 'text-white/50 hover:text-white hover:bg-white/8'
             }`}
           >

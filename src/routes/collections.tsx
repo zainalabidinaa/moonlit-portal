@@ -47,7 +47,7 @@ export default function FolderDetailPage() {
     return (
       <Sidebar>
         <div className="flex items-center justify-center min-h-screen">
-          <div className="animate-spin rounded-full h-6 w-6 border-2 border-luna-accent border-t-transparent" />
+          <div className="animate-spin rounded-full h-6 w-6 border-2 border-nightarc-accent border-t-transparent" />
         </div>
       </Sidebar>
     );
@@ -57,7 +57,7 @@ export default function FolderDetailPage() {
     return (
       <Sidebar>
         <div className="flex items-center justify-center min-h-screen">
-          <p className="text-luna-muted text-sm">Failed to load folder.</p>
+          <p className="text-nightarc-muted text-sm">Failed to load folder.</p>
         </div>
       </Sidebar>
     );
@@ -83,11 +83,11 @@ export default function FolderDetailPage() {
       <div className={`px-4 pb-12 max-w-screen-xl mx-auto ${heroImage ? 'pt-4' : 'pt-24'}`}>
         <div className="mb-5">
           <h1 className="text-2xl font-bold text-white">{folder.name}</h1>
-          <p className="text-sm text-luna-muted mt-1">{items.length} titles</p>
+          <p className="text-sm text-nightarc-muted mt-1">{items.length} titles</p>
         </div>
 
         {items.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-32 text-luna-muted">
+          <div className="flex flex-col items-center justify-center py-32 text-nightarc-muted">
             <p className="text-sm">No content in this folder.</p>
             <p className="text-xs mt-1 opacity-60">Check the catalog configuration in the admin panel.</p>
           </div>
@@ -96,14 +96,14 @@ export default function FolderDetailPage() {
             {items.map(item => (
               <Link key={item.id} to="/browse/$type/$id" params={{ type: item.type, id: item.id }}
                 className="group cursor-pointer">
-                <div className="relative rounded-xl overflow-hidden bg-luna-elevated mb-1.5" style={{ aspectRatio: '2/3' }}>
+                <div className="relative rounded-xl overflow-hidden bg-nightarc-elevated mb-1.5" style={{ aspectRatio: '2/3' }}>
                   {item.poster ? (
                     <img src={item.poster} alt={item.name}
                       className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                       loading="lazy" />
                   ) : (
                     <div className="absolute inset-0 flex items-center justify-center">
-                      <span className="text-luna-muted text-xs text-center px-2">{item.name}</span>
+                      <span className="text-nightarc-muted text-xs text-center px-2">{item.name}</span>
                     </div>
                   )}
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">

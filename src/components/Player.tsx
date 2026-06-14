@@ -182,7 +182,7 @@ function SourcesPanel({
         <div className="p-6 border-b border-white/8 bg-[#090910]/90 backdrop-blur-xl shrink-0">
           <div className="flex items-start justify-between gap-4 mb-4">
             <div>
-              <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-luna-accent">Now Playing</p>
+              <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-nightarc-accent">Now Playing</p>
               <h3 className="mt-1 text-2xl font-black text-white">Sources</h3>
             </div>
             <button onClick={onClose} className="p-2 rounded-full bg-white/5 hover:bg-white/10">
@@ -194,7 +194,7 @@ function SourcesPanel({
             <div className="flex gap-2 flex-wrap">
               <button
                 onClick={() => setActiveAddon(null)}
-                className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors ${activeAddon === null ? 'bg-luna-accent text-white' : 'bg-white/8 text-white/50 hover:text-white hover:bg-white/12'}`}
+                className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors ${activeAddon === null ? 'bg-nightarc-accent text-white' : 'bg-white/8 text-white/50 hover:text-white hover:bg-white/12'}`}
               >
                 All ({baseList.length})
               </button>
@@ -202,7 +202,7 @@ function SourcesPanel({
                 <button
                   key={name}
                   onClick={() => setActiveAddon(name)}
-                  className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-colors ${activeAddon === name ? 'bg-luna-accent text-white' : 'bg-white/8 text-white/50 hover:text-white hover:bg-white/12'}`}
+                  className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-colors ${activeAddon === name ? 'bg-nightarc-accent text-white' : 'bg-white/8 text-white/50 hover:text-white hover:bg-white/12'}`}
                 >
                   {(addonLogos[name] || addonLogos[baseList.find(s => s.addonName === name)?.addonId ?? '']) && (
                     <AddonLogo logoUrl={addonLogos[name] || addonLogos[baseList.find(s => s.addonName === name)?.addonId ?? '']} name={name} size={14} />
@@ -236,7 +236,7 @@ function SourcesPanel({
                   <button
                     key={sUrl || `stream-${i}`}
                     onClick={() => onSwitchStream(s)}
-                    className={`w-full text-left p-4 rounded-3xl border transition-all duration-200 ${isActive ? 'border-luna-accent/80 bg-luna-accent/15 shadow-[0_0_30px_rgba(139,92,246,0.18)]' : 'border-white/10 bg-white/[0.045] hover:bg-white/[0.08] hover:border-white/20'}`}
+                    className={`w-full text-left p-4 rounded-3xl border transition-all duration-200 ${isActive ? 'border-nightarc-accent/80 bg-nightarc-accent/15 shadow-[0_0_30px_rgba(139,92,246,0.18)]' : 'border-white/10 bg-white/[0.045] hover:bg-white/[0.08] hover:border-white/20'}`}
                   >
                     <div className="flex items-center justify-between gap-3 mb-3">
                       <div className="flex items-center gap-1 flex-wrap">
@@ -550,7 +550,7 @@ function PlayerUI({
             ? <img src={mediaLogo} alt={title} className="max-h-28 max-w-sm object-contain animate-pulse select-none" draggable={false} />
             : <span className="text-white/80 text-4xl font-black tracking-tight animate-pulse">{title}</span>}
           <div className="h-1 w-72 overflow-hidden rounded-full bg-white/10">
-            <div className="h-full w-1/2 rounded-full bg-luna-accent animate-pulse" />
+            <div className="h-full w-1/2 rounded-full bg-nightarc-accent animate-pulse" />
           </div>
         </div>
       )}
@@ -860,7 +860,7 @@ export default function Player({
           <div className="flex gap-3 mt-2">
             <button onClick={onBack} className="px-6 py-2.5 bg-white/10 hover:bg-white/15 border border-white/10 text-white rounded-full text-sm">Back</button>
             <button onClick={() => { setPlaybackError(null); setSrcType(getInitialSourceType(streamUrl, currentStream)); }} className="px-6 py-2.5 bg-white/10 hover:bg-white/15 border border-white/10 text-white rounded-full text-sm">Retry</button>
-            <button onClick={() => { setPlaybackError(null); setForceOpenSources(true); }} className="px-6 py-2.5 bg-luna-accent hover:bg-purple-400 text-white font-semibold rounded-full text-sm">Choose source</button>
+            <button onClick={() => { setPlaybackError(null); setForceOpenSources(true); }} className="px-6 py-2.5 bg-nightarc-accent hover:bg-purple-400 text-white font-semibold rounded-full text-sm">Choose source</button>
           </div>
         </div>
       )}

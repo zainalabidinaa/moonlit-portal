@@ -22,7 +22,7 @@ function CellInner({ coverUrl, title }: { coverUrl: string | null; title: string
   );
 }
 
-const cellClass = "group relative aspect-[2/3] rounded-lg overflow-hidden bg-luna-elevated cursor-pointer block";
+const cellClass = "group relative aspect-[2/3] rounded-lg overflow-hidden bg-nightarc-elevated cursor-pointer block";
 
 function FolderCell({ row }: { row: HomeCatalogRow }) {
   const coverUrl = row.coverImage || row.items[0]?.poster || null;

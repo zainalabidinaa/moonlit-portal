@@ -2,10 +2,10 @@ import { StreamItem } from './types';
 import { streamMatchesUrl } from './player-utils';
 
 // ── In-memory + localStorage stream cache, matches iOS StreamWarmupRepository ──
-// TTL: 60 min (same as iOS). localStorage key: luna.streams.<type:id>
+// TTL: 60 min (same as iOS). localStorage key: nightarc.streams.<type:id>
 
 const CACHE_TTL_MS = 60 * 60 * 1000;
-const LS_PREFIX = 'luna.streams.';
+const LS_PREFIX = 'nightarc.streams.';
 
 interface CacheEntry { streams: StreamItem[]; ts: number }
 

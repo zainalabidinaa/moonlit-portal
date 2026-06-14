@@ -191,7 +191,7 @@ export default function WatchPage() {
             ? <img src={mediaLogo} alt={resolvedTitle} className="max-h-24 max-w-xs object-contain drop-shadow-2xl animate-pulse" />
             : <h2 className="text-3xl font-black text-white text-center drop-shadow-2xl animate-pulse leading-tight">{resolvedTitle}</h2>}
           <div className="flex items-center gap-3 rounded-full border border-white/10 bg-black/40 px-4 py-2 backdrop-blur-xl">
-            <span className="h-2 w-2 rounded-full bg-luna-accent animate-pulse" />
+            <span className="h-2 w-2 rounded-full bg-nightarc-accent animate-pulse" />
             <span className="text-sm font-semibold text-white/60">Finding best source</span>
           </div>
         </div>

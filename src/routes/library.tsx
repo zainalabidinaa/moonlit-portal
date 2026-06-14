@@ -21,7 +21,7 @@ function PosterCard({
 }) {
   return (
     <Link to={to as any} params={params} className="group cursor-pointer block">
-      <div className="relative rounded-xl overflow-hidden bg-luna-elevated mb-2" style={{ aspectRatio: '2/3' }}>
+      <div className="relative rounded-xl overflow-hidden bg-nightarc-elevated mb-2" style={{ aspectRatio: '2/3' }}>
         {poster
           ? <img src={poster} alt={name} loading="lazy"
               className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
@@ -48,7 +48,7 @@ function PosterCard({
 
         {progress !== undefined && (
           <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-white/10">
-            <div className="h-full bg-luna-accent" style={{ width: `${Math.round(progress * 100)}%` }} />
+            <div className="h-full bg-nightarc-accent" style={{ width: `${Math.round(progress * 100)}%` }} />
           </div>
         )}
       </div>
@@ -98,8 +98,8 @@ export default function LibraryPage() {
   // Keep liked items in sync with localStorage changes
   useEffect(() => {
     function onChanged() { setLikedItems(getLikedItems()); }
-    window.addEventListener('luna-liked-changed', onChanged);
-    return () => window.removeEventListener('luna-liked-changed', onChanged);
+    window.addEventListener('nightarc-liked-changed', onChanged);
+    return () => window.removeEventListener('nightarc-liked-changed', onChanged);
   }, []);
 
   // Fetch upcoming info from TMDB for liked items
@@ -164,7 +164,7 @@ export default function LibraryPage() {
 
         {isLoading ? (
           <div className="flex items-center justify-center py-16">
-            <div className="animate-spin rounded-full h-6 w-6 border-2 border-luna-accent border-t-transparent" />
+            <div className="animate-spin rounded-full h-6 w-6 border-2 border-nightarc-accent border-t-transparent" />
           </div>
         ) : watchlist.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-white/35">
@@ -251,18 +251,18 @@ export default function LibraryPage() {
               title="Upcoming"
               count={upcomingItems.length}
               icon={
-                <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 text-luna-accent">
+                <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 text-nightarc-accent">
                   <path fillRule="evenodd" d="M6.75 2.25A.75.75 0 017.5 3v1.5h9V3A.75.75 0 0118 3v1.5h.75a3 3 0 013 3v11.25a3 3 0 01-3 3H5.25a3 3 0 01-3-3V7.5a3 3 0 013-3H6V3a.75.75 0 01.75-.75zm13.5 9a1.5 1.5 0 00-1.5-1.5H5.25a1.5 1.5 0 00-1.5 1.5v7.5a1.5 1.5 0 001.5 1.5h13.5a1.5 1.5 0 001.5-1.5v-7.5z" clipRule="evenodd"/>
                 </svg>
               }
             />
-            <div className="rounded-2xl bg-luna-surface border border-luna-border overflow-hidden">
+            <div className="rounded-2xl bg-nightarc-surface border border-nightarc-border overflow-hidden">
               {upcomingItems.map((item, idx) => (
                 <div key={item.id}>
                   {idx > 0 && <div className="h-px bg-white/[0.06] ml-16" />}
                   <Link to="/browse/$type/$id" params={{ type: item.mediaType, id: item.mediaId }}
                     className="flex items-center gap-3 px-4 py-3 hover:bg-white/[0.03] transition-colors">
-                    <div className="w-11 h-16 rounded-lg overflow-hidden bg-luna-elevated shrink-0">
+                    <div className="w-11 h-16 rounded-lg overflow-hidden bg-nightarc-elevated shrink-0">
                       {item.poster
                         ? <img src={item.poster} alt={item.name} className="w-full h-full object-cover" loading="lazy" />
                         : <div className="w-full h-full bg-white/5" />}
@@ -272,7 +272,7 @@ export default function LibraryPage() {
                       <p className="text-xs text-white/40 mt-0.5">{item.mediaType === 'series' ? 'Series' : 'Movie'}</p>
                     </div>
                     <div className="text-right shrink-0">
-                      <span className="text-xs font-semibold text-luna-accent bg-luna-accent/10 px-2 py-1 rounded-lg">
+                      <span className="text-xs font-semibold text-nightarc-accent bg-nightarc-accent/10 px-2 py-1 rounded-lg">
                         {upcoming[item.mediaId]?.badge}
                       </span>
                     </div>

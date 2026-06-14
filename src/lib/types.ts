@@ -120,7 +120,7 @@ export interface FeaturedHomeItem {
   item: MetaPreview;
 }
 
-export interface LunaProfile {
+export interface NightarcProfile {
   id: string;
   user_id: string;
   name: string;

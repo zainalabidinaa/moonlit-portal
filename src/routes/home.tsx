@@ -339,7 +339,7 @@ export default function HomePage() {
     return (
       <Sidebar>
         <div className="flex items-center justify-center min-h-screen">
-          <div className="animate-spin rounded-full h-6 w-6 border-2 border-luna-accent border-t-transparent" />
+          <div className="animate-spin rounded-full h-6 w-6 border-2 border-nightarc-accent border-t-transparent" />
         </div>
       </Sidebar>
     );
@@ -386,7 +386,7 @@ export default function HomePage() {
                     onClick={() => handleCwPlay(item)}
                     className="flex-shrink-0 w-64 group cursor-pointer text-left"
                   >
-                    <div className="relative h-36 bg-luna-elevated rounded-xl overflow-hidden mb-2">
+                    <div className="relative h-36 bg-nightarc-elevated rounded-xl overflow-hidden mb-2">
                       {poster ? (
                         <img src={poster} alt={name || item.media_id}
                           className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
@@ -406,13 +406,13 @@ export default function HomePage() {
                         </div>
                       </div>
                       <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-white/10">
-                        <div className="h-full bg-luna-accent" style={{ width: `${pct}%` }} />
+                        <div className="h-full bg-nightarc-accent" style={{ width: `${pct}%` }} />
                       </div>
                     </div>
                     <p className="text-xs text-white font-medium truncate">
                       {formatContinueWatchingTitle({ mediaId: item.media_id, mediaType: item.media_type, name })}
                     </p>
-                    <p className="text-xs text-luna-muted mt-0.5">
+                    <p className="text-xs text-nightarc-muted mt-0.5">
                       {item.media_type === 'series' && parts.length >= 3 ? `S${parts[1]} E${parts[2]} · ` : ''}
                       {formatTimeRemaining(item.position_seconds, item.duration_seconds)}
                     </p>
@@ -424,7 +424,7 @@ export default function HomePage() {
         )}
 
         {!hasSystemAddon ? (
-          <div className="flex flex-col items-center justify-center py-32 text-luna-muted">
+          <div className="flex flex-col items-center justify-center py-32 text-nightarc-muted">
             <p className="text-sm">No system addon configured.</p>
             <p className="text-xs mt-1 opacity-60">Ask your admin to set up an addon in the admin panel.</p>
           </div>
