@@ -6,7 +6,7 @@ import { FolderGrid } from '../../components/catalog/FolderGrid';
 import { ArtworkGallery } from '../../components/catalog/ArtworkGallery';
 import { SourcesTable } from '../../components/catalog/SourcesTable';
 import { JsonImport } from '../../components/catalog/JsonImport';
-import type { Collection, Folder, FolderSource } from '../../types';
+import type { Collection, Folder, FolderSource, FolderCatalog } from '../../types';
 
 type Tab = 'folders' | 'artwork' | 'sources' | 'json';
 const TABS: { id: Tab; label: string }[] = [
@@ -23,21 +23,38 @@ export default function CatalogPage() {
   const [folders, setFolders] = useState<Folder[]>([]);
   const [selectedFolder, setSelectedFolder] = useState<Folder | null>(null);
   const [sources, setSources] = useState<FolderSource[]>([]);
+  const [catalogs, setCatalogs] = useState<FolderCatalog[]>([]);
   const [tab, setTab] = useState<Tab>('folders');
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const colDrag = useRef<number | null>(null);
   const folderDrag = useRef<number | null>(null);
 
   useEffect(() => { loadCollections(); }, []);
   useEffect(() => { if (selectedId) loadFolders(selectedId); }, [selectedId]);
   useEffect(() => {
-    if (!selectedFolder) { setSources([]); return; }
-    supabase.from('folder_sources').select('*').eq('folder_id', selectedFolder.id).order('sort_order')
-      .then(({ data }) => setSources((data ?? []) as FolderSource[]));
+    if (!selectedFolder) { setSources([]); setCatalogs([]); return; }
+    const fid = selectedFolder.id;
+    supabase.from('folder_sources').select('*').eq('folder_id', fid).order('sort_order')
+      .then(({ data, error }) => {
+        if (error) console.error('folder_sources error:', error);
+        setSources((data ?? []) as FolderSource[]);
+      });
+    supabase.from('folder_catalogs').select('*').eq('folder_id', fid)
+      .then(({ data, error }) => {
+        if (error) console.error('folder_catalogs error:', error);
+        setCatalogs((data ?? []) as FolderCatalog[]);
+      });
   }, [selectedFolder]);
 
   async function loadCollections() {
-    const { data } = await supabase.from('collections').select('*').order('sort_order');
+    setLoadError(null);
+    const { data, error } = await supabase.from('collections').select('*').order('sort_order');
+    if (error) {
+      setLoadError(`Failed to load collections: ${error.message}`);
+      setLoading(false);
+      return;
+    }
     const rows = (data ?? []) as Collection[];
     setCollections(rows);
     if (rows.length) {
@@ -100,6 +117,16 @@ export default function CatalogPage() {
     folderDrag.current = null;
     await Promise.all(next.map((f, i) => supabase.from('folders').update({ sort_order: i }).eq('id', f.id)));
   }
+  async function moveFolderUp(i: number) {
+    if (i === 0) return;
+    folderDrag.current = i;
+    await reorderFolders(i - 1);
+  }
+  async function moveFolderDown(i: number) {
+    if (i === folders.length - 1) return;
+    folderDrag.current = i;
+    await reorderFolders(i + 1);
+  }
   async function saveFolderArtwork(patch: Partial<Folder>) {
     if (!selectedFolder) return;
     await supabase.from('folders').update(patch).eq('id', selectedFolder.id);
@@ -108,7 +135,7 @@ export default function CatalogPage() {
     setFolders((p) => p.map((f) => (f.id === updated.id ? updated : f)));
   }
 
-  // ---- sources ----
+  // ---- folder_sources (TMDB/provider) ----
   async function addSource(provider: string) {
     if (!selectedFolder) return;
     const { data } = await supabase.from('folder_sources').insert({
@@ -119,6 +146,20 @@ export default function CatalogPage() {
   async function deleteSource(id: string) {
     await supabase.from('folder_sources').delete().eq('id', id);
     setSources((p) => p.filter((s) => s.id !== id));
+  }
+
+  // ---- folder_catalogs (Stremio catalog) ----
+  async function addCatalog(catalogId: string, mediaType: string, genre: string | null) {
+    if (!selectedFolder) return;
+    const { data } = await supabase.from('folder_catalogs').insert({
+      folder_id: selectedFolder.id, catalog_id: catalogId, media_type: mediaType,
+      genre: genre ?? null,
+    }).select().single();
+    if (data) setCatalogs((p) => [...p, data as FolderCatalog]);
+  }
+  async function deleteCatalog(id: string) {
+    await supabase.from('folder_catalogs').delete().eq('id', id);
+    setCatalogs((p) => p.filter((c) => c.id !== id));
   }
 
   // ---- JSON pack import ----
@@ -157,15 +198,33 @@ export default function CatalogPage() {
 
     let sourceCount = 0;
     const perFolder: Record<string, number> = {};
+
+    // folder_catalogs (Stremio catalog IDs)
     const cats: any[] = Array.isArray(p.folder_catalogs) ? p.folder_catalogs : [];
     for (const c of cats) {
-      const fid = nameToId[c.folder];
+      const fid = nameToId[c.folder_name ?? c.folder];
+      if (!fid) continue;
+      const idx = perFolder[fid] ?? 0;
+      const { error } = await supabase.from('folder_catalogs').insert({
+        folder_id: fid,
+        catalog_id: c.catalog_id ?? c.provider ?? 'unknown',
+        media_type: c.media_type ?? 'movie',
+        genre: c.genre ?? null,
+        extras: c.extras ?? null,
+      });
+      if (!error) { sourceCount++; perFolder[fid] = idx + 1; }
+    }
+
+    // folder_sources (TMDB/provider rows)
+    const srcs: any[] = Array.isArray(p.folder_sources) ? p.folder_sources : [];
+    for (const s of srcs) {
+      const fid = nameToId[s.folder_name ?? s.folder];
       if (!fid) continue;
       const idx = perFolder[fid] ?? 0;
       const { error } = await supabase.from('folder_sources').insert({
-        folder_id: fid, provider: c.provider ?? 'unknown',
-        title: c.title ?? null, tmdb_id: c.tmdb_id ?? null,
-        media_type: c.media_type ?? null, sort_order: idx,
+        folder_id: fid, provider: s.provider ?? 'unknown',
+        title: s.title ?? null, tmdb_id: s.tmdb_id ?? null,
+        media_type: s.media_type ?? null, sort_order: idx,
       });
       if (!error) { sourceCount++; perFolder[fid] = idx + 1; }
     }
@@ -199,8 +258,15 @@ export default function CatalogPage() {
           <div className="px-2 pb-3 pt-1.5 font-mono text-[11px] uppercase tracking-wide text-muted">
             Collections · {collections.length}
           </div>
+          {loadError && (
+            <div className="mb-2 rounded-xl border border-red-400/30 bg-red-400/10 px-3 py-2 font-mono text-[11px] text-red-400">
+              {loadError}
+            </div>
+          )}
           {loading ? (
             <div className="flex flex-col gap-2">{[0, 1, 2].map((i) => <div key={i} className="h-12 animate-pulse rounded-xl bg-surface-2" />)}</div>
+          ) : collections.length === 0 ? (
+            <p className="px-2 py-4 font-mono text-[11px] text-faint">No collections found.</p>
           ) : (
             collections.map((c, i) => (
               <div
@@ -259,6 +325,8 @@ export default function CatalogPage() {
                 onAddFolder={addFolder}
                 onDragStart={(i) => (folderDrag.current = i)}
                 onDrop={reorderFolders}
+                onMoveUp={moveFolderUp}
+                onMoveDown={moveFolderDown}
               />
             ) : tab === 'artwork' ? (
               selectedFolder ? (
@@ -268,7 +336,15 @@ export default function CatalogPage() {
               )
             ) : tab === 'sources' ? (
               selectedFolder ? (
-                <SourcesTable folder={selectedFolder} sources={sources} onAdd={addSource} onDelete={deleteSource} />
+                <SourcesTable
+                  folder={selectedFolder}
+                  sources={sources}
+                  catalogs={catalogs}
+                  onAddSource={addSource}
+                  onDeleteSource={deleteSource}
+                  onAddCatalog={addCatalog}
+                  onDeleteCatalog={deleteCatalog}
+                />
               ) : (
                 <div className="py-16 text-center text-sm text-muted">Pick a folder from the Folders tab to edit its sources.</div>
               )

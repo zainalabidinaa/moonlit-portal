@@ -7,9 +7,11 @@ interface Props {
   onAddFolder: () => void;
   onDragStart: (i: number) => void;
   onDrop: (i: number) => void;
+  onMoveUp: (i: number) => void;
+  onMoveDown: (i: number) => void;
 }
 
-export function FolderGrid({ collection, folders, onSelectFolder, onAddFolder, onDragStart, onDrop }: Props) {
+export function FolderGrid({ collection, folders, onSelectFolder, onAddFolder, onDragStart, onDrop, onMoveUp, onMoveDown }: Props) {
   return (
     <div>
       {/* Collection backdrop */}
@@ -31,42 +33,61 @@ export function FolderGrid({ collection, folders, onSelectFolder, onAddFolder, o
 
       <div className="mb-3.5 flex items-center justify-between">
         <h3 className="font-display text-[15px] font-extrabold">
-          Folders <span className="font-mono text-xs font-normal text-faint">· click to edit artwork</span>
+          Folders <span className="font-mono text-xs font-normal text-faint">· click to edit artwork · drag or use ↑↓ to reorder</span>
         </h3>
       </div>
 
-      <div className="grid gap-3.5 [grid-template-columns:repeat(auto-fill,minmax(170px,1fr))]">
+      <div className="grid gap-3.5 [grid-template-columns:repeat(auto-fill,minmax(180px,1fr))]">
         {folders.map((f, i) => (
-          <button
-            key={f.id}
-            draggable
-            onDragStart={() => onDragStart(i)}
-            onDragOver={(e) => e.preventDefault()}
-            onDrop={() => onDrop(i)}
-            onClick={() => onSelectFolder(f)}
-            className="group overflow-hidden rounded-2xl border border-border bg-bg2 text-left transition-all hover:-translate-y-1 hover:border-accent"
-          >
-            <div className="relative flex h-[130px] items-center justify-center overflow-hidden">
-              {f.cover_image ? (
-                <img src={f.cover_image} alt="" className="absolute inset-0 h-full w-full object-cover" />
-              ) : (
-                <div className="absolute inset-0 bg-surface-2" />
-              )}
-              <div className="absolute inset-0" style={{ background: 'linear-gradient(0deg,rgba(13,6,4,.7),transparent 50%)' }} />
-              {f.title_logo && (
-                <img src={f.title_logo} alt="" className="relative z-[2] max-h-[54px] max-w-[78%] object-contain drop-shadow-lg" />
-              )}
-              <div className="absolute left-2 top-2 z-[3] flex gap-1.5">
-                {f.focus_gif && <Badge tone="magenta">GIF</Badge>}
-                {f.hero_video_url && <Badge tone="cyan">VIDEO</Badge>}
-                {f.title_logo && <Badge>LOGO</Badge>}
+          <div key={f.id} className="group relative">
+            <button
+              draggable
+              onDragStart={() => onDragStart(i)}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={() => onDrop(i)}
+              onClick={() => onSelectFolder(f)}
+              className="w-full overflow-hidden rounded-2xl border border-border bg-bg2 text-left transition-all hover:-translate-y-1 hover:border-accent"
+            >
+              <div className="relative flex h-[130px] items-center justify-center overflow-hidden">
+                {f.cover_image ? (
+                  <img src={f.cover_image} alt="" className="absolute inset-0 h-full w-full object-cover" />
+                ) : (
+                  <div className="absolute inset-0 bg-surface-2" />
+                )}
+                <div className="absolute inset-0" style={{ background: 'linear-gradient(0deg,rgba(13,6,4,.7),transparent 50%)' }} />
+                {f.title_logo && (
+                  <img src={f.title_logo} alt="" className="relative z-[2] max-h-[54px] max-w-[78%] object-contain drop-shadow-lg" />
+                )}
+                <div className="absolute left-2 top-2 z-[3] flex gap-1.5">
+                  {f.focus_gif && <Badge tone="magenta">GIF</Badge>}
+                  {f.hero_video_url && <Badge tone="cyan">VIDEO</Badge>}
+                  {f.title_logo && <Badge>LOGO</Badge>}
+                </div>
+                {/* position badge */}
+                <div className="absolute right-2 bottom-2 z-[3] font-mono text-[10px] text-white/40">#{i + 1}</div>
               </div>
+              <div className="flex items-center justify-between p-3">
+                <span className="truncate text-[13px] font-semibold text-text">{f.name}</span>
+                <span className="font-mono text-[10px] text-faint">{f.tile_shape?.slice(0, 4) || '—'}</span>
+              </div>
+            </button>
+
+            {/* reorder buttons — visible on hover */}
+            <div className="absolute right-2 top-2 z-[4] hidden flex-col gap-1 group-hover:flex">
+              <button
+                onClick={(e) => { e.stopPropagation(); onMoveUp(i); }}
+                disabled={i === 0}
+                className="flex h-6 w-6 items-center justify-center rounded-lg bg-bg/80 font-mono text-[11px] text-muted backdrop-blur transition-colors hover:bg-accent hover:text-[#2a1206] disabled:opacity-20"
+                title="Move up"
+              >↑</button>
+              <button
+                onClick={(e) => { e.stopPropagation(); onMoveDown(i); }}
+                disabled={i === folders.length - 1}
+                className="flex h-6 w-6 items-center justify-center rounded-lg bg-bg/80 font-mono text-[11px] text-muted backdrop-blur transition-colors hover:bg-accent hover:text-[#2a1206] disabled:opacity-20"
+                title="Move down"
+              >↓</button>
             </div>
-            <div className="flex items-center justify-between p-3">
-              <span className="truncate text-[13px] font-semibold text-text">{f.name}</span>
-              <span className="font-mono text-[10px] text-faint">{f.tile_shape?.slice(0, 4) || '—'}</span>
-            </div>
-          </button>
+          </div>
         ))}
 
         <button

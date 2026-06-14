@@ -70,4 +70,13 @@ export interface FolderSource {
   sort_order: number;
 }
 
+export interface FolderCatalog {
+  id: string;
+  folder_id: string;
+  catalog_id: string;
+  media_type: string;
+  genre: string | null;
+  extras: Record<string, string> | null;
+}
+
 export type Plan = 'premium' | 'premium_plus';
