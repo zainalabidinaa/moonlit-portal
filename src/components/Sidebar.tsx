@@ -11,6 +11,7 @@ const navItems = [
 
 const adminItems = [
   { href: '/admin', label: 'Admin', symbol: 'person.fill' },
+  { href: '/admin/templates', label: 'Templates', symbol: 'square.grid.3x3' },
 ];
 
 // Deterministic pastel gradient from a string seed (used when no avatar_color set)

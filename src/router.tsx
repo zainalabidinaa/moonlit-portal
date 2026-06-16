@@ -140,6 +140,12 @@ const adminRoute = createRoute({
   component: lazily(() => import('@/routes/admin')),
 });
 
+const adminTemplatesRoute = createRoute({
+  getParentRoute: () => protectedLayout,
+  path: '/admin/templates',
+  component: lazily(() => import('@/routes/admin-templates')),
+});
+
 const routeTree = rootRoute.addChildren([
   indexRoute,
   authRoute,
@@ -153,6 +159,7 @@ const routeTree = rootRoute.addChildren([
     settingsRoute,
     collectionsRoute,
     adminRoute,
+    adminTemplatesRoute,
   ]),
 ]);
 
