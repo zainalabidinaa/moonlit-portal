@@ -23,6 +23,10 @@ export default function BillingPage() {
   const [inviteLoading, setInviteLoading] = useState(false);
   const [inviteError, setInviteError] = useState('');
   const [inviteSuccess, setInviteSuccess] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [pwLoading, setPwLoading] = useState(false);
+  const [pwError, setPwError] = useState('');
+  const [pwSuccess, setPwSuccess] = useState('');
 
   const isBilledPlan = role === 'premium' || role === 'premium_plus';
 
@@ -90,6 +94,23 @@ export default function BillingPage() {
     setTimeout(() => window.location.reload(), 1500);
   }
 
+  async function handleChangePassword(e: React.FormEvent) {
+    e.preventDefault();
+    setPwError('');
+    setPwSuccess('');
+    if (!newPassword || newPassword.length < 6) {
+      setPwError('Password must be at least 6 characters');
+      return;
+    }
+    setPwLoading(true);
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    setPwLoading(false);
+    if (error) { setPwError(error.message); return; }
+    setPwSuccess('Password updated successfully');
+    setNewPassword('');
+    setTimeout(() => setPwSuccess(''), 4000);
+  }
+
   return (
     <AppShell>
       <div className="max-w-lg mx-auto">
@@ -141,6 +162,27 @@ export default function BillingPage() {
               </Button>
             </div>
           )}
+        </Card>
+
+        <Card className="p-6 mt-5">
+          <h2 className="text-sm font-semibold text-text mb-4">Change Password</h2>
+          <form onSubmit={handleChangePassword} className="flex flex-col gap-3">
+            <Input
+              id="new-password"
+              label="New Password"
+              type="password"
+              value={newPassword}
+              onChange={e => setNewPassword(e.target.value)}
+              placeholder="Min 6 characters"
+              error={pwError}
+              disabled={pwLoading}
+              autoComplete="new-password"
+            />
+            {pwSuccess && <p className="text-xs text-green-400">{pwSuccess}</p>}
+            <Button type="submit" loading={pwLoading} disabled={!newPassword.trim()} variant="secondary">
+              Update Password
+            </Button>
+          </form>
         </Card>
       </div>
     </AppShell>
