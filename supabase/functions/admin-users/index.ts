@@ -130,15 +130,33 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Upsert profile with new role
-      const { error: upsertErr } = await supabaseAdmin.from('profiles').upsert({
-        user_id: userId,
-        role,
-        name: 'User',
-        profile_index: 0,
-      }, { onConflict: 'user_id' });
+      // Update the first profile for this user, or insert if none exists
+      const { data: existing } = await supabaseAdmin
+        .from('profiles')
+        .select('id')
+        .eq('user_id', userId)
+        .order('profile_index')
+        .limit(1);
 
-      if (upsertErr) throw upsertErr;
+      if (existing && existing.length > 0) {
+        const { error: updateErr } = await supabaseAdmin
+          .from('profiles')
+          .update({ role })
+          .eq('id', existing[0].id);
+
+        if (updateErr) throw updateErr;
+      } else {
+        const { error: insertErr } = await supabaseAdmin
+          .from('profiles')
+          .insert({
+            user_id: userId,
+            role,
+            name: 'User',
+            profile_index: 0,
+          });
+
+        if (insertErr) throw insertErr;
+      }
 
       return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

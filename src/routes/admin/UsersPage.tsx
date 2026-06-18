@@ -27,6 +27,7 @@ export default function UsersPage() {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [changingRole, setChangingRole] = useState<string | null>(null);
 
   useEffect(() => {
     if (!session) return;
@@ -43,12 +44,22 @@ export default function UsersPage() {
   }, [session]);
 
   async function handleRoleChange(userId: string, newRole: UserRole) {
-    await fetch(`${import.meta.env.VITE_SUPABASE_FUNCTIONS_URL}/admin-users`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session!.access_token}` },
-      body: JSON.stringify({ userId, role: newRole }),
-    });
-    setUsers(prev => prev.map(u => u.user_id === userId ? { ...u, role: newRole } : u));
+    setChangingRole(userId);
+    try {
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_FUNCTIONS_URL}/admin-users`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session!.access_token}` },
+        body: JSON.stringify({ userId, role: newRole }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? `HTTP ${res.status}`);
+      setUsers(prev => prev.map(u => u.user_id === userId ? { ...u, role: newRole } : u));
+    } catch (e) {
+      setError((e as Error).message || 'Failed to change role');
+      setTimeout(() => setError(''), 4000);
+    } finally {
+      setChangingRole(null);
+    }
   }
 
   return (
@@ -82,7 +93,8 @@ export default function UsersPage() {
                       <select
                         value={u.role}
                         onChange={e => handleRoleChange(u.user_id, e.target.value as UserRole)}
-                        className="text-xs border border-border rounded-lg px-2 py-1 bg-surface text-text"
+                        disabled={changingRole === u.user_id}
+                        className="text-xs border border-border rounded-lg px-2 py-1 bg-surface text-text disabled:opacity-50"
                       >
                         {(Object.keys(ROLE_LABELS) as UserRole[]).map(r => (
                           <option key={r} value={r}>{ROLE_LABELS[r]}</option>
