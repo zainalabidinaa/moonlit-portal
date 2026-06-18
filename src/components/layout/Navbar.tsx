@@ -32,11 +32,8 @@ export function Navbar() {
     <header className="sticky top-0 z-50 border-b border-border bg-bg/75 backdrop-blur-xl">
       <div className="mx-auto flex max-w-7xl items-center gap-5 px-5 py-3.5">
         <Link to="/" className="flex flex-none items-center gap-2 font-display text-xl font-extrabold tracking-tight">
-          <span
-            className="h-5 w-5 rounded-full shadow-glow"
-            style={{ background: 'radial-gradient(circle at 32% 30%, #fa824d, #ff6a2b 60%, #8a3500)' }}
-          />
-          NIGHTARC
+          <img src="/moonlit-icon.png" alt="Moonlit" className="h-7 w-7" />
+          MOONLIT
         </Link>
 
         <nav className="mx-auto flex items-center gap-0.5 overflow-x-auto [scrollbar-width:none]">

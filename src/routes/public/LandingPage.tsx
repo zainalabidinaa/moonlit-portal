@@ -214,7 +214,7 @@ export default function LandingPage() {
 
       <div className="px-5 pb-8 text-center">
         <div className="text-stroke font-display text-[clamp(60px,12vw,150px)] font-extrabold uppercase leading-[.9] opacity-60">
-          NIGHTARC
+          MOONLIT
         </div>
       </div>
 
@@ -276,7 +276,7 @@ export default function LandingPage() {
 
       {/* FOOTER */}
       <footer className="border-t border-border py-14 text-center">
-        <div className="font-display text-4xl font-extrabold tracking-tight">NIGHTARC</div>
+        <div className="font-display text-4xl font-extrabold tracking-tight">MOONLIT</div>
         <div className="mt-4 flex flex-wrap justify-center gap-6 text-sm text-muted">
           <a href="#">About</a><a href="#">Catalog</a>
           <a href="#" onClick={(e) => { e.preventDefault(); navigate('/pricing'); }}>Pricing</a>

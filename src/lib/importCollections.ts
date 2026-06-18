@@ -17,7 +17,7 @@ function normalizeShape(v?: string): string {
   }
 }
 
-function resolveNuvioCatalogId(
+function resolveMoonlitCatalogId(
   src: Record<string, unknown>,
   discoverMap: Record<string, string>
 ): string | null {
@@ -46,22 +46,22 @@ export interface ImportResult {
 }
 
 export async function importCollections(
-  nuvio: Record<string, unknown>[],
+  moonlit: Record<string, unknown>[],
   discoverMap: Record<string, string>,
   onProgress?: (msg: string) => void
 ): Promise<ImportResult> {
   let totalCollections = 0, totalFolders = 0, totalSources = 0, totalSkipped = 0;
 
-  for (let ci = 0; ci < nuvio.length; ci++) {
-    const col = nuvio[ci];
+  for (let ci = 0; ci < moonlit.length; ci++) {
+    const col = moonlit[ci];
     const colName = (col.title ?? col.name ?? `Collection ${ci + 1}`) as string;
-    const nuvioFolders = Array.isArray(col.folders) ? col.folders as Record<string, unknown>[] : [];
+    const moonlitFolders = Array.isArray(col.folders) ? col.folders as Record<string, unknown>[] : [];
 
-    const shapes = nuvioFolders.map(f => normalizeShape((f.tileShape ?? f.tile_shape) as string | undefined));
+    const shapes = moonlitFolders.map(f => normalizeShape((f.tileShape ?? f.tile_shape) as string | undefined));
     const dominantShape = shapes.includes('landscape') ? 'landscape' : 'poster';
-    const firstHero = (nuvioFolders[0]?.heroBackdropUrl ?? null) as string | null;
+    const firstHero = (moonlitFolders[0]?.heroBackdropUrl ?? null) as string | null;
 
-    onProgress?.(`[${ci + 1}/${nuvio.length}] ${colName} (${nuvioFolders.length} folders, ${dominantShape})`);
+    onProgress?.(`[${ci + 1}/${moonlit.length}] ${colName} (${moonlitFolders.length} folders, ${dominantShape})`);
 
     const { data: colRow, error: colErr } = await supabase.from('collections').insert({
       name: colName,
@@ -77,8 +77,8 @@ export async function importCollections(
     totalCollections++;
     const prevFolders = totalFolders;
 
-    for (let fi = 0; fi < nuvioFolders.length; fi++) {
-      const f = nuvioFolders[fi];
+    for (let fi = 0; fi < moonlitFolders.length; fi++) {
+      const f = moonlitFolders[fi];
       const shape = normalizeShape((f.tileShape ?? f.tile_shape) as string | undefined);
 
       const { data: folderRow, error: folderErr } = await supabase.from('folders').insert({
@@ -103,7 +103,7 @@ export async function importCollections(
       const resolvedSources: { catalog_id: string; media_type: string; genre: string | null }[] = [];
 
       for (const src of sources) {
-        const catalogId = resolveNuvioCatalogId(src, discoverMap);
+        const catalogId = resolveMoonlitCatalogId(src, discoverMap);
         if (!catalogId) { totalSkipped++; continue; }
         const genre = src.genre && (src.genre as string).toLowerCase() !== 'none' ? src.genre as string : null;
         const rawType = normalizeMediaType((src.type ?? src.mediaType) as string | undefined);

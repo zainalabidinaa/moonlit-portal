@@ -187,26 +187,26 @@ export default function CatalogPage() {
   async function importPack(pack: Record<string, unknown>) {
     const p = pack as any;
 
-    // Detect format: Nuvio = top-level array of collections with nested folders+sources
+    // Detect format: Moonlit = top-level array of collections with nested folders+sources
     if (Array.isArray(p)) {
-      return importNuvioPack(p);
+      return importMoonlitPack(p);
     }
     // BEST format: object with flat collections[], folders[], folder_catalogs[] arrays
     return importBESTPack(p);
   }
 
-  // ---- Nuvio format import ----
+  // ---- Moonlit format import ----
   // Top-level array: [{ id, title, folders: [{ id, title, sources: [...], heroBackdropUrl, tileShape }] }]
-  async function importNuvioPack(nuvio: any[]) {
+  async function importMoonlitPack(moonlit: any[]) {
     let totalCollections = 0, totalFolders = 0, totalSources = 0;
 
-    for (let ci = 0; ci < nuvio.length; ci++) {
-      const col = nuvio[ci];
+    for (let ci = 0; ci < moonlit.length; ci++) {
+      const col = moonlit[ci];
       const colName: string = col.title ?? col.name ?? `Collection ${ci + 1}`;
-      const nuvioFolders: any[] = Array.isArray(col.folders) ? col.folders : [];
+      const moonlitFolders: any[] = Array.isArray(col.folders) ? col.folders : [];
 
       // Use first folder's heroBackdropUrl as collection backdrop if none set
-      const firstHero = nuvioFolders[0]?.heroBackdropUrl ?? null;
+      const firstHero = moonlitFolders[0]?.heroBackdropUrl ?? null;
 
       const { data: colRow, error: colErr } = await supabase.from('collections').insert({
         name: colName,
@@ -220,8 +220,8 @@ export default function CatalogPage() {
       const collectionId = (colRow as Collection).id;
       totalCollections++;
 
-      for (let fi = 0; fi < nuvioFolders.length; fi++) {
-        const f = nuvioFolders[fi];
+      for (let fi = 0; fi < moonlitFolders.length; fi++) {
+        const f = moonlitFolders[fi];
         const shape = normalizeShape(f.tileShape ?? f.tile_shape);
         const { data: folderRow, error: folderErr } = await supabase.from('folders').insert({
           collection_id: collectionId,
@@ -245,7 +245,7 @@ export default function CatalogPage() {
         const seenCatalogIds = new Set<string>();
         for (let si = 0; si < sources.length; si++) {
           const src = sources[si];
-          const catalogId = resolveNuvioCatalogId(src);
+          const catalogId = resolveMoonlitCatalogId(src);
           if (!catalogId) continue;
           const dedupeKey = `${folderId}:${catalogId}`;
           if (seenCatalogIds.has(dedupeKey)) continue;
@@ -269,7 +269,7 @@ export default function CatalogPage() {
     return { collections: totalCollections, folders: totalFolders, sources: totalSources };
   }
 
-  function resolveNuvioCatalogId(src: any): string | null {
+  function resolveMoonlitCatalogId(src: any): string | null {
     if (src.catalogId) return src.catalogId;
     if (src.traktListId) return `trakt.list.${src.traktListId}`;
     if (src.tmdbId && src.tmdbSourceType?.toUpperCase() === 'COLLECTION') return `tmdb.collection.${src.tmdbId}`;

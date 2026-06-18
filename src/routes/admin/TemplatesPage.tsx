@@ -57,13 +57,13 @@ export default function TemplatesPage() {
   }
 
   async function handleSave() {
-    if (!newName.trim() || !nuvioFile) { setSaveError('Name and Nuvio JSON are required.'); return; }
+    if (!newName.trim() || !nuvioFile) { setSaveError('Name and Moonlit JSON are required.'); return; }
     setSaving(true);
     setSaveError(null);
     try {
       const nuvioText = await nuvioFile.text();
       const nuvioJson = JSON.parse(nuvioText);
-      if (!Array.isArray(nuvioJson)) throw new Error('Nuvio JSON must be an array of collections.');
+      if (!Array.isArray(nuvioJson)) throw new Error('Moonlit JSON must be an array of collections.');
 
       let discoverMap: Record<string, string> | null = null;
       if (aioFile) {
@@ -151,7 +151,7 @@ export default function TemplatesPage() {
           <div>
             <h1 className="font-display text-2xl font-bold text-text">Collection Templates</h1>
             <p className="mt-1 text-sm text-muted">
-              Save Nuvio export profiles and switch between them to change what the app shows.
+              Save Moonlit export profiles and switch between them to change what the app shows.
             </p>
           </div>
           <Button onClick={() => { setShowForm(v => !v); setSaveError(null); }}>
@@ -186,10 +186,10 @@ export default function TemplatesPage() {
 
             <div className="grid gap-4 sm:grid-cols-2">
               <FileDropZone
-                label="Nuvio Collections JSON *"
+                label="Moonlit Collections JSON *"
                 accept=".json"
                 file={nuvioFile}
-                hint="Export from Nuvio → Collections → Export Profile"
+                hint="Export from Moonlit → Collections → Export Profile"
                 onChange={setNuvioFile}
               />
               <FileDropZone

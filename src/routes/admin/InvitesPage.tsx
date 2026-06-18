@@ -7,14 +7,16 @@ import { Badge } from '../../components/ui/Badge';
 import { Card } from '../../components/ui/Card';
 import type { InviteCode } from '../../types';
 
+type InviteRow = InviteCode & { redeemed_by_label?: string | null };
+
 function generateCode(): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   return Array.from({ length: 8 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
 }
 
 export default function InvitesPage() {
-  const { user } = useAuth();
-  const [codes, setCodes] = useState<InviteCode[]>([]);
+  const { user, session } = useAuth();
+  const [codes, setCodes] = useState<InviteRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [lastGenerated, setLastGenerated] = useState<string | null>(null);
@@ -24,20 +26,28 @@ export default function InvitesPage() {
 
   async function load() {
     const { data: inviteCodes } = await supabase.from('invite_codes').select('*').order('created_at', { ascending: false });
-    const codes = inviteCodes ?? [];
+    const codes = (inviteCodes ?? []) as InviteRow[];
     const usedIds = Array.from(new Set(codes.map(c => c.used_by).filter(Boolean))) as string[];
 
     if (usedIds.length > 0) {
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('user_id, name')
-        .in('user_id', usedIds)
-        .order('profile_index');
-      const profileNames = new Map((profiles ?? []).map(p => [p.user_id, p.name]));
-      setCodes(codes.map(c => ({
-        ...c,
-        redeemed_by_label: c.used_email || (c.used_by ? profileNames.get(c.used_by) || c.used_by : null),
-      })));
+      try {
+        const res = await fetch(
+          `${import.meta.env.VITE_SUPABASE_FUNCTIONS_URL}/admin-users?ids=${usedIds.join(',')}`,
+          { headers: { Authorization: `Bearer ${session!.access_token}` } },
+        );
+        if (res.ok) {
+          const data = await res.json();
+          const userMap = new Map<string, string>((data.users ?? []).map((u: { id: string; email: string }) => [u.id, u.email]));
+          setCodes(codes.map(c => ({
+            ...c,
+            redeemed_by_label: c.used_email || (c.used_by ? userMap.get(c.used_by) || null : null),
+          })));
+        } else {
+          setCodes(codes);
+        }
+      } catch {
+        setCodes(codes);
+      }
     } else {
       setCodes(codes);
     }

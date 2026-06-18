@@ -320,7 +320,7 @@ export default function CollectionsPage() {
 
       {/* Footer */}
       <footer className="border-t border-border py-10 text-center">
-        <div className="font-display text-3xl font-extrabold tracking-tight">NIGHTARC</div>
+        <div className="font-display text-3xl font-extrabold tracking-tight">MOONLIT</div>
         <div className="mt-3 flex flex-wrap justify-center gap-5 text-sm text-muted">
           <button onClick={() => navigate('/')}>Home</button>
           <button onClick={() => navigate('/pricing')}>Pricing</button>
