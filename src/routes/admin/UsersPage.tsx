@@ -11,6 +11,7 @@ const ROLE_LABELS: Record<UserRole, string> = {
   friends_family: 'Friends & Family',
   premium: 'Premium',
   premium_plus: 'Premium+',
+  free: 'Free',
 };
 
 const ROLE_BADGE: Record<UserRole, 'default' | 'success' | 'warning' | 'danger' | 'purple'> = {
@@ -18,6 +19,7 @@ const ROLE_BADGE: Record<UserRole, 'default' | 'success' | 'warning' | 'danger' 
   friends_family: 'success',
   premium: 'warning',
   premium_plus: 'default',
+  free: 'danger',
 };
 
 export default function UsersPage() {

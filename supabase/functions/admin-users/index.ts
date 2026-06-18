@@ -59,19 +59,21 @@ Deno.serve(async (req) => {
       if (idsParam) {
         // Resolve specific user IDs to emails (used by invite codes page)
         const ids = idsParam.split(',').map(s => s.trim()).filter(Boolean);
-        const { data: profiles } = await supabaseAdmin
-          .from('profiles')
-          .select('user_id, name, role')
-          .in('user_id', ids);
-        const { data: authUsers } = await supabaseAdmin.auth.admin.listUsers();
+        let allAuthUsers: any[] = [];
+        let page = 1;
+        const perPage = 500;
+        while (true) {
+          const { data: pageData, error: pageErr } = await supabaseAdmin.auth.admin.listUsers({ page, perPage });
+          if (pageErr) throw pageErr;
+          if (!pageData?.users?.length) break;
+          allAuthUsers = allAuthUsers.concat(pageData.users);
+          if (pageData.users.length < perPage) break;
+          page++;
+        }
 
-        const profileMap = new Map((profiles ?? []).map((p: any) => [p.user_id, p]));
-        const users = (authUsers?.users ?? [])
+        const users = allAuthUsers
           .filter(u => ids.includes(u.id))
-          .map(u => {
-            const p = profileMap.get(u.id);
-            return { id: u.id, email: u.email, name: p?.name };
-          });
+          .map(u => ({ id: u.id, email: u.email }));
 
         return new Response(JSON.stringify({ users }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -79,13 +81,22 @@ Deno.serve(async (req) => {
       }
 
       // List all auth users with their profile roles
-      const { data: authUsers, error: authErr } = await supabaseAdmin.auth.admin.listUsers();
-      if (authErr) throw authErr;
+      let allAuthUsers: any[] = [];
+      let page = 1;
+      const perPage = 500;
+      while (true) {
+        const { data: pageData, error: pageErr } = await supabaseAdmin.auth.admin.listUsers({ page, perPage });
+        if (pageErr) throw pageErr;
+        if (!pageData?.users?.length) break;
+        allAuthUsers = allAuthUsers.concat(pageData.users);
+        if (pageData.users.length < perPage) break;
+        page++;
+      }
 
       const { data: profiles } = await supabaseAdmin.from('profiles').select('user_id, role, name');
       const profileMap = new Map((profiles ?? []).map((p: any) => [p.user_id, p]));
 
-      const users = authUsers.users.map((u) => {
+      const users = allAuthUsers.map((u) => {
         const p = profileMap.get(u.id);
         return {
           id: u.id,
@@ -111,7 +122,7 @@ Deno.serve(async (req) => {
         });
       }
 
-      const validRoles = ['admin', 'friends_family', 'premium', 'premium_plus'];
+      const validRoles = ['admin', 'friends_family', 'premium', 'premium_plus', 'free'];
       if (!validRoles.includes(role)) {
         return new Response(JSON.stringify({ error: 'Invalid role' }), {
           status: 400,

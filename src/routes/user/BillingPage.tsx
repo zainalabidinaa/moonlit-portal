@@ -11,6 +11,7 @@ const PLAN_LABELS: Record<UserRole, string> = {
   friends_family: 'Friends & Family',
   premium: 'Premium',
   premium_plus: 'Premium+',
+  free: 'Free',
 };
 
 export default function BillingPage() {
@@ -49,6 +50,10 @@ export default function BillingPage() {
 
           {role === 'admin' && (
             <p className="text-sm text-muted">You manage this Moonlit instance. No subscription required.</p>
+          )}
+
+          {role === 'free' && (
+            <p className="text-sm text-muted">Your account is set to free. Access is limited.</p>
           )}
 
           {isBilledPlan && (
