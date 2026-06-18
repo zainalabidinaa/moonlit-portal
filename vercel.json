@@ -2,5 +2,5 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "framework": "vite",
-  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+  "rewrites": [{ "source": "/((?!.*\\.(?:png|jpg|jpeg|gif|svg|ico|webp|js|css|woff2?|json|map)$).*)", "destination": "/index.html" }]
 }
