@@ -4,14 +4,15 @@ import { useAuth } from '../../context/AuthContext';
 export function PublicRoute({ children }: { children: React.ReactNode }) {
   const { session, loading } = useAuth();
   if (loading) return null;
-  if (session) return <Navigate to="/profiles" replace />;
+  if (session && !(window as any).__recoveryInProgress) return <Navigate to="/profiles" replace />;
   return <>{children}</>;
 }
 
 export function UserRoute({ children }: { children: React.ReactNode }) {
-  const { session, loading } = useAuth();
+  const { session, loading, role } = useAuth();
   if (loading) return null;
   if (!session) return <Navigate to="/login" replace />;
+  if (role === 'free') return <Navigate to="/billing" replace />;
   return <>{children}</>;
 }
 
