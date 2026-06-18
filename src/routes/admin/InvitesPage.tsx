@@ -22,18 +22,21 @@ export default function InvitesPage() {
   const [lastGenerated, setLastGenerated] = useState<string | null>(null);
   const [newCodeExpiresAt, setNewCodeExpiresAt] = useState('');
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    if (!session) return;
+    load();
+  }, [session]);
 
   async function load() {
     const { data: inviteCodes } = await supabase.from('invite_codes').select('*').order('created_at', { ascending: false });
     const codes = (inviteCodes ?? []) as InviteRow[];
     const usedIds = Array.from(new Set(codes.map(c => c.used_by).filter(Boolean))) as string[];
 
-    if (usedIds.length > 0) {
+    if (usedIds.length > 0 && session) {
       try {
         const res = await fetch(
           `${import.meta.env.VITE_SUPABASE_FUNCTIONS_URL}/admin-users?ids=${usedIds.join(',')}`,
-          { headers: { Authorization: `Bearer ${session!.access_token}` } },
+          { headers: { Authorization: `Bearer ${session.access_token}` } },
         );
         if (res.ok) {
           const data = await res.json();

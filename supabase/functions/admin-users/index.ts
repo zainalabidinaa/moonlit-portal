@@ -37,13 +37,16 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
-    const { data: profile } = await supabaseAdmin
+    const { data: profiles, error: profileErr } = await supabaseAdmin
       .from('profiles')
       .select('role')
-      .eq('user_id', user.id)
-      .single();
-    if (profile?.role !== 'admin') {
-      return new Response(JSON.stringify({ error: 'Forbidden' }), {
+      .eq('user_id', user.id);
+
+    if (profileErr) throw profileErr;
+
+    const isAdmin = (profiles ?? []).some((p: any) => p.role === 'admin');
+    if (!isAdmin) {
+      return new Response(JSON.stringify({ error: 'Forbidden — admin role required' }), {
         status: 403,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });

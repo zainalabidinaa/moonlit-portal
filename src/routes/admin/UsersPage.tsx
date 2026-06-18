@@ -31,9 +31,13 @@ export default function UsersPage() {
     fetch(`${import.meta.env.VITE_SUPABASE_FUNCTIONS_URL}/admin-users`, {
       headers: { Authorization: `Bearer ${session.access_token}` },
     })
-      .then(r => r.json())
-      .then(data => { setUsers(data.users ?? []); setLoading(false); })
-      .catch(() => { setError('Failed to load users'); setLoading(false); });
+      .then(async r => {
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.error ?? `HTTP ${r.status}`);
+        setUsers(data.users ?? []);
+        setLoading(false);
+      })
+      .catch((e) => { setError(e.message || 'Failed to load users'); setLoading(false); });
   }, [session]);
 
   async function handleRoleChange(userId: string, newRole: UserRole) {
