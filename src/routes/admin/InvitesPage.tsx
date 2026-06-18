@@ -43,13 +43,22 @@ export default function InvitesPage() {
           const userMap = new Map<string, string>((data.users ?? []).map((u: { id: string; email: string }) => [u.id, u.email]));
           setCodes(codes.map(c => ({
             ...c,
-            redeemed_by_label: c.used_email || (c.used_by ? userMap.get(c.used_by) || null : null),
+            redeemed_by_label: c.used_email || (c.used_by ? userMap.get(c.used_by) || c.used_by : null),
           })));
         } else {
-          setCodes(codes);
+          // Edge function failed — still show what we have (used_email, then UUID)
+          console.warn('admin-users?ids= failed:', res.status);
+          setCodes(codes.map(c => ({
+            ...c,
+            redeemed_by_label: c.used_email || c.used_by,
+          })));
         }
-      } catch {
-        setCodes(codes);
+      } catch (e) {
+        console.warn('admin-users?ids= network error:', e);
+        setCodes(codes.map(c => ({
+          ...c,
+          redeemed_by_label: c.used_email || c.used_by,
+        })));
       }
     } else {
       setCodes(codes);
