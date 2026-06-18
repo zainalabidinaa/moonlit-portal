@@ -12,6 +12,10 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [magicSent, setMagicSent] = useState(false);
+  const [showReset, setShowReset] = useState(false);
+  const [resetEmail, setResetEmail] = useState('');
+  const [resetLoading, setResetLoading] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -31,6 +35,17 @@ export default function LoginPage() {
     setMagicSent(true);
   }
 
+  async function handleReset(e: React.FormEvent) {
+    e.preventDefault();
+    if (!resetEmail.trim()) return;
+    setResetLoading(true);
+    setError('');
+    const { error: resetErr } = await supabase.auth.resetPasswordForEmail(resetEmail.trim());
+    setResetLoading(false);
+    if (resetErr) { setError(resetErr.message); return; }
+    setResetSent(true);
+  }
+
   return (
     <div className="min-h-screen bg-bg flex items-center justify-center p-4">
       <Card className="w-full max-w-sm p-8">
@@ -45,6 +60,33 @@ export default function LoginPage() {
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <Input id="email" label="Email" type="email" value={email} onChange={e => setEmail(e.target.value)} required autoComplete="email" />
             <Input id="password" label="Password" type="password" value={password} onChange={e => setPassword(e.target.value)} required autoComplete="current-password" />
+            <div className="text-right">
+              <button type="button" onClick={() => { setShowReset(!showReset); setResetSent(false); setError(''); }} className="text-xs text-accent hover:underline">
+                Forgot password?
+              </button>
+            </div>
+            {showReset && (
+              <div className="rounded-lg border border-border bg-bg2 p-3">
+                {resetSent ? (
+                  <p className="text-xs text-green-400">Check your email for a reset link.</p>
+                ) : (
+                  <form onSubmit={handleReset} className="flex flex-col gap-2">
+                    <p className="text-xs text-muted">Enter your email and we&apos;ll send a reset link.</p>
+                    <Input
+                      id="reset-email"
+                      type="email"
+                      value={resetEmail}
+                      onChange={e => setResetEmail(e.target.value)}
+                      placeholder="you@example.com"
+                      required
+                    />
+                    <Button type="submit" loading={resetLoading} variant="secondary" size="sm" disabled={!resetEmail.trim()}>
+                      Send Reset Link
+                    </Button>
+                  </form>
+                )}
+              </div>
+            )}
             {error && <p className="text-xs text-red-500">{error}</p>}
             <Button type="submit" loading={loading} className="w-full mt-1">Sign in</Button>
             <button type="button" onClick={handleMagicLink} className="text-xs text-muted hover:text-accent transition-colors text-center">
