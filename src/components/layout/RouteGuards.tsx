@@ -12,7 +12,7 @@ export function UserRoute({ children }: { children: React.ReactNode }) {
   const { session, loading, role } = useAuth();
   if (loading) return null;
   if (!session) return <Navigate to="/login" replace />;
-  if (role === 'free') return <Navigate to="/billing" replace />;
+  if (role === 'free' || role === 'restricted') return <Navigate to="/billing" replace />;
   return <>{children}</>;
 }
 

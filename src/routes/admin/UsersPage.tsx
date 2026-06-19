@@ -12,6 +12,7 @@ const ROLE_LABELS: Record<UserRole, string> = {
   premium: 'Premium',
   premium_plus: 'Premium+',
   free: 'Free',
+  restricted: 'Restricted',
 };
 
 const ROLE_BADGE: Record<UserRole, 'default' | 'success' | 'warning' | 'danger' | 'purple'> = {
@@ -20,6 +21,7 @@ const ROLE_BADGE: Record<UserRole, 'default' | 'success' | 'warning' | 'danger' 
   premium: 'warning',
   premium_plus: 'default',
   free: 'danger',
+  restricted: 'danger',
 };
 
 export default function UsersPage() {

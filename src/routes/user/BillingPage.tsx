@@ -14,15 +14,12 @@ const PLAN_LABELS: Record<UserRole, string> = {
   premium: 'Premium',
   premium_plus: 'Premium+',
   free: 'Free',
+  restricted: 'Restricted',
 };
 
 export default function BillingPage() {
-  const { role, session, user } = useAuth();
+  const { role, session } = useAuth();
   const [loading, setLoading] = useState(false);
-  const [inviteCode, setInviteCode] = useState('');
-  const [inviteLoading, setInviteLoading] = useState(false);
-  const [inviteError, setInviteError] = useState('');
-  const [inviteSuccess, setInviteSuccess] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [pwLoading, setPwLoading] = useState(false);
   const [pwError, setPwError] = useState('');
@@ -41,57 +38,6 @@ export default function BillingPage() {
     const { url } = await res.json();
     if (url) window.location.href = url;
     setLoading(false);
-  }
-
-  async function handleRedeemInvite(e: React.FormEvent) {
-    e.preventDefault();
-    setInviteError('');
-    setInviteSuccess('');
-    if (!user || !inviteCode.trim()) return;
-
-    setInviteLoading(true);
-    const code = inviteCode.trim().toUpperCase();
-
-    // Validate
-    const { data: valid } = await supabase.rpc('validate_invite_code', { p_code: code });
-    if (!valid) {
-      setInviteError('Invalid, expired, or already used invite code.');
-      setInviteLoading(false);
-      return;
-    }
-
-    // Update profile role
-    const { error: profileErr } = await supabase
-      .from('profiles')
-      .update({ role: 'friends_family' })
-      .eq('user_id', user.id);
-
-    if (profileErr) {
-      setInviteError(profileErr.message);
-      setInviteLoading(false);
-      return;
-    }
-
-    // Mark invite code used
-    const { error: codeErr } = await supabase
-      .from('invite_codes')
-      .update({
-        used_by: user.id,
-        used_email: user.email,
-        used_at: new Date().toISOString(),
-      })
-      .eq('code', code);
-
-    if (codeErr) {
-      setInviteError(codeErr.message);
-      setInviteLoading(false);
-      return;
-    }
-
-    setInviteSuccess('Invite code redeemed. Reloading…');
-    setInviteCode('');
-    setInviteLoading(false);
-    setTimeout(() => window.location.reload(), 1500);
   }
 
   async function handleChangePassword(e: React.FormEvent) {
@@ -131,27 +77,7 @@ export default function BillingPage() {
           )}
 
           {role === 'free' && (
-            <>
-              <p className="text-sm text-muted">Your account is set to free. Access is limited.</p>
-              <div className="border-t border-border pt-4">
-                <p className="text-xs text-muted mb-3">Enter a new invite code to regain access.</p>
-                <form onSubmit={handleRedeemInvite} className="flex flex-col gap-3">
-                  <Input
-                    id="invite-code"
-                    label="Invite Code"
-                    value={inviteCode}
-                    onChange={e => setInviteCode(e.target.value)}
-                    placeholder="XXXX-XXXX"
-                    error={inviteError}
-                    disabled={inviteLoading}
-                  />
-                  {inviteSuccess && <p className="text-xs text-green-400">{inviteSuccess}</p>}
-                  <Button type="submit" loading={inviteLoading} disabled={!inviteCode.trim()}>
-                    Redeem Invite Code
-                  </Button>
-                </form>
-              </div>
-            </>
+            <p className="text-sm text-muted">Your account is set to free. Access is limited.</p>
           )}
 
           {isBilledPlan && (

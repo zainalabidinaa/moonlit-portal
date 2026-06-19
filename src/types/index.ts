@@ -1,4 +1,4 @@
-export type UserRole = 'admin' | 'friends_family' | 'premium' | 'premium_plus' | 'free';
+export type UserRole = 'admin' | 'friends_family' | 'premium' | 'premium_plus' | 'free' | 'restricted';
 
 export interface Profile {
   id: string;
