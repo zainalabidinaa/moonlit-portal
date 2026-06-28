@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { AppShell } from '../../components/layout/AppShell';
 import { Button } from '../../components/ui/Button';
@@ -6,10 +6,12 @@ import { FolderGrid } from '../../components/catalog/FolderGrid';
 import { ArtworkGallery } from '../../components/catalog/ArtworkGallery';
 import { SourcesTable } from '../../components/catalog/SourcesTable';
 import { JsonImport } from '../../components/catalog/JsonImport';
+import { CollectionSettings } from '../../components/catalog/CollectionSettings';
 import type { Collection, Folder, FolderSource, FolderCatalog } from '../../types';
 
-type Tab = 'folders' | 'artwork' | 'sources' | 'json';
+type Tab = 'folders' | 'artwork' | 'sources' | 'json' | 'collection';
 const TABS: { id: Tab; label: string }[] = [
+  { id: 'collection', label: 'Collection' },
   { id: 'folders', label: 'Folders' },
   { id: 'artwork', label: 'Folder artwork' },
   { id: 'sources', label: 'Sources' },
@@ -154,6 +156,13 @@ export default function CatalogPage() {
     const updated = { ...selectedFolder, ...patch } as Folder;
     setSelectedFolder(updated);
     setFolders((p) => p.map((f) => (f.id === updated.id ? updated : f)));
+  }
+
+  async function saveCollectionSettings(patch: Partial<Collection>) {
+    if (!selectedId) return;
+    const { error } = await supabase.from('collections').update(patch).eq('id', selectedId);
+    if (error) throw new Error(error.message);
+    setCollections((p) => p.map((c) => (c.id === selectedId ? { ...c, ...patch } : c)));
   }
 
   // ---- folder_sources (TMDB/provider) ----
@@ -366,7 +375,10 @@ export default function CatalogPage() {
     return { collections: 1, folders: folderCount, sources: sourceCount };
   }
 
-  const selected = collections.find((c) => c.id === selectedId) ?? null;
+  const selected = useMemo(
+    () => collections.find((c) => c.id === selectedId) ?? null,
+    [collections, selectedId],
+  );
 
   return (
     <AppShell>
@@ -481,6 +493,13 @@ export default function CatalogPage() {
               ) : (
                 <div className="py-16 text-center text-sm text-muted">Pick a folder from the Folders tab to edit its sources.</div>
               )
+            ) : tab === 'collection' ? (
+              <CollectionSettings
+                collection={selected}
+                folders={folders}
+                allCollections={collections}
+                onSave={saveCollectionSettings}
+              />
             ) : (
               <JsonImport onImport={importPack} />
             )}
