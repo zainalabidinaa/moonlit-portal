@@ -94,7 +94,7 @@ Deno.serve(async (req) => {
         page++;
       }
 
-      const { data: profiles } = await supabaseAdmin.from('profiles').select('user_id, role, name');
+      const { data: profiles } = await supabaseAdmin.from('profiles').select('user_id, role, name, role_expires_at');
       const profileMap = new Map((profiles ?? []).map((p: any) => [p.user_id, p]));
 
       const users = allAuthUsers.map((u) => {
@@ -105,6 +105,7 @@ Deno.serve(async (req) => {
           email: u.email,
           name: p?.name ?? u.email?.split('@')[0] ?? null,
           role: p?.role ?? 'premium',
+          role_expires_at: p?.role_expires_at ?? null,
           created_at: u.created_at,
         };
       });
@@ -115,7 +116,7 @@ Deno.serve(async (req) => {
     }
 
     if (req.method === 'PATCH') {
-      const { userId, role } = await req.json();
+      const { userId, role, role_expires_at } = await req.json();
       if (!userId || !role) {
         return new Response(JSON.stringify({ error: 'userId and role are required' }), {
           status: 400,
@@ -131,6 +132,11 @@ Deno.serve(async (req) => {
         });
       }
 
+      const updateFields: Record<string, any> = { role };
+      if (role_expires_at !== undefined) {
+        updateFields.role_expires_at = role_expires_at || null;
+      }
+
       // Update the first profile for this user, or insert if none exists
       const { data: existing } = await supabaseAdmin
         .from('profiles')
@@ -142,7 +148,7 @@ Deno.serve(async (req) => {
       if (existing && existing.length > 0) {
         const { error: updateErr } = await supabaseAdmin
           .from('profiles')
-          .update({ role })
+          .update(updateFields)
           .eq('id', existing[0].id);
 
         if (updateErr) throw updateErr;
@@ -154,6 +160,7 @@ Deno.serve(async (req) => {
             role,
             name: 'User',
             profile_index: 0,
+            ...updateFields,
           });
 
         if (insertErr) throw insertErr;

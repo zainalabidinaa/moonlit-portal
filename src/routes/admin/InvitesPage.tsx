@@ -14,13 +14,23 @@ function generateCode(): string {
   return Array.from({ length: 8 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
 }
 
+function durationDisplay(days: number | null): string {
+  if (days === null) return 'Never';
+  return `${days} days`;
+}
+
 export default function InvitesPage() {
   const { user, session } = useAuth();
   const [codes, setCodes] = useState<InviteRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deletingCode, setDeletingCode] = useState<string | null>(null);
   const [lastGenerated, setLastGenerated] = useState<string | null>(null);
   const [newCodeExpiresAt, setNewCodeExpiresAt] = useState('');
+  const [newCodeDuration, setNewCodeDuration] = useState('30');
+  const [newCodeCustomDays, setNewCodeCustomDays] = useState('');
+  const [showCustomDuration, setShowCustomDuration] = useState(false);
 
   useEffect(() => {
     if (!session) return;
@@ -46,7 +56,6 @@ export default function InvitesPage() {
             redeemed_by_label: c.used_email || (c.used_by ? userMap.get(c.used_by) || c.used_by : null),
           })));
         } else {
-          // Edge function failed — still show what we have (used_email, then UUID)
           console.warn('admin-users?ids= failed:', res.status);
           setCodes(codes.map(c => ({
             ...c,
@@ -70,20 +79,43 @@ export default function InvitesPage() {
     if (!user) return;
     setGenerating(true);
     const code = generateCode();
-    const { error } = await supabase.from('invite_codes').insert({
-      code,
-      created_by: user.id,
-      is_active: true,
-      max_uses: 1,
-      expires_at: dateTimeInputToISO(newCodeExpiresAt),
+    const expiresIso = dateTimeInputToISO(newCodeExpiresAt);
+    const durationDays = newCodeDuration === 'never' ? null
+      : newCodeDuration === 'custom' ? (parseInt(newCodeCustomDays) || 30)
+      : parseInt(newCodeDuration);
+
+    console.log('creating invite code:', { code, durationDays, newCodeDuration });
+
+    const { error } = await supabase.rpc('create_invite_code', {
+      p_code: code,
+      p_created_by: user.id,
+      p_expires_at: expiresIso,
+      p_role_duration_days: durationDays,
     });
     if (!error) { setLastGenerated(code); load(); }
     setGenerating(false);
   }
 
+  async function handleDeleteAll() {
+    if (!window.confirm('Delete ALL invite codes? This cannot be undone.')) return;
+    setDeleting(true);
+    for (const c of codes) {
+      await supabase.rpc('delete_invite_code', { p_code: c.code });
+    }
+    setDeleting(false);
+    setCodes([]);
+  }
+
+  async function handleDeleteOne(code: string) {
+    setDeletingCode(code);
+    await supabase.rpc('delete_invite_code', { p_code: code });
+    setDeletingCode(null);
+    setCodes(prev => prev.filter(c => c.code !== code));
+  }
+
   async function updateExpiration(code: string, value: string) {
     const expiresAt = dateTimeInputToISO(value);
-    const { error } = await supabase.from('invite_codes').update({ expires_at: expiresAt }).eq('code', code);
+    const { error } = await supabase.rpc('update_invite_expiration', { p_code: code, p_expires_at: expiresAt });
     if (!error) setCodes(prev => prev.map(c => c.code === code ? { ...c, expires_at: expiresAt } : c));
   }
 
@@ -122,14 +154,39 @@ export default function InvitesPage() {
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold text-text">Invite Codes</h1>
           <div className="flex items-center gap-2">
+            <select
+              value={newCodeDuration === 'custom' && showCustomDuration ? 'custom' : newCodeDuration}
+              onChange={e => {
+                setNewCodeDuration(e.target.value);
+                setShowCustomDuration(e.target.value === 'custom');
+              }}
+              className="rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none focus:border-accent"
+            >
+              <option value="7">Role: 7 days</option>
+              <option value="30">Role: 30 days</option>
+              <option value="90">Role: 90 days</option>
+              <option value="custom">Role: Custom…</option>
+              <option value="never">Role: Never</option>
+            </select>
+            {newCodeDuration === 'custom' && showCustomDuration && (
+              <input
+                type="number"
+                placeholder="Days"
+                value={newCodeCustomDays}
+                onChange={e => setNewCodeCustomDays(e.target.value)}
+                className="w-20 rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none focus:border-accent"
+              />
+            )}
             <input
               type="datetime-local"
               value={newCodeExpiresAt}
               onChange={e => setNewCodeExpiresAt(e.target.value)}
+              placeholder="Code expires (optional)"
               className="rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none focus:border-accent"
             />
             <Button size="sm" variant="ghost" onClick={() => setNewCodeExpiresAt('')}>Never</Button>
             <Button onClick={handleGenerate} loading={generating}>Generate Code</Button>
+            <Button variant="danger" onClick={handleDeleteAll} loading={deleting} disabled={codes.length === 0}>Delete All</Button>
           </div>
         </div>
 
@@ -153,7 +210,8 @@ export default function InvitesPage() {
                   <th className="text-left px-4 py-3 font-medium text-muted">Code</th>
                   <th className="text-left px-4 py-3 font-medium text-muted">Status</th>
                   <th className="text-left px-4 py-3 font-medium text-muted">Used by</th>
-                  <th className="text-left px-4 py-3 font-medium text-muted">Expires</th>
+                  <th className="text-left px-4 py-3 font-medium text-muted">Role duration</th>
+                  <th className="text-left px-4 py-3 font-medium text-muted">Code expires</th>
                   <th className="text-left px-4 py-3 font-medium text-muted">Created</th>
                   <th className="px-4 py-3" />
                 </tr>
@@ -175,6 +233,7 @@ export default function InvitesPage() {
                         <span className="text-muted/60">-</span>
                       )}
                     </td>
+                    <td className="px-4 py-3 text-muted">{durationDisplay(c.role_duration_days)}</td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         <input
@@ -188,7 +247,12 @@ export default function InvitesPage() {
                     </td>
                     <td className="px-4 py-3 text-muted">{new Date(c.created_at).toLocaleDateString()}</td>
                     <td className="px-4 py-3">
-                      {!c.used_by && <Button size="sm" variant="ghost" onClick={() => copyCode(c.code)}>Copy</Button>}
+                      <div className="flex items-center gap-1">
+                        {!c.used_by && <Button size="sm" variant="ghost" onClick={() => copyCode(c.code)}>Copy</Button>}
+                        <Button size="sm" variant="ghost" onClick={() => handleDeleteOne(c.code)} loading={deletingCode === c.code}>
+                          <span className="text-red-400">Delete</span>
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 ))}

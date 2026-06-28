@@ -32,29 +32,40 @@ export default function SignupPage() {
     setError('');
     setLoading(true);
 
-    // Validate invite code
-    const { data: valid } = await supabase.rpc('validate_invite_code', { p_code: code.trim().toUpperCase() });
-    if (!valid) { setError('Invalid, expired, or already used invite code.'); setLoading(false); return; }
+    const trimmedCode = code.trim().toUpperCase();
 
-    // Create account
+    // Create account first
     const { data: authData, error: signUpError } = await supabase.auth.signUp({ email, password });
     if (signUpError || !authData.user) { setError(signUpError?.message ?? 'Signup failed'); setLoading(false); return; }
+
+    // Redeem invite code (validates + marks used, returns duration_days)
+    const { data: durationDays, error: redeemError } = await supabase.rpc('redeem_invite_code', {
+      p_code: trimmedCode,
+      p_user_id: authData.user.id,
+      p_email: email,
+    });
+
+    console.log('redeem_invite_code result:', { durationDays, redeemError });
+
+    if (redeemError) {
+      setError(redeemError.message);
+      setLoading(false);
+      return;
+    }
+
+    const roleExpiresAt = durationDays !== null && durationDays !== undefined
+      ? new Date(Date.now() + durationDays * 24 * 60 * 60 * 1000).toISOString()
+      : null;
 
     // Insert profile
     await supabase.from('profiles').insert({
       user_id: authData.user.id,
       name: email.split('@')[0],
       role: 'friends_family',
+      role_expires_at: roleExpiresAt,
       uses_primary_addons: true,
       profile_index: 0,
     });
-
-    // Mark invite code used
-    await supabase.from('invite_codes').update({
-      used_by: authData.user.id,
-      used_email: email,
-      used_at: new Date().toISOString()
-    }).eq('code', code.trim().toUpperCase());
 
     setLoading(false);
     navigate('/profiles');

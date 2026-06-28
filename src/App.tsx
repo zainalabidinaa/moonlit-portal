@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
-import { PublicRoute, UserRoute, AdminRoute } from './components/layout/RouteGuards';
+import { PublicRoute, UserRoute, AuthRoute, AdminRoute } from './components/layout/RouteGuards';
 import LandingPage from './routes/public/LandingPage';
 import PricingPage from './routes/public/PricingPage';
 import LoginPage from './routes/public/LoginPage';
@@ -14,6 +14,7 @@ import HomeLayoutPage from './routes/admin/HomeLayoutPage';
 import TemplatesPage from './routes/admin/TemplatesPage';
 import UsersPage from './routes/admin/UsersPage';
 import InvitesPage from './routes/admin/InvitesPage';
+import CardGeneratorPage from './routes/tools/CardGeneratorPage';
 
 export default function App() {
   return (
@@ -30,7 +31,7 @@ export default function App() {
           {/* User */}
           <Route path="/profiles" element={<UserRoute><ProfilesPage /></UserRoute>} />
           <Route path="/addons" element={<UserRoute><AddonsPage /></UserRoute>} />
-          <Route path="/billing" element={<UserRoute><BillingPage /></UserRoute>} />
+          <Route path="/billing" element={<AuthRoute><BillingPage /></AuthRoute>} />
 
           {/* Admin */}
           <Route path="/admin/home" element={<AdminRoute><HomeLayoutPage /></AdminRoute>} />
@@ -39,6 +40,7 @@ export default function App() {
           <Route path="/admin/users" element={<AdminRoute><UsersPage /></AdminRoute>} />
           <Route path="/admin/invites" element={<AdminRoute><InvitesPage /></AdminRoute>} />
 
+          <Route path="/tools/card-generator" element={<CardGeneratorPage />} />
           <Route path="*" element={<div className="min-h-screen bg-bg flex items-center justify-center"><p className="text-muted">Page not found</p></div>} />
         </Routes>
       </AuthProvider>

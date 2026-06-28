@@ -10,6 +10,7 @@ export interface Profile {
   uses_primary_addons: boolean;
   pin_enabled: boolean;
   role: UserRole;
+  role_expires_at: string | null;
   created_at: string;
 }
 
@@ -33,6 +34,7 @@ export interface InviteCode {
   expires_at: string | null;
   max_uses: number;
   is_active: boolean;
+  role_duration_days: number | null;
 }
 
 export interface Collection {
