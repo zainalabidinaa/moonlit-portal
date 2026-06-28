@@ -38,11 +38,30 @@ function collectImages(obj: unknown, path = '', out: ImageEntry[] = []): ImageEn
 }
 
 interface Props {
-  onImport: (pack: Record<string, unknown>) => Promise<{ collections: number; folders: number; sources: number }>;
+  onImport: (pack: Record<string, unknown>, discoverMap?: Map<string, string>) => Promise<{ collections: number; folders: number; sources: number; skipped: number }>;
+}
+
+/** Build title→catalogId map from an AIOMetadata config JSON */
+function buildDiscoverMap(aioRaw: string): Map<string, string> | null {
+  try {
+    const cfg = JSON.parse(aioRaw);
+    const catalogs: any[] = cfg?.config?.catalogs ?? cfg?.catalogs ?? [];
+    const map = new Map<string, string>();
+    for (const c of catalogs) {
+      if (typeof c.id === 'string' && c.id.startsWith('tmdb.discover.') && typeof c.name === 'string') {
+        map.set(c.name.toLowerCase(), c.id);
+      }
+    }
+    return map.size > 0 ? map : null;
+  } catch {
+    return null;
+  }
 }
 
 export function JsonImport({ onImport }: Props) {
   const [raw, setRaw] = useState(SAMPLE);
+  const [aioRaw, setAioRaw] = useState('');
+  const [showAio, setShowAio] = useState(false);
   const [importing, setImporting] = useState(false);
   const [result, setResult] = useState<string | null>(null);
 
@@ -54,6 +73,7 @@ export function JsonImport({ onImport }: Props) {
     }
   }, [raw]);
 
+  const discoverMap = useMemo(() => aioRaw.trim() ? buildDiscoverMap(aioRaw) : null, [aioRaw]);
   const images = parsed.ok ? collectImages(parsed.value) : [];
 
   async function handleImport() {
@@ -61,8 +81,11 @@ export function JsonImport({ onImport }: Props) {
     setImporting(true);
     setResult(null);
     try {
-      const r = await onImport(parsed.value);
-      setResult(`Imported ${r.collections} collection(s), ${r.folders} folder(s), ${r.sources} source(s).`);
+      const r = await onImport(parsed.value, discoverMap ?? undefined);
+      setResult(
+        `Imported ${r.collections} collection(s), ${r.folders} folder(s), ${r.sources} source(s).` +
+        (r.skipped > 0 ? ` ${r.skipped} sources skipped (no catalog ID).` : '')
+      );
     } catch (e) {
       setResult(`Import failed: ${(e as Error).message}`);
     }
@@ -90,6 +113,30 @@ export function JsonImport({ onImport }: Props) {
             <p className="mt-2 font-mono text-[11px] text-red-400">JSON error: {parsed.error}</p>
           )}
           {result && <p className="mt-2 font-mono text-[11px] text-accent">{result}</p>}
+
+          {/* AIOMetadata config (optional) */}
+          <div className="mt-3">
+            <button
+              onClick={() => setShowAio((v) => !v)}
+              className="flex items-center gap-1.5 font-mono text-[11px] text-muted hover:text-text"
+            >
+              <span>{showAio ? '▼' : '▶'}</span>
+              AIOMetadata config <span className="text-faint">(optional — resolves TMDB Discover catalog IDs)</span>
+              {discoverMap && <span className="ml-1 rounded-full bg-accent/20 px-2 py-0.5 text-[9px] text-accent">{discoverMap.size} catalogs loaded</span>}
+            </button>
+            {showAio && (
+              <textarea
+                value={aioRaw}
+                spellCheck={false}
+                onChange={(e) => setAioRaw(e.target.value)}
+                placeholder="Paste your aiometadata-config.json here…"
+                className="mt-2 h-[160px] w-full resize-y rounded-2xl border border-border bg-bg p-4 font-mono text-[11px] leading-relaxed text-muted outline-none focus:border-accent"
+              />
+            )}
+            {showAio && aioRaw.trim() && !discoverMap && (
+              <p className="mt-1 font-mono text-[11px] text-red-400">Could not parse AIOMetadata config — check the JSON.</p>
+            )}
+          </div>
         </div>
 
         <div className="h-fit rounded-2xl border border-border bg-bg2 p-4">

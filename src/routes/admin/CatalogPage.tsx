@@ -212,12 +212,12 @@ export default function CatalogPage() {
   }
 
   // ---- JSON pack import ----
-  async function importPack(pack: Record<string, unknown>) {
+  async function importPack(pack: Record<string, unknown>, discoverMap?: Map<string, string>) {
     const p = pack as any;
 
     // Detect format: Moonlit = top-level array of collections with nested folders+sources
     if (Array.isArray(p)) {
-      return importMoonlitPack(p);
+      return importMoonlitPack(p, discoverMap);
     }
     // BEST format: object with flat collections[], folders[], folder_catalogs[] arrays
     return importBESTPack(p);
@@ -225,8 +225,8 @@ export default function CatalogPage() {
 
   // ---- Moonlit format import ----
   // Top-level array: [{ id, title, folders: [{ id, title, sources: [...], heroBackdropUrl, tileShape }] }]
-  async function importMoonlitPack(moonlit: any[]) {
-    let totalCollections = 0, totalFolders = 0, totalSources = 0;
+  async function importMoonlitPack(moonlit: any[], discoverMap?: Map<string, string>) {
+    let totalCollections = 0, totalFolders = 0, totalSources = 0, totalSkipped = 0;
 
     for (let ci = 0; ci < moonlit.length; ci++) {
       const col = moonlit[ci];
@@ -269,12 +269,16 @@ export default function CatalogPage() {
         totalFolders++;
 
         // Import sources as folder_catalogs
-        const sources: any[] = Array.isArray(f.sources) ? f.sources : [];
+        const rawSources: any[] = Array.isArray(f.sources) ? f.sources : [];
+        // Dedupe: prefer catalogSources (has richer data) over sources if both present
+        const sources = Array.isArray(f.catalogSources) && f.catalogSources.length > 0
+          ? f.catalogSources
+          : rawSources;
         const seenCatalogIds = new Set<string>();
         for (let si = 0; si < sources.length; si++) {
           const src = sources[si];
-          const catalogId = resolveMoonlitCatalogId(src);
-          if (!catalogId) continue;
+          const catalogId = resolveMoonlitCatalogId(src, discoverMap);
+          if (!catalogId) { totalSkipped++; continue; }
           const dedupeKey = `${folderId}:${catalogId}`;
           if (seenCatalogIds.has(dedupeKey)) continue;
           seenCatalogIds.add(dedupeKey);
@@ -294,16 +298,18 @@ export default function CatalogPage() {
     }
 
     await loadCollections();
-    return { collections: totalCollections, folders: totalFolders, sources: totalSources };
+    return { collections: totalCollections, folders: totalFolders, sources: totalSources, skipped: totalSkipped };
   }
 
-  function resolveMoonlitCatalogId(src: any): string | null {
+  function resolveMoonlitCatalogId(src: any, discoverMap?: Map<string, string>): string | null {
     if (src.catalogId) return src.catalogId;
     if (src.traktListId) return `trakt.list.${src.traktListId}`;
     if (src.tmdbId && src.tmdbSourceType?.toUpperCase() === 'COLLECTION') return `tmdb.collection.${src.tmdbId}`;
     if (src.tmdbSourceType?.toUpperCase() === 'DISCOVER') {
-      const mt = normalizeMediaType(src.type ?? src.mediaType);
       const title = (src.title ?? '').toLowerCase();
+      if (discoverMap) return discoverMap.get(title) ?? null;
+      // fallback: small hard-coded table for the 6 common generic catalogs
+      const mt = normalizeMediaType(src.type ?? src.mediaType);
       const known: Record<string, string> = {
         'movie:new movies': 'tmdb.discover.movie.new-movies.069d5312',
         'movie:popular movies': 'tmdb.discover.movie.popular-movies.29727d26',
@@ -391,7 +397,7 @@ export default function CatalogPage() {
 
     await loadCollections();
     setSelectedId(collectionId);
-    return { collections: 1, folders: folderCount, sources: sourceCount };
+    return { collections: 1, folders: folderCount, sources: sourceCount, skipped: 0 };
   }
 
   const selected = useMemo(
