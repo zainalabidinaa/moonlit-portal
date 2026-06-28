@@ -9,9 +9,10 @@ interface Props {
   onDrop: (i: number) => void;
   onMoveUp: (i: number) => void;
   onMoveDown: (i: number) => void;
+  onDeleteFolder: (id: string) => void;
 }
 
-export function FolderGrid({ collection, folders, onSelectFolder, onAddFolder, onDragStart, onDrop, onMoveUp, onMoveDown }: Props) {
+export function FolderGrid({ collection, folders, onSelectFolder, onAddFolder, onDragStart, onDrop, onMoveUp, onMoveDown, onDeleteFolder }: Props) {
   return (
     <div>
       {/* Collection backdrop */}
@@ -72,7 +73,7 @@ export function FolderGrid({ collection, folders, onSelectFolder, onAddFolder, o
               </div>
             </button>
 
-            {/* reorder buttons — visible on hover */}
+            {/* reorder + delete buttons — visible on hover */}
             <div className="absolute right-2 top-2 z-[4] hidden flex-col gap-1 group-hover:flex">
               <button
                 onClick={(e) => { e.stopPropagation(); onMoveUp(i); }}
@@ -86,6 +87,11 @@ export function FolderGrid({ collection, folders, onSelectFolder, onAddFolder, o
                 className="flex h-6 w-6 items-center justify-center rounded-lg bg-bg/80 font-mono text-[11px] text-muted backdrop-blur transition-colors hover:bg-accent hover:text-[#2a1206] disabled:opacity-20"
                 title="Move down"
               >↓</button>
+              <button
+                onClick={(e) => { e.stopPropagation(); onDeleteFolder(f.id); }}
+                className="flex h-6 w-6 items-center justify-center rounded-lg bg-bg/80 font-mono text-[11px] text-muted backdrop-blur transition-colors hover:bg-red-500 hover:text-white"
+                title="Delete folder"
+              >×</button>
             </div>
           </div>
         ))}

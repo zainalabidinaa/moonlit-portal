@@ -150,6 +150,25 @@ export default function CatalogPage() {
     folderDrag.current = i;
     await reorderFolders(i + 1);
   }
+  async function deleteFolder(id: string) {
+    if (!confirm('Delete this folder and its sources?')) return;
+    await supabase.from('folder_catalogs').delete().eq('folder_id', id);
+    await supabase.from('folder_sources').delete().eq('folder_id', id);
+    await supabase.from('folders').delete().eq('id', id);
+    setFolders((p) => p.filter((f) => f.id !== id));
+    if (selectedFolder?.id === id) setSelectedFolder(null);
+    if (selectedId) setFolderCounts((c) => ({ ...c, [selectedId]: Math.max(0, (c[selectedId] ?? 1) - 1) }));
+  }
+  async function moveCollectionUp(i: number) {
+    if (i === 0) return;
+    colDrag.current = i;
+    await reorderCollections(i - 1);
+  }
+  async function moveCollectionDown(i: number) {
+    if (i === collections.length - 1) return;
+    colDrag.current = i;
+    await reorderCollections(i + 1);
+  }
   async function saveFolderArtwork(patch: Partial<Folder>) {
     if (!selectedFolder) return;
     await supabase.from('folders').update(patch).eq('id', selectedFolder.id);
@@ -432,6 +451,20 @@ export default function CatalogPage() {
                   <b className="block truncate text-[13px] font-semibold">{c.name}</b>
                   <small className="font-mono text-[10px] text-faint">{folderCounts[c.id] ?? 0} folders</small>
                 </div>
+                <div className="flex flex-col gap-0.5 opacity-0 transition-opacity group-hover:opacity-100" onClick={(e) => e.stopPropagation()}>
+                  <button
+                    onClick={() => moveCollectionUp(i)}
+                    disabled={i === 0}
+                    className="flex h-5 w-5 items-center justify-center rounded font-mono text-[10px] text-muted hover:bg-accent hover:text-[#2a1206] disabled:opacity-20"
+                    title="Move up"
+                  >↑</button>
+                  <button
+                    onClick={() => moveCollectionDown(i)}
+                    disabled={i === collections.length - 1}
+                    className="flex h-5 w-5 items-center justify-center rounded font-mono text-[10px] text-muted hover:bg-accent hover:text-[#2a1206] disabled:opacity-20"
+                    title="Move down"
+                  >↓</button>
+                </div>
                 <button
                   onClick={(e) => { e.stopPropagation(); deleteCollection(c.id); }}
                   className="font-mono text-[10px] text-faint opacity-0 transition-opacity hover:text-red-400 group-hover:opacity-100"
@@ -472,6 +505,7 @@ export default function CatalogPage() {
                 onDrop={reorderFolders}
                 onMoveUp={moveFolderUp}
                 onMoveDown={moveFolderDown}
+                onDeleteFolder={deleteFolder}
               />
             ) : tab === 'artwork' ? (
               selectedFolder ? (
