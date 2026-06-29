@@ -286,6 +286,7 @@ function buildPayload(
               title: s.title ?? '',
               provider: s.provider,
               tmdbId: s.tmdb_id,
+              tmdbSourceType: 'DISCOVER',
             })),
           ];
 

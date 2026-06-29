@@ -66,6 +66,23 @@ Deno.serve(async (req) => {
     }
     const catalogs = allCatalogs;
 
+    // Fetch all folder_sources in batches
+    let allSources: any[] = [];
+    if (folderIds.length > 0) {
+      const batchSize = 100;
+      for (let i = 0; i < folderIds.length; i += batchSize) {
+        const batch = folderIds.slice(i, i + batchSize);
+        const { data, error } = await supabase
+          .from('folder_sources')
+          .select('*')
+          .in('folder_id', batch)
+          .order('sort_order');
+        if (error) throw error;
+        if (data) allSources.push(...data);
+      }
+    }
+    const folderSources = allSources;
+
     // Build lookup maps
     const foldersByCollection: Record<string, any[]> = {};
     for (const f of folders) {
@@ -77,19 +94,35 @@ Deno.serve(async (req) => {
       if (!catalogsByFolder[c.folder_id]) catalogsByFolder[c.folder_id] = [];
       catalogsByFolder[c.folder_id].push(c);
     }
+    const sourcesByFolder: Record<string, any[]> = {};
+    for (const s of folderSources) {
+      if (!sourcesByFolder[s.folder_id]) sourcesByFolder[s.folder_id] = [];
+      sourcesByFolder[s.folder_id].push(s);
+    }
 
     // Serialize to Nuvio JSON format (what the iOS app's CollectionOrganizerParser expects)
     const output = collections
       .map((col: any) => {
         const colFolders = (foldersByCollection[col.id] ?? []).map((f: any) => {
           const folderCatalogs = catalogsByFolder[f.id] ?? [];
-          const sources = folderCatalogs.map((cat: any) => ({
-            type: cat.media_type,
-            genre: cat.genre ?? 'None',
-            addonId: 'aio-metadata',
-            provider: 'addon',
-            catalogId: cat.catalog_id,
-          }));
+          const rawSources = sourcesByFolder[f.id] ?? [];
+          const sources = [
+            ...folderCatalogs.map((cat: any) => ({
+              type: cat.media_type,
+              genre: cat.genre ?? 'None',
+              addonId: 'aio-metadata',
+              provider: 'addon',
+              catalogId: cat.catalog_id,
+            })),
+            ...rawSources.map((s: any) => ({
+              type: 'all',
+              genre: 'None',
+              title: s.title ?? '',
+              provider: s.provider,
+              tmdbId: s.tmdb_id,
+              tmdbSourceType: 'DISCOVER',
+            })),
+          ];
           if (sources.length === 0) return null;
           return {
             id: f.id,

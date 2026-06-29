@@ -1,0 +1,53 @@
+# Example card-generator config (TOML format)
+#
+# Usage:
+#   python card_generator.py --config ./card-config.toml
+#
+# All keys are optional — missing keys use the defaults.
+
+title = "Moonlit Originals"
+subtitle = "Curated Collection"
+output = "moonlit-card.png"
+
+# Preset theme — or use accent_color / sphere_colors below
+theme = "moonlit"
+
+# Custom accent colour (overrides theme's line color)
+# accent_color = "#a78bfa"
+
+# Custom sphere colours for mesh prism background (up to 3)
+# sphere_colors = ["#a78bfa", "#f43f5e", "#06b6d4"]
+
+# Background image (covers canvas, dimmed for text readability)
+# background = "./my-backdrop.jpg"
+
+# Showcase cards at the bottom
+[[showcase]]
+path = "./card1.png"
+title = "Action"
+
+[[showcase]]
+path = "./card2.png"
+title = "Drama"
+
+[[showcase]]
+path = "./card3.png"
+title = "Sci-Fi"
+
+# Layout
+showcase_shape = "LANDSCAPE"   # LANDSCAPE (16:10) or POSTER (2:3)
+max_showcase = 3
+
+# Effects toggles
+no_vignette = false
+no_grain = false
+no_perforations = false
+no_spotlight = false
+
+# Blur showcase cards to hide copyrighted logos
+obfuscate_cards = false
+
+# Fonts (Google Fonts auto-downloaded, Apple fonts detected on macOS)
+font_title = "Montserrat-ExtraBold"   # or "SF Pro", "Inter-Bold", "New York"
+font_body = "Inter-Medium"            # or "SF Text", "SF Mono"
+font_card_title = "Inter-Bold"

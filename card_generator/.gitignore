@@ -1,0 +1,4 @@
+# Card generator — ignore cached fonts and output
+card_generator/fonts/*.ttf
+*.png
+!card-config.sample.toml

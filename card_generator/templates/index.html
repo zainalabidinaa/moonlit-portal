@@ -1,0 +1,912 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Moonlit Cover Generator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: #0d0604;
+      color: #f7ede6;
+      height: 100vh;
+      overflow: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+    .app { display: flex; height: 100vh; }
+
+    /* Preview */
+    .preview-panel {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background: #140b07;
+      overflow: auto;
+    }
+    .preview-wrap {
+      position: relative;
+      width: 100%;
+      max-width: 960px;
+      aspect-ratio: 16 / 9;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.7);
+      border: 1px solid #2c211b;
+      background: #08060a;
+    }
+    .preview-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: none; }
+    .preview-placeholder {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column; gap: 8px;
+      align-items: center; justify-content: center;
+      color: #6b5546; font-size: 0.85rem; text-align: center; padding: 24px;
+    }
+    .preview-placeholder svg { width: 38px; height: 38px; opacity: 0.5; }
+    .render-badge {
+      position: absolute; top: 12px; right: 12px;
+      display: none; align-items: center; gap: 7px;
+      background: rgba(8,6,10,0.72); backdrop-filter: blur(6px);
+      border: 1px solid #2c211b; border-radius: 999px;
+      padding: 5px 12px; font-size: 0.72rem; color: #f0c9af;
+    }
+    .render-badge .dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: #fa824d; animation: pulse 0.9s ease-in-out infinite;
+    }
+    @keyframes pulse { 0%,100% { opacity: 0.3; } 50% { opacity: 1; } }
+    .wysiwyg-note {
+      position: absolute; bottom: 10px; left: 12px;
+      font-size: 0.66rem; color: #6b5546; letter-spacing: 0.3px;
+      background: rgba(8,6,10,0.55); padding: 3px 8px; border-radius: 6px;
+    }
+
+    /* Controls */
+    .controls {
+      width: 380px;
+      background: #1a110b;
+      border-left: 1px solid #2c211b;
+      overflow-y: auto;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .controls h2 { font-family: 'Bricolage Grotesque', sans-serif; font-size: 1.15rem; font-weight: 800; }
+    .ctrl-header { display: flex; align-items: center; justify-content: space-between; }
+
+    label.lbl { display: block; font-size: 0.7rem; font-weight: 600; color: #8a6f5f; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+
+    input[type="text"], input[type="color"], select {
+      width: 100%;
+      background: #221710;
+      border: 1px solid #2c211b;
+      border-radius: 8px;
+      padding: 8px 12px;
+      color: #f7ede6;
+      font-size: 0.85rem;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    input[type="text"]:focus, select:focus { border-color: #fa824d; }
+    input[type="color"] { padding: 2px 4px; height: 36px; cursor: pointer; }
+    select { appearance: none; cursor: pointer; }
+    input[type="range"] { width: 100%; accent-color: #fa824d; cursor: pointer; }
+
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+    /* Segmented layout toggle */
+    .seg { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; background: #221710; border: 1px solid #2c211b; border-radius: 9px; padding: 4px; }
+    .seg button {
+      border: none; background: transparent; color: #b89a87;
+      padding: 8px 6px; border-radius: 6px; cursor: pointer;
+      font-size: 0.8rem; font-weight: 600; font-family: inherit; transition: all 0.15s;
+    }
+    .seg button.active { background: #fa824d; color: #2a1206; box-shadow: 0 0 16px rgba(250,130,77,0.4); }
+
+    .drop-zone {
+      border: 2px dashed #2c211b; border-radius: 10px; padding: 16px;
+      text-align: center; cursor: pointer; transition: all 0.15s;
+      color: #8a6f5f; font-size: 0.8rem;
+    }
+    .drop-zone:hover { border-color: #c4a090; }
+    .drop-zone.drag { border-color: #fa824d; background: rgba(250,130,77,0.05); }
+    .drop-zone.has-img { padding: 8px; }
+    .drop-zone .thumb { width: 100%; height: 64px; object-fit: cover; border-radius: 6px; }
+    .drop-zone .remove-btn {
+      position: absolute; top: 4px; right: 4px; width: 20px; height: 20px;
+      background: rgba(0,0,0,0.6); border-radius: 50%; border: none; color: #fff;
+      font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+      opacity: 0; transition: opacity 0.15s;
+    }
+    .thumb-wrap { position: relative; }
+    .thumb-wrap:hover .remove-btn { opacity: 1; }
+
+    .chk { display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.85rem; }
+    .chk input { width: 16px; height: 16px; accent-color: #fa824d; cursor: pointer; }
+
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px;
+      border-radius: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer;
+      border: none; transition: all 0.15s;
+    }
+    .btn-primary { background: #fa824d; color: #2a1206; box-shadow: 0 0 22px rgba(250,130,77,0.55); }
+    .btn-primary:hover { filter: brightness(1.1); }
+    .btn-primary:disabled { opacity: 0.6; cursor: default; }
+
+    .color-row { display: flex; gap: 6px; align-items: center; }
+    .color-row input[type="color"] { width: 36px; flex-shrink: 0; }
+    .cinematic-only { display: none; }
+    .nuvio-only { display: none; }
+    .hr { height: 1px; background: #2c211b; border: none; margin: 2px 0; }
+  </style>
+</head>
+<body>
+<div class="app">
+  <!-- Preview -->
+  <div class="preview-panel">
+    <div class="preview-wrap" id="previewWrap">
+      <img class="preview-img" id="previewImg" alt="cover preview" />
+      <div class="preview-placeholder" id="previewPlaceholder">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
+        <span>Drop a background image to start</span>
+      </div>
+      <div class="render-badge" id="renderBadge"><span class="dot"></span> rendering…</div>
+      <div class="wysiwyg-note">Live render — exactly what downloads</div>
+    </div>
+  </div>
+
+  <!-- Controls -->
+  <div class="controls">
+    <div class="ctrl-header">
+      <h2>Cover Generator</h2>
+      <button class="btn btn-primary" id="downloadBtn">Download PNG</button>
+    </div>
+
+    <div>
+      <label class="lbl">Mode</label>
+      <div class="seg" id="modeSeg">
+        <button type="button" data-mode="cover" class="active">Cover</button>
+        <button type="button" data-mode="nuvio">Nuvio Tile</button>
+      </div>
+    </div>
+
+    <div class="cover-only">
+      <label class="lbl">Layout</label>
+      <div class="seg" id="layoutSeg">
+        <button type="button" data-layout="centered" class="active">Centered</button>
+        <button type="button" data-layout="cinematic">Cinematic (Left)</button>
+      </div>
+    </div>
+
+    <hr class="hr" />
+
+    <div>
+      <label class="lbl">Title</label>
+      <input type="text" id="titleInput" value="Moonlit" />
+    </div>
+
+    <div class="row cover-only">
+      <div>
+        <label class="lbl">Size (<span id="titleSizeVal">96</span>px)</label>
+        <input type="range" id="titleSize" min="40" max="280" value="96" />
+      </div>
+      <div>
+        <label class="lbl"><span id="titleYLabel">Position</span> (<span id="titleYVal">60</span>)</label>
+        <input type="range" id="titleY" min="0" max="1080" value="60" />
+      </div>
+    </div>
+
+    <div class="row cover-only">
+      <div>
+        <label class="lbl">Letter spacing (<span id="letterVal">0</span>px)</label>
+        <input type="range" id="letterSpacing" min="0" max="60" value="0" />
+      </div>
+      <div>
+        <label class="lbl">Title Font</label>
+        <select id="fontTitle"></select>
+      </div>
+    </div>
+
+    <div class="cover-only">
+      <label class="lbl">Subtitle</label>
+      <input type="text" id="subtitleInput" placeholder="Optional tagline" />
+    </div>
+
+    <div class="row cover-only">
+      <div>
+        <label class="lbl">Sub size (<span id="subSizeVal">28</span>px)</label>
+        <input type="range" id="subtitleSize" min="12" max="80" value="28" />
+      </div>
+      <div>
+        <label class="lbl">Sub color</label>
+        <div class="color-row">
+          <input type="color" id="subtitleColor" value="#cbd5e1" />
+          <input type="text" id="subtitleColorHex" value="#cbd5e1" />
+        </div>
+      </div>
+    </div>
+
+    <div class="row cover-only">
+      <div>
+        <label class="lbl">Accent</label>
+        <div class="color-row">
+          <input type="color" id="accentColor" value="#6366f1" />
+          <input type="text" id="accentColorHex" value="#6366f1" />
+        </div>
+      </div>
+      <div>
+        <label class="lbl">Body Font</label>
+        <select id="fontBody"></select>
+      </div>
+    </div>
+
+    <hr class="hr" />
+
+    <div class="nuvio-only">
+      <label class="lbl">Right-side Image</label>
+      <div class="drop-zone" id="nuvioBgDropZone">
+        <span id="nuvioBgDropText">Drop the real image/collage for the gold side</span>
+        <div class="thumb-wrap" id="nuvioBgThumbWrap" style="display:none">
+          <img class="thumb" id="nuvioBgThumbImg" alt="" />
+          <button class="remove-btn" id="removeNuvioBg">✕</button>
+        </div>
+        <input type="file" id="nuvioBgFileInput" accept="image/*" style="display:none" />
+      </div>
+    </div>
+
+    <div class="row nuvio-only">
+      <div>
+        <label class="lbl">Image X (<span id="nuvioBgXVal">50</span>%)</label>
+      <input type="range" id="nuvioBgX" min="-800" max="800" value="50" />
+    </div>
+    <div>
+      <label class="lbl">Image Y (<span id="nuvioBgYVal">50</span>%)</label>
+      <input type="range" id="nuvioBgY" min="-800" max="800" value="50" />
+      </div>
+    </div>
+
+    <div class="nuvio-only">
+      <label class="lbl">Image Zoom (<span id="nuvioBgZoomVal">120</span>%)</label>
+      <input type="range" id="nuvioBgZoom" min="50" max="250" value="120" />
+    </div>
+
+    <div class="nuvio-only">
+      <label class="lbl">Image Strength (<span id="nuvioBgStrengthVal">100</span>%)</label>
+      <input type="range" id="nuvioBgStrength" min="0" max="100" value="100" />
+    </div>
+
+    <label class="chk nuvio-only"><input type="checkbox" id="showNuvioSubject" checked /> Show generated silhouette</label>
+
+    <div class="nuvio-only">
+      <label class="lbl">Custom Silhouette Image</label>
+      <div class="drop-zone" id="subjectDropZone">
+        <span id="subjectDropText">Drop a cutout/silhouette, not a real photo</span>
+        <div class="thumb-wrap" id="subjectThumbWrap" style="display:none">
+          <img class="thumb" id="subjectThumbImg" alt="" />
+          <button class="remove-btn" id="removeSubject">✕</button>
+        </div>
+        <input type="file" id="subjectFileInput" accept="image/*" style="display:none" />
+      </div>
+    </div>
+
+    <div class="nuvio-only">
+      <label class="lbl">Fallback Subject</label>
+      <select id="nuvioSubject">
+        <option value="action">Action</option>
+        <option value="adventure">Adventure</option>
+        <option value="anime">Anime</option>
+        <option value="biography">Biography</option>
+        <option value="christmas">Christmas</option>
+        <option value="comedy">Comedy</option>
+        <option value="crime">Crime</option>
+        <option value="documentaries">Documentaries</option>
+        <option value="drama">Drama</option>
+        <option value="fantasy">Fantasy</option>
+        <option value="food" selected>Food &amp; Cooking</option>
+        <option value="game-shows">Game Shows</option>
+        <option value="history">History</option>
+        <option value="horror">Horror</option>
+        <option value="independent">Independent</option>
+        <option value="kids">Kids &amp; Family</option>
+        <option value="martial-arts">Martial Arts</option>
+        <option value="music">Music</option>
+        <option value="musicals">Musicals</option>
+        <option value="mystery">Mystery</option>
+        <option value="nature">Nature</option>
+        <option value="news">News</option>
+        <option value="reality">Reality TV</option>
+        <option value="romance">Romance</option>
+        <option value="romcom">Rom-Com</option>
+        <option value="sci-fi">Sci-Fi</option>
+        <option value="short-films">Short Films</option>
+        <option value="sports">Sports</option>
+        <option value="stand-up">Stand-up Comedy</option>
+        <option value="thriller">Thriller</option>
+        <option value="travel">Travel</option>
+        <option value="war">War &amp; Military</option>
+        <option value="western">Western</option>
+      </select>
+    </div>
+
+    <div class="row nuvio-only">
+      <div>
+        <label class="lbl">Palette</label>
+        <select id="nuvioPalette">
+          <option value="gold">Gold</option>
+          <option value="white">White</option>
+          <option value="moonlit">Moonlit</option>
+        </select>
+      </div>
+      <div>
+        <label class="lbl">Variant</label>
+        <select id="nuvioVariant">
+          <option value="normal">Normal</option>
+          <option value="focused">Focused</option>
+          <option value="dark">Dark</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="row nuvio-only">
+      <div>
+        <label class="lbl">Brush X (<span id="nuvioBrushVal">58</span>%)</label>
+        <input type="range" id="nuvioBrushX" min="35" max="75" value="58" />
+      </div>
+      <div>
+        <label class="lbl">Text X (<span id="nuvioTextVal">7</span>%)</label>
+        <input type="range" id="nuvioTextX" min="3" max="22" value="7" />
+      </div>
+    </div>
+
+    <div class="nuvio-only">
+      <label class="lbl">Genre Size (<span id="nuvioTextSizeVal">58</span>px)</label>
+      <input type="range" id="nuvioTextSize" min="28" max="124" value="58" />
+    </div>
+
+    <label class="chk nuvio-only"><input type="checkbox" id="downloadAll" /> Download all variants</label>
+
+    <div class="cover-only">
+      <label class="lbl">Background Image</label>
+      <div class="drop-zone" id="dropZone">
+        <span id="dropText">Drop an image or click to browse</span>
+        <div class="thumb-wrap" id="thumbWrap" style="display:none">
+          <img class="thumb" id="thumbImg" alt="" />
+          <button class="remove-btn" id="removeBg">✕</button>
+        </div>
+        <input type="file" id="bgFileInput" accept="image/*" style="display:none" />
+      </div>
+    </div>
+
+    <div class="cover-only">
+      <label class="lbl">Image Opacity (<span id="opacityVal">100</span>%)</label>
+      <input type="range" id="bgOpacity" min="0" max="100" value="100" />
+    </div>
+
+    <div class="cover-only">
+      <label class="lbl">Effects</label>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <label class="chk"><input type="checkbox" id="chkVignette" checked /> Vignette</label>
+        <label class="chk"><input type="checkbox" id="chkPureWhite" /> Pure white title</label>
+      </div>
+    </div>
+
+    <div class="cinematic-only cover-only" id="scrimGroup">
+      <label class="lbl">Left Scrim (<span id="scrimVal">70</span>%)</label>
+      <input type="range" id="scrimStrength" min="0" max="100" value="70" />
+    </div>
+
+    <div>
+      <label class="lbl">Top Dark Gradient (<span id="topGradVal">60</span>%)</label>
+      <input type="range" id="topGradStrength" min="0" max="100" value="60" />
+    </div>
+    <div>
+      <label class="lbl">Bottom Dark Gradient (<span id="bottomGradVal">0</span>%)</label>
+      <input type="range" id="bottomGradStrength" min="0" max="100" value="0" />
+    </div>
+    <div class="cover-only">
+      <label class="lbl">Side Dark Gradient (<span id="sideGradVal">0</span>%)</label>
+      <input type="range" id="sideGradStrength" min="0" max="100" value="0" />
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = (s) => document.querySelector(s);
+
+const previewImg = $('#previewImg');
+const previewPlaceholder = $('#previewPlaceholder');
+const renderBadge = $('#renderBadge');
+
+const titleInput = $('#titleInput');
+const subtitleInput = $('#subtitleInput');
+const titleSize = $('#titleSize'), titleSizeVal = $('#titleSizeVal');
+const titleY = $('#titleY'), titleYVal = $('#titleYVal'), titleYLabel = $('#titleYLabel');
+const letterSpacing = $('#letterSpacing'), letterVal = $('#letterVal');
+const subtitleSize = $('#subtitleSize'), subSizeVal = $('#subSizeVal');
+const subtitleColor = $('#subtitleColor'), subtitleColorHex = $('#subtitleColorHex');
+const accentColor = $('#accentColor'), accentColorHex = $('#accentColorHex');
+const fontTitle = $('#fontTitle'), fontBody = $('#fontBody');
+const bgOpacity = $('#bgOpacity'), opacityVal = $('#opacityVal');
+const chkVignette = $('#chkVignette'), chkPureWhite = $('#chkPureWhite');
+const scrimStrength = $('#scrimStrength'), scrimVal = $('#scrimVal'), scrimGroup = $('#scrimGroup');
+const topGradStrength = $('#topGradStrength'), topGradVal = $('#topGradVal');
+const bottomGradStrength = $('#bottomGradStrength'), bottomGradVal = $('#bottomGradVal');
+const sideGradStrength = $('#sideGradStrength'), sideGradVal = $('#sideGradVal');
+const dropZone = $('#dropZone'), dropText = $('#dropText');
+const thumbWrap = $('#thumbWrap'), thumbImg = $('#thumbImg'), removeBg = $('#removeBg');
+const bgFileInput = $('#bgFileInput'), downloadBtn = $('#downloadBtn');
+const subjectDropZone = $('#subjectDropZone'), subjectDropText = $('#subjectDropText');
+const subjectThumbWrap = $('#subjectThumbWrap'), subjectThumbImg = $('#subjectThumbImg');
+const subjectFileInput = $('#subjectFileInput'), removeSubject = $('#removeSubject');
+const nuvioBgDropZone = $('#nuvioBgDropZone'), nuvioBgDropText = $('#nuvioBgDropText');
+const nuvioBgThumbWrap = $('#nuvioBgThumbWrap'), nuvioBgThumbImg = $('#nuvioBgThumbImg');
+const nuvioBgFileInput = $('#nuvioBgFileInput'), removeNuvioBg = $('#removeNuvioBg');
+const nuvioBgX = $('#nuvioBgX'), nuvioBgXVal = $('#nuvioBgXVal');
+const nuvioBgY = $('#nuvioBgY'), nuvioBgYVal = $('#nuvioBgYVal');
+const nuvioBgZoom = $('#nuvioBgZoom'), nuvioBgZoomVal = $('#nuvioBgZoomVal');
+const nuvioBgStrength = $('#nuvioBgStrength'), nuvioBgStrengthVal = $('#nuvioBgStrengthVal');
+const showNuvioSubject = $('#showNuvioSubject');
+const nuvioSubject = $('#nuvioSubject'), nuvioPalette = $('#nuvioPalette'), nuvioVariant = $('#nuvioVariant');
+const nuvioBrushX = $('#nuvioBrushX'), nuvioBrushVal = $('#nuvioBrushVal');
+const nuvioTextX = $('#nuvioTextX'), nuvioTextVal = $('#nuvioTextVal');
+const nuvioTextSize = $('#nuvioTextSize'), nuvioTextSizeVal = $('#nuvioTextSizeVal');
+const downloadAll = $('#downloadAll');
+
+let bgFile = null;
+let subjectFile = null;
+let nuvioBgFile = null;
+let layout = 'centered';
+let mode = 'cover';
+
+// ── Layout presets: instant good defaults when switching modes ─────
+const PRESETS = {
+  centered:  { titleSize: 150, titleY: 430, letter: 0,  pureWhite: false, topGrad: 55,
+               fonts: ['Montserrat ExtraBold', 'Inter Bold'] },
+  cinematic: { titleSize: 120, titleY: 540, letter: 16, pureWhite: true,  topGrad: 0,
+               fonts: ['SF Pro Display Thin', 'SF Pro Display Light', 'SF Compact Thin'] },
+};
+
+// ── Populate font menus from the server (real availability) ────────
+const FALLBACK_FONTS = ['Montserrat ExtraBold', 'Montserrat Bold', 'Inter Bold', 'Inter Medium'];
+let FONTS = FALLBACK_FONTS.slice();
+
+function fillSelect(sel, fonts, selected) {
+  sel.replaceChildren();
+  for (const f of fonts) {
+    const o = document.createElement('option');
+    o.value = f; o.textContent = f;
+    if (f === selected) o.selected = true;
+    sel.appendChild(o);
+  }
+}
+function firstAvailable(list, fallback) {
+  for (const f of list) if (FONTS.includes(f)) return f;
+  return fallback;
+}
+
+async function loadFonts() {
+  try {
+    const r = await fetch('/fonts');
+    const data = await r.json();
+    if (data.fonts && data.fonts.length) FONTS = data.fonts;
+  } catch (e) { /* keep fallback */ }
+  fillSelect(fontTitle, FONTS, firstAvailable(PRESETS.centered.fonts, FONTS[0]));
+  fillSelect(fontBody, FONTS, FONTS.includes('Inter Medium') ? 'Inter Medium' : FONTS[0]);
+}
+
+async function loadGenres() {
+  try {
+    const r = await fetch('/genres');
+    const data = await r.json();
+    if (!data.genres || !data.genres.length) return;
+    nuvioSubject.replaceChildren();
+    for (const genre of data.genres) {
+      const o = document.createElement('option');
+      o.value = genre.subject;
+      o.textContent = genre.title;
+      o.dataset.title = genre.title;
+      if (genre.slug === 'food') o.selected = true;
+      nuvioSubject.appendChild(o);
+    }
+  } catch (e) { /* keep markup fallback */ }
+}
+
+// ── Build the form sent to /preview and /generate ──────────────────
+function buildForm() {
+  const form = new FormData();
+  if (bgFile) form.append('image', bgFile);
+  if (subjectFile) form.append('subjectImage', subjectFile);
+  if (nuvioBgFile) form.append('nuvioBackground', nuvioBgFile);
+  form.append('mode', mode);
+  form.append('title', titleInput.value);
+  form.append('subtitle', subtitleInput.value);
+  form.append('titleSize', titleSize.value);
+  form.append('titleY', titleY.value);
+  form.append('subtitleSize', subtitleSize.value);
+  form.append('subtitleColor', subtitleColor.value);
+  form.append('accentColor', accentColor.value);
+  form.append('bgOpacity', parseInt(bgOpacity.value) / 100);
+  form.append('fontTitle', fontTitle.value);
+  form.append('fontBody', fontBody.value);
+  form.append('topGradStrength', topGradStrength.value);
+  form.append('bottomGradStrength', bottomGradStrength.value);
+  form.append('sideGradStrength', sideGradStrength.value);
+  form.append('vignette', chkVignette.checked);
+  form.append('pureWhiteTitle', chkPureWhite.checked);
+  form.append('layout', layout);
+  form.append('letterSpacing', letterSpacing.value);
+  form.append('scrimStrength', scrimStrength.value);
+  form.append('nuvioSubject', nuvioSubject.value);
+  form.append('nuvioPalette', nuvioPalette.value);
+  form.append('nuvioVariant', nuvioVariant.value);
+  form.append('nuvioBrushX', nuvioBrushX.value);
+  form.append('nuvioTextX', nuvioTextX.value);
+  form.append('nuvioTextSize', nuvioTextSize.value);
+  form.append('nuvioBackgroundX', nuvioBgX.value);
+  form.append('nuvioBackgroundY', nuvioBgY.value);
+  form.append('nuvioBackgroundZoom', nuvioBgZoom.value);
+  form.append('nuvioBackgroundStrength', nuvioBgStrength.value);
+  form.append('hasNuvioBackground', Boolean(nuvioBgFile));
+  form.append('showNuvioSubject', nuvioBgFile ? false : showNuvioSubject.checked);
+  form.append('downloadAll', downloadAll.checked);
+  return form;
+}
+
+// ── Sync inline labels (instant, no server round-trip) ─────────────
+function syncLabels() {
+  titleSizeVal.textContent = titleSize.value;
+  titleYVal.textContent = titleY.value;
+  letterVal.textContent = letterSpacing.value;
+  subSizeVal.textContent = subtitleSize.value;
+  opacityVal.textContent = bgOpacity.value;
+  scrimVal.textContent = scrimStrength.value;
+  topGradVal.textContent = topGradStrength.value;
+  bottomGradVal.textContent = bottomGradStrength.value;
+  sideGradVal.textContent = sideGradStrength.value;
+  nuvioBrushVal.textContent = nuvioBrushX.value;
+  nuvioTextVal.textContent = nuvioTextX.value;
+  nuvioTextSizeVal.textContent = nuvioTextSize.value;
+  nuvioBgXVal.textContent = nuvioBgX.value;
+  nuvioBgYVal.textContent = nuvioBgY.value;
+  nuvioBgZoomVal.textContent = nuvioBgZoom.value;
+  nuvioBgStrengthVal.textContent = nuvioBgStrength.value;
+  accentColorHex.value = accentColor.value;
+  subtitleColorHex.value = subtitleColor.value;
+  titleYLabel.textContent = layout === 'cinematic' ? 'V-center' : 'Position';
+}
+
+// ── Debounced WYSIWYG render ───────────────────────────────────────
+let renderTimer = null, rendering = false, pending = false, lastUrl = null;
+function scheduleRender() {
+  syncLabels();
+  saveSettings();
+  clearTimeout(renderTimer);
+  renderTimer = setTimeout(renderPreview, 220);
+}
+
+async function renderPreview() {
+  if (mode === 'cover' && !bgFile) {
+    previewImg.style.display = 'none';
+    previewPlaceholder.style.display = 'flex';
+    return;
+  }
+  if (rendering) { pending = true; return; }
+  rendering = true;
+  renderBadge.style.display = 'flex';
+  try {
+    const resp = await fetch('/preview', { method: 'POST', body: buildForm() });
+    if (!resp.ok) throw new Error(await resp.text());
+    const url = URL.createObjectURL(await resp.blob());
+    previewImg.onload = () => { if (lastUrl) URL.revokeObjectURL(lastUrl); lastUrl = url; };
+    previewImg.src = url;
+    previewImg.style.display = 'block';
+    previewPlaceholder.style.display = 'none';
+  } catch (e) {
+    console.error('preview failed:', e);
+  } finally {
+    rendering = false;
+    renderBadge.style.display = 'none';
+    if (pending) { pending = false; renderPreview(); }
+  }
+}
+
+function applyMode(name) {
+  mode = name;
+  document.querySelectorAll('#modeSeg button').forEach((b) => {
+    b.classList.toggle('active', b.dataset.mode === name);
+  });
+  document.querySelectorAll('.cover-only').forEach((el) => {
+    el.style.display = name === 'cover' ? '' : 'none';
+  });
+  document.querySelectorAll('.nuvio-only').forEach((el) => {
+    if (name !== 'nuvio') {
+      el.style.display = 'none';
+    } else if (el.classList.contains('row')) {
+      el.style.display = 'grid';
+    } else if (el.classList.contains('chk')) {
+      el.style.display = 'flex';
+    } else {
+      el.style.display = 'block';
+    }
+  });
+  if (name === 'nuvio') {
+    previewPlaceholder.querySelector('span').textContent = 'Nuvio-style tile preview';
+    syncLabels();
+  } else {
+    previewPlaceholder.querySelector('span').textContent = 'Drop a background image to start';
+  }
+  downloadBtn.textContent = name === 'nuvio' ? 'Download Tile' : 'Download PNG';
+  scheduleRender();
+}
+
+// ── Layout switching ───────────────────────────────────────────────
+function applyLayout(name) {
+  layout = name;
+  document.querySelectorAll('#layoutSeg button').forEach((b) => {
+    b.classList.toggle('active', b.dataset.layout === name);
+  });
+  scrimGroup.style.display = name === 'cinematic' ? 'block' : 'none';
+
+  const p = PRESETS[name];
+  titleSize.value = p.titleSize;
+  titleY.value = p.titleY;
+  letterSpacing.value = p.letter;
+  chkPureWhite.checked = p.pureWhite;
+  topGradStrength.value = p.topGrad;
+  fontTitle.value = firstAvailable(p.fonts, fontTitle.value);
+  scheduleRender();
+}
+
+// ── Bindings ───────────────────────────────────────────────────────
+[ titleInput, subtitleInput, titleSize, titleY, letterSpacing, subtitleSize,
+  bgOpacity, scrimStrength, topGradStrength, bottomGradStrength, sideGradStrength,
+  fontTitle, fontBody, chkVignette, chkPureWhite, nuvioSubject, nuvioPalette,
+  nuvioVariant, nuvioBrushX, nuvioTextX, nuvioTextSize, nuvioBgX, nuvioBgY, nuvioBgZoom,
+  nuvioBgStrength, showNuvioSubject, downloadAll
+].forEach((el) => {
+  el.addEventListener('input', scheduleRender);
+  el.addEventListener('change', scheduleRender);
+});
+accentColor.addEventListener('input', () => { accentColorHex.value = accentColor.value; scheduleRender(); });
+accentColorHex.addEventListener('input', () => { accentColor.value = accentColorHex.value; scheduleRender(); });
+subtitleColor.addEventListener('input', () => { subtitleColorHex.value = subtitleColor.value; scheduleRender(); });
+subtitleColorHex.addEventListener('input', () => { subtitleColor.value = subtitleColorHex.value; scheduleRender(); });
+document.querySelectorAll('#layoutSeg button').forEach((b) => {
+  b.addEventListener('click', () => applyLayout(b.dataset.layout));
+});
+document.querySelectorAll('#modeSeg button').forEach((b) => {
+  b.addEventListener('click', () => applyMode(b.dataset.mode));
+});
+nuvioSubject.addEventListener('change', () => {
+  const selected = nuvioSubject.selectedOptions[0];
+  if (selected?.dataset.title) titleInput.value = selected.dataset.title;
+  scheduleRender();
+});
+
+// ── Image handling ─────────────────────────────────────────────────
+function loadImage(file) {
+  bgFile = file;
+  const url = URL.createObjectURL(file);
+  thumbImg.src = url;
+  dropText.style.display = 'none';
+  thumbWrap.style.display = 'block';
+  dropZone.classList.add('has-img');
+  scheduleRender();
+}
+dropZone.addEventListener('click', () => bgFileInput.click());
+bgFileInput.addEventListener('change', (e) => {
+  const f = e.target.files[0];
+  if (f && f.type.startsWith('image/')) loadImage(f);
+});
+dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('drag'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag'));
+dropZone.addEventListener('drop', (e) => {
+  e.preventDefault();
+  dropZone.classList.remove('drag');
+  const f = e.dataTransfer.files[0];
+  if (f && f.type.startsWith('image/')) loadImage(f);
+});
+removeBg.addEventListener('click', (e) => {
+  e.stopPropagation();
+  bgFile = null;
+  thumbImg.src = '';
+  dropText.style.display = '';
+  thumbWrap.style.display = 'none';
+  dropZone.classList.remove('has-img');
+  renderPreview();
+});
+
+function loadSubjectImage(file) {
+  subjectFile = file;
+  const url = URL.createObjectURL(file);
+  subjectThumbImg.src = url;
+  subjectDropText.style.display = 'none';
+  subjectThumbWrap.style.display = 'block';
+  subjectDropZone.classList.add('has-img');
+  scheduleRender();
+}
+subjectDropZone.addEventListener('click', () => subjectFileInput.click());
+subjectFileInput.addEventListener('change', (e) => {
+  const f = e.target.files[0];
+  if (f && f.type.startsWith('image/')) loadSubjectImage(f);
+});
+subjectDropZone.addEventListener('dragover', (e) => { e.preventDefault(); subjectDropZone.classList.add('drag'); });
+subjectDropZone.addEventListener('dragleave', () => subjectDropZone.classList.remove('drag'));
+subjectDropZone.addEventListener('drop', (e) => {
+  e.preventDefault();
+  subjectDropZone.classList.remove('drag');
+  const f = e.dataTransfer.files[0];
+  if (f && f.type.startsWith('image/')) loadSubjectImage(f);
+});
+removeSubject.addEventListener('click', (e) => {
+  e.stopPropagation();
+  subjectFile = null;
+  subjectThumbImg.src = '';
+  subjectDropText.style.display = '';
+  subjectThumbWrap.style.display = 'none';
+  subjectDropZone.classList.remove('has-img');
+  scheduleRender();
+});
+
+function loadNuvioBackground(file) {
+  nuvioBgFile = file;
+  showNuvioSubject.checked = false;
+  showNuvioSubject.disabled = true;
+  const url = URL.createObjectURL(file);
+  nuvioBgThumbImg.src = url;
+  nuvioBgDropText.style.display = 'none';
+  nuvioBgThumbWrap.style.display = 'block';
+  nuvioBgDropZone.classList.add('has-img');
+  scheduleRender();
+}
+nuvioBgDropZone.addEventListener('click', () => nuvioBgFileInput.click());
+nuvioBgFileInput.addEventListener('change', (e) => {
+  const f = e.target.files[0];
+  if (f && f.type.startsWith('image/')) loadNuvioBackground(f);
+});
+nuvioBgDropZone.addEventListener('dragover', (e) => { e.preventDefault(); nuvioBgDropZone.classList.add('drag'); });
+nuvioBgDropZone.addEventListener('dragleave', () => nuvioBgDropZone.classList.remove('drag'));
+nuvioBgDropZone.addEventListener('drop', (e) => {
+  e.preventDefault();
+  nuvioBgDropZone.classList.remove('drag');
+  const f = e.dataTransfer.files[0];
+  if (f && f.type.startsWith('image/')) loadNuvioBackground(f);
+});
+removeNuvioBg.addEventListener('click', (e) => {
+  e.stopPropagation();
+  nuvioBgFile = null;
+  showNuvioSubject.checked = true;
+  showNuvioSubject.disabled = false;
+  nuvioBgThumbImg.src = '';
+  nuvioBgDropText.style.display = '';
+  nuvioBgThumbWrap.style.display = 'none';
+  nuvioBgDropZone.classList.remove('has-img');
+  scheduleRender();
+});
+
+// ── Download (full-res render) ─────────────────────────────────────
+downloadBtn.addEventListener('click', async () => {
+  if (mode === 'cover' && !bgFile) { alert('Drop a background image first.'); return; }
+  downloadBtn.textContent = 'Generating…';
+  downloadBtn.disabled = true;
+  try {
+    const resp = await fetch('/generate', { method: 'POST', body: buildForm() });
+    if (!resp.ok) throw new Error(await resp.text());
+    const url = URL.createObjectURL(await resp.blob());
+    const a = document.createElement('a');
+    a.href = url;
+    const ext = mode === 'nuvio' && downloadAll.checked ? '.zip' : '.png';
+    const suffix = mode === 'nuvio' && downloadAll.checked ? '_variants' : '';
+    a.download = (titleInput.value || 'cover').replace(/\s+/g, '_').toLowerCase() + suffix + ext;
+    a.click();
+    URL.revokeObjectURL(url);
+  } catch (err) {
+    alert('Error: ' + err.message);
+  }
+  downloadBtn.textContent = mode === 'nuvio' ? 'Download Tile' : 'Download PNG';
+  downloadBtn.disabled = false;
+});
+
+// ── Settings persistence ───────────────────────────────────────────
+function saveSettings() {
+  const s = {
+    mode, layout,
+    title: titleInput.value,
+    subtitle: subtitleInput.value,
+    titleSize: titleSize.value,
+    titleY: titleY.value,
+    letterSpacing: letterSpacing.value,
+    subtitleSize: subtitleSize.value,
+    subtitleColor: subtitleColor.value,
+    accentColor: accentColor.value,
+    fontTitle: fontTitle.value,
+    fontBody: fontBody.value,
+    bgOpacity: bgOpacity.value,
+    vignette: chkVignette.checked,
+    pureWhite: chkPureWhite.checked,
+    scrimStrength: scrimStrength.value,
+    topGrad: topGradStrength.value,
+    bottomGrad: bottomGradStrength.value,
+    sideGrad: sideGradStrength.value,
+    nuvioSubject: nuvioSubject.value,
+    nuvioPalette: nuvioPalette.value,
+    nuvioVariant: nuvioVariant.value,
+    nuvioBrushX: nuvioBrushX.value,
+    nuvioTextX: nuvioTextX.value,
+    nuvioTextSize: nuvioTextSize.value,
+    nuvioBgX: nuvioBgX.value,
+    nuvioBgY: nuvioBgY.value,
+    nuvioBgZoom: nuvioBgZoom.value,
+    nuvioBgStrength: nuvioBgStrength.value,
+    showNuvioSubject: showNuvioSubject.checked,
+    downloadAll: downloadAll.checked,
+  };
+  try { localStorage.setItem('moonlit-settings', JSON.stringify(s)); } catch (_) {}
+}
+
+function loadSettings() {
+  try {
+    const raw = localStorage.getItem('moonlit-settings');
+    if (!raw) return false;
+    const s = JSON.parse(raw);
+    titleInput.value = s.title || 'Moonlit';
+    subtitleInput.value = s.subtitle || '';
+    titleSize.value = s.titleSize || 96;
+    titleY.value = s.titleY || 60;
+    letterSpacing.value = s.letterSpacing || 0;
+    subtitleSize.value = s.subtitleSize || 28;
+    if (s.subtitleColor) { subtitleColor.value = s.subtitleColor; subtitleColorHex.value = s.subtitleColor; }
+    if (s.accentColor) { accentColor.value = s.accentColor; accentColorHex.value = s.accentColor; }
+    bgOpacity.value = s.bgOpacity || 100;
+    chkVignette.checked = s.vignette !== false;
+    chkPureWhite.checked = s.pureWhite || false;
+    scrimStrength.value = s.scrimStrength || 70;
+    topGradStrength.value = s.topGrad ?? 60;
+    bottomGradStrength.value = s.bottomGrad ?? 0;
+    sideGradStrength.value = s.sideGrad ?? 0;
+    if (FONTS.includes(s.fontTitle)) fontTitle.value = s.fontTitle;
+    if (FONTS.includes(s.fontBody)) fontBody.value = s.fontBody;
+    nuvioSubject.value = s.nuvioSubject || 'food';
+    nuvioPalette.value = s.nuvioPalette || 'gold';
+    nuvioVariant.value = s.nuvioVariant || 'normal';
+    nuvioBrushX.value = s.nuvioBrushX || 58;
+    nuvioTextX.value = s.nuvioTextX || 7;
+    nuvioTextSize.value = s.nuvioTextSize || 58;
+    nuvioBgX.value = s.nuvioBgX || 50;
+    nuvioBgY.value = s.nuvioBgY || 50;
+    nuvioBgZoom.value = s.nuvioBgZoom || 120;
+    nuvioBgStrength.value = s.nuvioBgStrength || 100;
+    showNuvioSubject.checked = s.showNuvioSubject !== false;
+    downloadAll.checked = s.downloadAll || false;
+    mode = s.mode || 'cover';
+    layout = s.layout || 'centered';
+    return true;
+  } catch (_) { return false; }
+}
+
+// ── Init ───────────────────────────────────────────────────────────
+loadFonts();
+loadGenres();
+const restored = loadSettings();
+syncLabels();
+if (restored) {
+  applyMode(mode);
+  if (mode === 'cover') {
+    document.querySelectorAll('#layoutSeg button').forEach((b) => {
+      b.classList.toggle('active', b.dataset.layout === layout);
+    });
+    scrimGroup.style.display = layout === 'cinematic' ? 'block' : 'none';
+  }
+} else {
+  applyMode('cover');
+}
+</script>
+</body>
+</html>
