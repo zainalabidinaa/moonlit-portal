@@ -23,12 +23,38 @@ function resolveMoonlitCatalogId(
 ): string | null {
   if (src.catalogId) return src.catalogId as string;
   if (src.traktListId) return `trakt.list.${src.traktListId}`;
+  const provider = ((src.provider as string) ?? '').toLowerCase();
   const tmdbSourceType = (src.tmdbSourceType as string | undefined)?.toUpperCase();
-  if (src.tmdbId && tmdbSourceType === 'COLLECTION') return `tmdb.collection.${src.tmdbId}`;
-  if (tmdbSourceType === 'DISCOVER') {
+  const tmdbId = src.tmdbId as number | string | undefined;
+
+  if (tmdbId && tmdbSourceType === 'COLLECTION') return `tmdb.collection.${tmdbId}`;
+
+  // Explicit DISCOVER: match by title in the discover map
+  if (tmdbSourceType === 'DISCOVER' || provider === 'tmdb') {
     const title = ((src.title as string) ?? '').toLowerCase();
-    return discoverMap[title] ?? null;
+    const mapped = discoverMap[title];
+    if (mapped) return mapped;
+    // Fallback: synthesize from filters
+    const mediaType = normalizeMediaType((src.type ?? src.mediaType) as string | undefined);
+    const filters = src.filters as Record<string, unknown> | undefined;
+    if (filters?.releaseDateGte) {
+      const year = parseInt(String(filters.releaseDateGte).substring(0, 4));
+      if (!isNaN(year)) {
+        const decade = Math.floor(year / 10) * 10;
+        return `tmdb.discover.${mediaType}.decades.${decade}s`;
+      }
+    }
+    if (filters?.withOriginCountry) {
+      return `tmdb.discover.${mediaType}.countries.${filters.withOriginCountry}`;
+    }
+    return null;
   }
+
+  // TMDB ID without explicit source type — try collection
+  if (tmdbId && provider === 'tmdb') {
+    return `tmdb.collection.${tmdbId}`;
+  }
+
   return null;
 }
 
