@@ -220,22 +220,26 @@ export function CollectionSettings({ collection, folders, allCollections, onSave
 // ── helpers ──────────────────────────────────────────────────────────────────
 
 const PAGE_SIZE = 1000;
+const ID_CHUNK = 100;
 
 async function fetchAll<T>(table: string, folderIds: string[]): Promise<T[]> {
   let allRows: T[] = [];
-  let from = 0;
-  while (true) {
-    const { data, error } = await supabase
-      .from(table)
-      .select('*')
-      .in('folder_id', folderIds)
-      .order('id')
-      .range(from, from + PAGE_SIZE - 1);
-    if (error) throw new Error(error.message);
-    const rows = (data ?? []) as T[];
-    allRows = allRows.concat(rows);
-    if (rows.length < PAGE_SIZE) break;
-    from += PAGE_SIZE;
+  for (let i = 0; i < folderIds.length; i += ID_CHUNK) {
+    const chunk = folderIds.slice(i, i + ID_CHUNK);
+    let from = 0;
+    while (true) {
+      const { data, error } = await supabase
+        .from(table)
+        .select('*')
+        .in('folder_id', chunk)
+        .order('id')
+        .range(from, from + PAGE_SIZE - 1);
+      if (error) throw new Error(error.message);
+      const rows = (data ?? []) as T[];
+      allRows = allRows.concat(rows);
+      if (rows.length < PAGE_SIZE) break;
+      from += PAGE_SIZE;
+    }
   }
   return allRows;
 }
