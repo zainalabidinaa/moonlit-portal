@@ -251,47 +251,70 @@ function buildPayload(
   catalogs: FolderCatalog[],
   sources: FolderSource[] = [],
 ) {
-  const folderIdToName: Record<string, string> = {};
-  for (const f of folders) folderIdToName[f.id] = f.name;
+  const catsByFolder: Record<string, FolderCatalog[]> = {};
+  for (const c of catalogs) {
+    if (!catsByFolder[c.folder_id]) catsByFolder[c.folder_id] = [];
+    catsByFolder[c.folder_id].push(c);
+  }
+  const srcsByFolder: Record<string, FolderSource[]> = {};
+  for (const s of sources) {
+    if (!srcsByFolder[s.folder_id]) srcsByFolder[s.folder_id] = [];
+    srcsByFolder[s.folder_id].push(s);
+  }
 
-  return {
-    collections: collections.map((c) => ({
-      name: c.name,
-      backdrop_image: c.backdrop_image,
-      view_mode: c.view_mode,
-      show_all_tab: c.show_all_tab,
-      focus_glow_enabled: c.focus_glow_enabled,
-      pin_to_top: c.pin_to_top,
-      enabled: c.enabled,
-    })),
-    folders: folders.map((f) => ({
-      name: f.name,
-      cover_image: f.cover_image,
-      hero_backdrop: f.hero_backdrop,
-      title_logo: f.title_logo,
-      focus_gif: f.focus_gif,
-      hero_video_url: f.hero_video_url,
-      hide_title: f.hide_title,
-      tile_shape: f.tile_shape,
-      focus_gif_enabled: f.focus_gif_enabled,
-      sort_order: f.sort_order,
-    })),
-    folder_catalogs: catalogs.map((c) => ({
-      folder_name: folderIdToName[c.folder_id] ?? c.folder_id,
-      catalog_id: c.catalog_id,
-      media_type: c.media_type,
-      genre: c.genre,
-      extras: c.extras,
-    })),
-    folder_sources: sources.map((s) => ({
-      folder_name: folderIdToName[s.folder_id] ?? s.folder_id,
-      provider: s.provider,
-      title: s.title,
-      tmdb_id: s.tmdb_id,
-      media_type: s.media_type,
-      sort_order: s.sort_order,
-    })),
-  };
+  return collections
+    .filter((c) => c.enabled ?? true)
+    .map((col) => {
+      const colFolders = folders
+        .filter((f) => f.collection_id === col.id)
+        .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+        .map((f) => {
+          const folderCatalogs = catsByFolder[f.id] ?? [];
+          const folderSources = srcsByFolder[f.id] ?? [];
+
+          const nuvioSources = [
+            ...folderCatalogs.map((c) => ({
+              type: c.media_type,
+              genre: c.genre ?? 'None',
+              addonId: 'aio-metadata',
+              provider: 'addon',
+              catalogId: c.catalog_id,
+            })),
+            ...folderSources.map((s) => ({
+              type: s.media_type ?? 'movie',
+              genre: 'None',
+              title: s.title ?? '',
+              provider: s.provider,
+              tmdbId: s.tmdb_id,
+            })),
+          ];
+
+          return {
+            id: f.id,
+            title: f.name,
+            sources: nuvioSources,
+            hideTitle: f.hide_title ?? false,
+            tileShape: (f.tile_shape ?? 'poster').toUpperCase(),
+            focusGifUrl: f.focus_gif ?? null,
+            heroVideoUrl: f.hero_video_url ?? null,
+            titleLogoUrl: f.title_logo ?? null,
+            coverImageUrl: f.cover_image ?? null,
+            focusGifEnabled: f.focus_gif_enabled ?? false,
+            heroBackdropUrl: f.hero_backdrop ?? null,
+          };
+        });
+
+      return {
+        id: col.id,
+        title: col.name,
+        folders: colFolders,
+        pinToTop: col.pin_to_top ?? false,
+        viewMode: col.view_mode ?? 'FOLLOW_LAYOUT',
+        showAllTab: col.show_all_tab ?? false,
+        focusGlowEnabled: col.focus_glow_enabled ?? false,
+        backdropImageUrl: col.backdrop_image ?? null,
+      };
+    });
 }
 
 function triggerDownload(data: object, filename: string) {

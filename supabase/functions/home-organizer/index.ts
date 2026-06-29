@@ -32,24 +32,39 @@ Deno.serve(async (req) => {
 
     const collectionIds = collections.map((c: any) => c.id);
 
-    // Fetch all folders for those collections in one query
-    const { data: allFolders, error: folderErr } = await supabase
-      .from('folders')
-      .select('*')
-      .in('collection_id', collectionIds)
-      .order('sort_order');
-
-    if (folderErr) throw folderErr;
-    const folders = allFolders ?? [];
+    // Fetch all folders for those collections in batches
+    let allFolders: any[] = [];
+    if (collectionIds.length > 0) {
+      const batchSize = 100;
+      for (let i = 0; i < collectionIds.length; i += batchSize) {
+        const batch = collectionIds.slice(i, i + batchSize);
+        const { data, error } = await supabase
+          .from('folders')
+          .select('*')
+          .in('collection_id', batch)
+          .order('sort_order');
+        if (error) throw error;
+        if (data) allFolders.push(...data);
+      }
+    }
+    const folders = allFolders;
     const folderIds = folders.map((f: any) => f.id);
 
-    // Fetch all folder_catalogs in one query
-    const { data: allCatalogs, error: catErr } = folderIds.length > 0
-      ? await supabase.from('folder_catalogs').select('*').in('folder_id', folderIds)
-      : { data: [], error: null };
-
-    if (catErr) throw catErr;
-    const catalogs = allCatalogs ?? [];
+    // Fetch all folder_catalogs in batches to avoid URL length limits
+    let allCatalogs: any[] = [];
+    if (folderIds.length > 0) {
+      const batchSize = 100;
+      for (let i = 0; i < folderIds.length; i += batchSize) {
+        const batch = folderIds.slice(i, i + batchSize);
+        const { data, error } = await supabase
+          .from('folder_catalogs')
+          .select('*')
+          .in('folder_id', batch);
+        if (error) throw error;
+        if (data) allCatalogs.push(...data);
+      }
+    }
+    const catalogs = allCatalogs;
 
     // Build lookup maps
     const foldersByCollection: Record<string, any[]> = {};
@@ -109,7 +124,7 @@ Deno.serve(async (req) => {
       headers: {
         ...corsHeaders,
         'Content-Type': 'application/json',
-        'Cache-Control': 'public, max-age=60, stale-while-revalidate=300',
+        'Cache-Control': 'no-cache, no-store',
       },
     });
   } catch (err: any) {
