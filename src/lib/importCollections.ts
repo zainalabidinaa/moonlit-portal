@@ -127,19 +127,41 @@ export async function importCollections(
 
       const sources = Array.isArray(f.sources) ? f.sources as Record<string, unknown>[] : [];
       const resolvedSources: { catalog_id: string; media_type: string; genre: string | null }[] = [];
+      const resolvedFolderSources: { provider: string; title: string | null; tmdb_id: string | null; media_type: string | null; sort_order: number }[] = [];
 
-      for (const src of sources) {
+      for (let si = 0; si < sources.length; si++) {
+        const src = sources[si];
         const catalogId = resolveMoonlitCatalogId(src, discoverMap);
-        if (!catalogId) { totalSkipped++; continue; }
-        const genre = src.genre && (src.genre as string).toLowerCase() !== 'none' ? src.genre as string : null;
-        const rawType = normalizeMediaType((src.type ?? src.mediaType) as string | undefined);
-        // letterboxd catalogs are tagged 'movie' in aiometadata but contain series content;
-        // use 'all' so the app tries both movie and series fetches.
-        const mediaType = catalogId.startsWith('letterboxd.') ? 'all' : rawType;
-        resolvedSources.push({ catalog_id: catalogId, media_type: mediaType, genre });
+        if (catalogId) {
+          const genre = src.genre && (src.genre as string).toLowerCase() !== 'none' ? src.genre as string : null;
+          const rawType = normalizeMediaType((src.type ?? src.mediaType) as string | undefined);
+          const mediaType = catalogId.startsWith('letterboxd.') ? 'all' : rawType;
+          resolvedSources.push({ catalog_id: catalogId, media_type: mediaType, genre });
+        } else if (src.provider || src.title) {
+          const tmdbSourceType = ((src.tmdbSourceType as string) ?? '').toUpperCase();
+          let tmdbId = null as string | null;
+          if (src.tmdbId && Number(src.tmdbId) > 0) {
+            tmdbId = `discover_${normalizeMediaType((src.type ?? src.mediaType) as string)}_${src.tmdbId}`;
+          } else if (tmdbSourceType === 'DISCOVER') {
+            const mt = normalizeMediaType((src.type ?? src.mediaType) as string | undefined);
+            const titleSlug = ((src.title as string) ?? `source_${si}`).toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/(^_|_$)/g, '');
+            tmdbId = `discover_${mt}_in_${titleSlug}`;
+          } else {
+            tmdbId = (src.tmdbId as string) ?? null;
+          }
+          resolvedFolderSources.push({
+            provider: (src.provider as string) ?? 'tmdb',
+            title: (src.title as string) ?? null,
+            tmdb_id: tmdbId,
+            media_type: normalizeMediaType((src.type ?? src.mediaType) as string | undefined),
+            sort_order: si,
+          });
+        } else {
+          totalSkipped++;
+        }
       }
 
-      if (resolvedSources.length === 0) {
+      if (resolvedSources.length === 0 && resolvedFolderSources.length === 0) {
         await supabase.from('folders').delete().eq('id', folderId);
         totalFolders--;
         totalSkipped += sources.length;
@@ -148,6 +170,10 @@ export async function importCollections(
 
       for (const row of resolvedSources) {
         const { error } = await supabase.from('folder_catalogs').insert({ folder_id: folderId, ...row });
+        if (!error) totalSources++;
+      }
+      for (const row of resolvedFolderSources) {
+        const { error } = await supabase.from('folder_sources').insert({ folder_id: folderId, ...row });
         if (!error) totalSources++;
       }
     }
