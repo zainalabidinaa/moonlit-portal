@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { Button } from '../ui/Button';
-import type { Collection, Folder, FolderCatalog } from '../../types';
+import type { Collection, Folder, FolderCatalog, FolderSource } from '../../types';
 
 const VIEW_MODES = ['FOLLOW_LAYOUT', 'GRID', 'LIST'];
 
@@ -55,15 +55,18 @@ export function CollectionSettings({ collection, folders, allCollections, onSave
     try {
       const folderIds = folders.map((f) => f.id);
       let cats: FolderCatalog[] = [];
+      let srcs: FolderSource[] = [];
       if (folderIds.length) {
-        const { data, error } = await supabase
-          .from('folder_catalogs')
-          .select('*')
-          .in('folder_id', folderIds);
-        if (error) throw new Error(error.message);
-        cats = (data ?? []) as FolderCatalog[];
+        const [{ data: catData, error: catErr }, { data: srcData, error: srcErr }] = await Promise.all([
+          supabase.from('folder_catalogs').select('*').in('folder_id', folderIds),
+          supabase.from('folder_sources').select('*').in('folder_id', folderIds),
+        ]);
+        if (catErr) throw new Error(catErr.message);
+        if (srcErr) throw new Error(srcErr.message);
+        cats = (catData ?? []) as FolderCatalog[];
+        srcs = (srcData ?? []) as FolderSource[];
       }
-      const payload = buildPayload([collection], folders, cats);
+      const payload = buildPayload([collection], folders, cats, srcs);
       triggerDownload(payload, `${slugify(collection.name)}.json`);
     } finally {
       setExporting(false);
@@ -84,16 +87,19 @@ export function CollectionSettings({ collection, folders, allCollections, onSave
       const allFolderIds = folderRows.map((f) => f.id);
 
       let allCats: FolderCatalog[] = [];
+      let allSrcs: FolderSource[] = [];
       if (allFolderIds.length) {
-        const { data, error } = await supabase
-          .from('folder_catalogs')
-          .select('*')
-          .in('folder_id', allFolderIds);
-        if (error) throw new Error(error.message);
-        allCats = (data ?? []) as FolderCatalog[];
+        const [{ data: catData, error: catErr }, { data: srcData, error: srcErr }] = await Promise.all([
+          supabase.from('folder_catalogs').select('*').in('folder_id', allFolderIds),
+          supabase.from('folder_sources').select('*').in('folder_id', allFolderIds),
+        ]);
+        if (catErr) throw new Error(catErr.message);
+        if (srcErr) throw new Error(srcErr.message);
+        allCats = (catData ?? []) as FolderCatalog[];
+        allSrcs = (srcData ?? []) as FolderSource[];
       }
 
-      const payload = buildPayload(allCollections, folderRows, allCats);
+      const payload = buildPayload(allCollections, folderRows, allCats, allSrcs);
       triggerDownload(payload, `moonlit-all-collections.json`);
     } finally {
       setExporting(false);
@@ -225,6 +231,7 @@ function buildPayload(
   collections: Collection[],
   folders: Folder[],
   catalogs: FolderCatalog[],
+  sources: FolderSource[] = [],
 ) {
   const folderIdToName: Record<string, string> = {};
   for (const f of folders) folderIdToName[f.id] = f.name;
@@ -257,6 +264,14 @@ function buildPayload(
       media_type: c.media_type,
       genre: c.genre,
       extras: c.extras,
+    })),
+    folder_sources: sources.map((s) => ({
+      folder_name: folderIdToName[s.folder_id] ?? s.folder_id,
+      provider: s.provider,
+      title: s.title,
+      tmdb_id: s.tmdb_id,
+      media_type: s.media_type,
+      sort_order: s.sort_order,
     })),
   };
 }
