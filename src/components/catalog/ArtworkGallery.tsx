@@ -38,7 +38,8 @@ export function ArtworkGallery({ folder, onBack, onSave }: Props) {
   const dirty = SLOTS.some((s) => (draft[s.field] ?? '') !== (folder[s.field] ?? ''))
     || draft.hide_title !== folder.hide_title
     || draft.tile_shape !== folder.tile_shape
-    || draft.focus_gif_enabled !== folder.focus_gif_enabled;
+    || draft.focus_gif_enabled !== folder.focus_gif_enabled
+    || draft.enabled !== folder.enabled;
 
   function set<K extends keyof Folder>(key: K, value: Folder[K]) {
     setDraft((d) => ({ ...d, [key]: value }));
@@ -55,6 +56,7 @@ export function ArtworkGallery({ folder, onBack, onSave }: Props) {
       hide_title: draft.hide_title,
       tile_shape: draft.tile_shape,
       focus_gif_enabled: draft.focus_gif_enabled,
+      enabled: draft.enabled,
     });
     setSaving(false);
   }
@@ -89,6 +91,7 @@ export function ArtworkGallery({ folder, onBack, onSave }: Props) {
           <div className="flex h-[130px] flex-wrap content-center items-center justify-center gap-5 bg-surface-2 p-4">
             <Toggle label="Hide title" on={!!draft.hide_title} onClick={() => set('hide_title', !draft.hide_title)} />
             <Toggle label="Focus glow" on={!!draft.focus_gif_enabled} onClick={() => set('focus_gif_enabled', !draft.focus_gif_enabled)} />
+            <Toggle label="Enabled" on={!!draft.enabled} onClick={() => set('enabled', !draft.enabled)} />
           </div>
           <div className="p-3.5">
             <div className="mb-2 flex items-center justify-between">

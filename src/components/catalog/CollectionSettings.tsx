@@ -27,7 +27,8 @@ export function CollectionSettings({ collection, folders, allCollections, onSave
     draft.show_all_tab !== collection.show_all_tab ||
     draft.focus_glow_enabled !== collection.focus_glow_enabled ||
     draft.pin_to_top !== collection.pin_to_top ||
-    draft.enabled !== collection.enabled;
+    draft.enabled !== collection.enabled ||
+    draft.show_on_home !== collection.show_on_home;
 
   function set<K extends keyof Collection>(key: K, value: Collection[K]) {
     setDraft((d) => ({ ...d, [key]: value }));
@@ -44,6 +45,7 @@ export function CollectionSettings({ collection, folders, allCollections, onSave
         focus_glow_enabled: draft.focus_glow_enabled,
         pin_to_top: draft.pin_to_top,
         enabled: draft.enabled,
+        show_on_home: draft.show_on_home,
       });
     } finally {
       setSaving(false);
@@ -190,6 +192,7 @@ export function CollectionSettings({ collection, folders, allCollections, onSave
             <Toggle label="Focus glow" on={draft.focus_glow_enabled} onClick={() => set('focus_glow_enabled', !draft.focus_glow_enabled)} />
             <Toggle label="Pin to top" on={draft.pin_to_top} onClick={() => set('pin_to_top', !draft.pin_to_top)} />
             <Toggle label="Enabled" on={draft.enabled} onClick={() => set('enabled', !draft.enabled)} />
+            <Toggle label="Show on home" on={draft.show_on_home} onClick={() => set('show_on_home', !draft.show_on_home)} />
           </div>
           <div className="p-3.5">
             <span className="text-[13px] font-semibold text-text">Display flags</span>
@@ -266,7 +269,7 @@ function buildPayload(
     .filter((c) => c.enabled ?? true)
     .map((col) => {
       const colFolders = folders
-        .filter((f) => f.collection_id === col.id)
+        .filter((f) => f.collection_id === col.id && (f.enabled ?? true))
         .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
         .map((f) => {
           const folderCatalogs = catsByFolder[f.id] ?? [];
@@ -302,6 +305,7 @@ function buildPayload(
             coverImageUrl: f.cover_image ?? null,
             focusGifEnabled: f.focus_gif_enabled ?? false,
             heroBackdropUrl: f.hero_backdrop ?? null,
+            enabled: f.enabled ?? true,
           };
         });
 

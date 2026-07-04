@@ -42,6 +42,7 @@ Deno.serve(async (req) => {
           .from('folders')
           .select('*')
           .in('collection_id', batch)
+          .eq('enabled', true)
           .order('sort_order');
         if (error) throw error;
         if (data) allFolders.push(...data);
@@ -114,20 +115,30 @@ Deno.serve(async (req) => {
               provider: 'addon',
               catalogId: cat.catalog_id,
             })),
-            ...rawSources.map((s: any) => ({
-              type: 'all',
-              genre: 'None',
-              title: s.title ?? '',
-              provider: s.provider,
-              tmdbId: s.tmdb_id,
-              tmdbSourceType: 'DISCOVER',
-            })),
+            ...rawSources.map((s: any) => {
+              const base: any = {
+                type: s.media_type ?? 'all',
+                genre: 'None',
+                title: s.title ?? '',
+                provider: s.provider,
+              };
+              if (s.provider === 'trakt' && s.tmdb_id) {
+                base.traktListId = parseInt(s.tmdb_id, 10) || 0;
+              } else if (s.provider === 'tvdb' && s.tmdb_id) {
+                base.catalogId = `tvdb.discover.${base.type}.${s.tmdb_id}`;
+              } else {
+                base.tmdbId = s.tmdb_id;
+                base.tmdbSourceType = s.tmdb_source_type ?? 'DISCOVER';
+              }
+              return base;
+            }),
           ];
           if (sources.length === 0) return null;
           return {
             id: f.id,
             title: f.name,
             sources,
+            genre: f.genre ?? null,
             hideTitle: f.hide_title ?? false,
             tileShape: (f.tile_shape ?? 'poster').toUpperCase(),
             focusGifEnabled: f.focus_gif_enabled ?? false,
@@ -136,6 +147,7 @@ Deno.serve(async (req) => {
             titleLogoUrl: f.title_logo ?? null,
             focusGifUrl: f.focus_gif ?? null,
             heroVideoUrl: f.hero_video_url ?? null,
+            enabled: f.enabled ?? true,
           };
         }).filter(Boolean);
 
@@ -149,6 +161,7 @@ Deno.serve(async (req) => {
           showAllTab: col.show_all_tab ?? false,
           focusGlowEnabled: col.focus_glow_enabled ?? false,
           backdropImageUrl: col.backdrop_image ?? null,
+          showOnHome: col.show_on_home ?? true,
         };
       })
       .filter(Boolean);

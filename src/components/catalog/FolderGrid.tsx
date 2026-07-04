@@ -39,8 +39,10 @@ export function FolderGrid({ collection, folders, onSelectFolder, onAddFolder, o
       </div>
 
       <div className="grid gap-3.5 [grid-template-columns:repeat(auto-fill,minmax(180px,1fr))]">
-        {folders.map((f, i) => (
-          <div key={f.id} className="group relative">
+        {folders.map((f, i) => {
+          const dimmed = f.enabled === false;
+          return (
+            <div key={f.id} className={`group relative ${dimmed ? 'opacity-50' : ''}`}>
             <button
               draggable
               onDragStart={() => onDragStart(i)}
@@ -94,7 +96,7 @@ export function FolderGrid({ collection, folders, onSelectFolder, onAddFolder, o
               >×</button>
             </div>
           </div>
-        ))}
+        );})}
 
         <button
           onClick={onAddFolder}

@@ -105,10 +105,12 @@ function FolderRow({
   folder,
   onAddCatalog,
   onDeleteCatalog,
+  onToggleEnabled,
 }: {
   folder: FolderWithCatalogs;
   onAddCatalog: (folderId: string, catalogId: string, mediaType: string, genre: string | null) => Promise<void>;
   onDeleteCatalog: (catalogId: string, folderId: string) => Promise<void>;
+  onToggleEnabled: (folderId: string, enabled: boolean) => void;
 }) {
   return (
     <div className="rounded-xl border border-border bg-bg px-4 py-3">
@@ -117,6 +119,7 @@ function FolderRow({
           <img src={folder.cover_image} alt="" className="h-7 w-7 flex-none rounded-md object-cover" />
         )}
         <span className="text-[13px] font-semibold">{folder.name}</span>
+        <Toggle on={folder.enabled} onChange={(v) => onToggleEnabled(folder.id, v)} />
         <span className="ml-auto font-mono text-[10px] text-faint">{folder.tile_shape?.toLowerCase()} · {folder.catalogs.length} sources</span>
       </div>
 
@@ -177,7 +180,7 @@ export default function HomeLayoutPage() {
     const foldersByCol: Record<string, FolderWithCatalogs[]> = {};
     for (const f of folders) {
       if (!foldersByCol[f.collection_id]) foldersByCol[f.collection_id] = [];
-      foldersByCol[f.collection_id].push({ ...f, catalogs: catsByFolder[f.id] ?? [] });
+      foldersByCol[f.collection_id].push({ ...f, catalogs: catsByFolder[f.id] ?? [], enabled: f.enabled ?? true });
     }
 
     setCollections(
@@ -191,6 +194,18 @@ export default function HomeLayoutPage() {
   async function toggleEnabled(id: string, enabled: boolean) {
     setCollections((prev) => prev.map((c) => (c.id === id ? { ...c, enabled } : c)));
     await supabase.from('collections').update({ enabled }).eq('id', id);
+  }
+
+  async function toggleFolderEnabled(folderId: string, enabled: boolean) {
+    setCollections((prev) =>
+      prev.map((col) => ({
+        ...col,
+        folders: col.folders.map((f) =>
+          f.id === folderId ? { ...f, enabled } : f
+        ),
+      }))
+    );
+    await supabase.from('folders').update({ enabled }).eq('id', folderId);
   }
 
   // ── Reorder ───────────────────────────────────────────────────────────────
@@ -399,6 +414,7 @@ export default function HomeLayoutPage() {
                             folder={f}
                             onAddCatalog={addCatalog}
                             onDeleteCatalog={deleteCatalog}
+                            onToggleEnabled={toggleFolderEnabled}
                           />
                         ))}
                       </div>

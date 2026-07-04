@@ -47,6 +47,7 @@ export interface Collection {
   focus_glow_enabled: boolean;
   pin_to_top: boolean;
   enabled: boolean;
+  show_on_home: boolean;
   created_at: string;
 }
 
@@ -63,6 +64,7 @@ export interface Folder {
   hide_title: boolean;
   tile_shape: string;
   focus_gif_enabled: boolean;
+  enabled: boolean;
 }
 
 export interface FolderSource {

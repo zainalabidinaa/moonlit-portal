@@ -127,7 +127,7 @@ export default function CatalogPage() {
     const name = prompt('Folder name')?.trim();
     if (!name) return;
     const { data } = await supabase.from('folders').insert({
-      collection_id: selectedId, name, sort_order: folders.length, tile_shape: 'POSTER',
+      collection_id: selectedId, name, sort_order: folders.length, tile_shape: 'POSTER', enabled: true,
     }).select().single();
     if (data) { setFolders((p) => [...p, data as Folder]); setFolderCounts((c) => ({ ...c, [selectedId]: (c[selectedId] ?? 0) + 1 })); }
   }
@@ -262,6 +262,7 @@ export default function CatalogPage() {
           hide_title: f.hideTitle ?? f.hide_title ?? false,
           tile_shape: shape,
           focus_gif_enabled: f.focusGifEnabled ?? f.focus_gif_enabled ?? false,
+          enabled: f.enabled ?? true,
           sort_order: fi,
         }).select().single();
         if (folderErr || !folderRow) continue;
@@ -348,19 +349,20 @@ export default function CatalogPage() {
     const folderList: any[] = Array.isArray(p.folders) ? p.folders : [];
     for (let i = 0; i < folderList.length; i++) {
       const f = folderList[i];
-      const { data } = await supabase.from('folders').insert({
-        collection_id: collectionId,
-        name: f.name ?? `Folder ${i + 1}`,
-        cover_image: f.cover_image ?? null,
-        hero_backdrop: f.hero_backdrop ?? null,
-        focus_gif: f.focus_gif ?? null,
-        title_logo: f.title_logo ?? null,
-        hero_video_url: f.hero_video_url ?? null,
-        hide_title: f.hide_title ?? false,
-        tile_shape: f.tile_shape ?? 'POSTER',
-        focus_gif_enabled: f.focus_gif_enabled ?? true,
-        sort_order: i,
-      }).select().single();
+        const { data } = await supabase.from('folders').insert({
+          collection_id: collectionId,
+          name: f.name ?? `Folder ${i + 1}`,
+          cover_image: f.cover_image ?? null,
+          hero_backdrop: f.hero_backdrop ?? null,
+          focus_gif: f.focus_gif ?? null,
+          title_logo: f.title_logo ?? null,
+          hero_video_url: f.hero_video_url ?? null,
+          hide_title: f.hide_title ?? false,
+          tile_shape: f.tile_shape ?? 'POSTER',
+          focus_gif_enabled: f.focus_gif_enabled ?? true,
+          enabled: true,
+          sort_order: i,
+        }).select().single();
       if (data) { nameToId[(data as Folder).name] = (data as Folder).id; folderCount++; }
     }
 
