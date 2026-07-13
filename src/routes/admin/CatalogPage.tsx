@@ -3,20 +3,31 @@ import { supabase } from '../../lib/supabase';
 import { AppShell } from '../../components/layout/AppShell';
 import { Button } from '../../components/ui/Button';
 import { FolderGrid } from '../../components/catalog/FolderGrid';
+import { FolderEntriesEditor } from '../../components/catalog/FolderEntriesEditor';
 import { ArtworkGallery } from '../../components/catalog/ArtworkGallery';
 import { SourcesTable } from '../../components/catalog/SourcesTable';
 import { JsonImport } from '../../components/catalog/JsonImport';
 import { CollectionSettings } from '../../components/catalog/CollectionSettings';
-import type { Collection, Folder, FolderSource, FolderCatalog } from '../../types';
+import type { Collection, Folder, FolderSource, FolderCatalog, FolderEntry } from '../../types';
 
-type Tab = 'folders' | 'artwork' | 'sources' | 'json' | 'collection';
+type Tab = 'folders' | 'contents' | 'artwork' | 'sources' | 'json' | 'collection';
 const TABS: { id: Tab; label: string }[] = [
   { id: 'collection', label: 'Collection' },
   { id: 'folders', label: 'Folders' },
+  { id: 'contents', label: 'Folder contents' },
   { id: 'artwork', label: 'Folder artwork' },
   { id: 'sources', label: 'Sources' },
   { id: 'json', label: 'JSON' },
 ];
+
+interface FolderEntryRow {
+  parent_folder_id: string;
+  entry_kind: 'folder' | 'catalog' | 'source';
+  folder_id: string | null;
+  folder_catalog_id: string | null;
+  folder_source_id: string | null;
+  sort_order: number;
+}
 
 export default function CatalogPage() {
   const [collections, setCollections] = useState<Collection[]>([]);
@@ -26,6 +37,7 @@ export default function CatalogPage() {
   const [selectedFolder, setSelectedFolder] = useState<Folder | null>(null);
   const [sources, setSources] = useState<FolderSource[]>([]);
   const [catalogs, setCatalogs] = useState<FolderCatalog[]>([]);
+  const [folderEntries, setFolderEntries] = useState<FolderEntryRow[]>([]);
   const [tab, setTab] = useState<Tab>('folders');
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -56,7 +68,7 @@ export default function CatalogPage() {
     return () => { supabase.removeChannel(folderSub); };
   }, [selectedId]);
   useEffect(() => {
-    if (!selectedFolder) { setSources([]); setCatalogs([]); return; }
+    if (!selectedFolder) { setSources([]); setCatalogs([]); setFolderEntries([]); return; }
     const fid = selectedFolder.id;
     supabase.from('folder_sources').select('*').eq('folder_id', fid).order('sort_order')
       .then(({ data, error }) => {
@@ -67,6 +79,11 @@ export default function CatalogPage() {
       .then(({ data, error }) => {
         if (error) console.error('folder_catalogs error:', error);
         setCatalogs((data ?? []) as FolderCatalog[]);
+      });
+    supabase.from('folder_entries').select('*').eq('parent_folder_id', fid).order('sort_order')
+      .then(({ data, error }) => {
+        if (error) console.error('folder_entries error:', error);
+        setFolderEntries((data ?? []) as FolderEntryRow[]);
       });
   }, [selectedFolder]);
 
@@ -122,21 +139,46 @@ export default function CatalogPage() {
   }
 
   // ---- folders ----
-  async function addFolder() {
+  async function addFolder(parentFolderId?: string) {
     if (!selectedId) return;
     const name = prompt('Folder name')?.trim();
     if (!name) return;
+    const parent = parentFolderId ? folders.find((folder) => folder.id === parentFolderId) : null;
+    const rootCount = folders.filter((folder) => folder.parent_folder_id == null).length;
     const { data } = await supabase.from('folders').insert({
-      collection_id: selectedId, name, sort_order: folders.length, tile_shape: 'POSTER', enabled: true,
+      collection_id: parent?.collection_id ?? selectedId, name, sort_order: rootCount, tile_shape: 'POSTER', enabled: true,
     }).select().single();
-    if (data) { setFolders((p) => [...p, data as Folder]); setFolderCounts((c) => ({ ...c, [selectedId]: (c[selectedId] ?? 0) + 1 })); }
+    if (!data) return;
+    const folder = data as Folder;
+    if (parentFolderId) {
+      const { error } = await supabase.rpc('move_folder', {
+        p_folder_id: folder.id,
+        p_parent_folder_id: parentFolderId,
+        p_sort_order: folderEntries.length,
+      });
+      if (error) {
+        await supabase.from('folders').delete().eq('id', folder.id);
+        throw new Error(error.message);
+      }
+      folder.parent_folder_id = parentFolderId;
+      setFolderEntries((entries) => [...entries, {
+        parent_folder_id: parentFolderId, entry_kind: 'folder', folder_id: folder.id,
+        folder_catalog_id: null, folder_source_id: null, sort_order: entries.length,
+      }]);
+    }
+    setFolders((p) => [...p, folder]);
+    setFolderCounts((c) => ({ ...c, [selectedId]: (c[selectedId] ?? 0) + 1 }));
   }
   async function reorderFolders(to: number) {
     if (folderDrag.current === null || folderDrag.current === to) return;
-    const next = [...folders];
+    const roots = folders.filter((folder) => folder.parent_folder_id == null);
+    const next = [...roots];
     const [moved] = next.splice(folderDrag.current, 1);
     next.splice(to, 0, moved);
-    setFolders(next);
+    setFolders((allFolders) => allFolders.map((folder) => {
+      const index = next.findIndex((root) => root.id === folder.id);
+      return index === -1 ? folder : { ...folder, sort_order: index };
+    }));
     folderDrag.current = null;
     await Promise.all(next.map((f, i) => supabase.from('folders').update({ sort_order: i }).eq('id', f.id)));
   }
@@ -156,6 +198,7 @@ export default function CatalogPage() {
     await supabase.from('folder_sources').delete().eq('folder_id', id);
     await supabase.from('folders').delete().eq('id', id);
     setFolders((p) => p.filter((f) => f.id !== id));
+    setFolderEntries((p) => p.filter((entry) => entry.folder_id !== id));
     if (selectedFolder?.id === id) setSelectedFolder(null);
     if (selectedId) setFolderCounts((c) => ({ ...c, [selectedId]: Math.max(0, (c[selectedId] ?? 1) - 1) }));
   }
@@ -190,11 +233,16 @@ export default function CatalogPage() {
     const { data } = await supabase.from('folder_sources').insert({
       folder_id: selectedFolder.id, provider, sort_order: sources.length,
     }).select().single();
-    if (data) setSources((p) => [...p, data as FolderSource]);
+    if (data) {
+      const source = data as FolderSource;
+      await saveFolderEntries([...selectedEntries, { entryKind: 'source', folderSourceId: source.id, sortOrder: selectedEntries.length }]);
+      setSources((p) => [...p, source]);
+    }
   }
   async function deleteSource(id: string) {
     await supabase.from('folder_sources').delete().eq('id', id);
     setSources((p) => p.filter((s) => s.id !== id));
+    setFolderEntries((p) => p.filter((entry) => entry.folder_source_id !== id));
   }
 
   // ---- folder_catalogs (Stremio catalog) ----
@@ -204,11 +252,16 @@ export default function CatalogPage() {
       folder_id: selectedFolder.id, catalog_id: catalogId, media_type: mediaType,
       genre: genre ?? null,
     }).select().single();
-    if (data) setCatalogs((p) => [...p, data as FolderCatalog]);
+    if (data) {
+      const catalog = data as FolderCatalog;
+      await saveFolderEntries([...selectedEntries, { entryKind: 'catalog', folderCatalogId: catalog.id, sortOrder: selectedEntries.length }]);
+      setCatalogs((p) => [...p, catalog]);
+    }
   }
   async function deleteCatalog(id: string) {
     await supabase.from('folder_catalogs').delete().eq('id', id);
     setCatalogs((p) => p.filter((c) => c.id !== id));
+    setFolderEntries((p) => p.filter((entry) => entry.folder_catalog_id !== id));
   }
 
   // ---- JSON pack import ----
@@ -406,6 +459,88 @@ export default function CatalogPage() {
     () => collections.find((c) => c.id === selectedId) ?? null,
     [collections, selectedId],
   );
+  const rootFolders = useMemo(() => folders.filter((folder) => folder.parent_folder_id == null), [folders]);
+  const selectedEntries = useMemo<FolderEntry[]>(() => {
+    const foldersById = new Map(folders.map((folder) => [folder.id, folder]));
+    const catalogsById = new Map(catalogs.map((catalog) => [catalog.id, catalog]));
+    const sourcesById = new Map(sources.map((source) => [source.id, source]));
+
+    return folderEntries.reduce<FolderEntry[]>((entries, entry) => {
+      if (entry.entry_kind === 'folder' && entry.folder_id) {
+        const folder = foldersById.get(entry.folder_id);
+        if (folder) entries.push({ entryKind: 'folder', folderId: folder.id, sortOrder: entry.sort_order, label: folder.name });
+      }
+      if (entry.entry_kind === 'catalog' && entry.folder_catalog_id) {
+        const catalog = catalogsById.get(entry.folder_catalog_id);
+        if (catalog) entries.push({ entryKind: 'catalog', folderCatalogId: catalog.id, sortOrder: entry.sort_order, label: catalog.catalog_id });
+      }
+      if (entry.entry_kind === 'source' && entry.folder_source_id) {
+        const source = sourcesById.get(entry.folder_source_id);
+        if (source) entries.push({ entryKind: 'source', folderSourceId: source.id, sortOrder: entry.sort_order, label: source.title ?? source.provider });
+      }
+      return entries;
+    }, []);
+  }, [catalogs, folderEntries, folders, sources]);
+
+  async function saveFolderEntries(entries: FolderEntry[]) {
+    if (!selectedFolder) return;
+    const p_entries = entries.map((entry) => {
+      if (entry.entryKind === 'folder') return { entry_kind: 'folder', folder_id: entry.folderId };
+      if (entry.entryKind === 'catalog') return { entry_kind: 'catalog', folder_catalog_id: entry.folderCatalogId };
+      return { entry_kind: 'source', folder_source_id: entry.folderSourceId };
+    });
+    const { error } = await supabase.rpc('replace_folder_entries', {
+      p_parent_folder_id: selectedFolder.id,
+      p_entries,
+    });
+    if (error) throw new Error(error.message);
+    setFolderEntries(entries.map((entry, sortOrder) => ({
+      parent_folder_id: selectedFolder.id,
+      entry_kind: entry.entryKind,
+      folder_id: entry.entryKind === 'folder' ? entry.folderId : null,
+      folder_catalog_id: entry.entryKind === 'catalog' ? entry.folderCatalogId : null,
+      folder_source_id: entry.entryKind === 'source' ? entry.folderSourceId : null,
+      sort_order: sortOrder,
+    })));
+  }
+
+  async function moveFolderToRoot(folderId: string) {
+    const { error } = await supabase.rpc('move_folder', {
+      p_folder_id: folderId,
+      p_parent_folder_id: null,
+      p_sort_order: rootFolders.length,
+    });
+    if (error) throw new Error(error.message);
+    setFolders((allFolders) => allFolders.map((folder) => folder.id === folderId
+      ? { ...folder, parent_folder_id: null, sort_order: rootFolders.length }
+      : folder));
+    setFolderEntries((entries) => entries.filter((entry) => entry.folder_id !== folderId));
+  }
+
+  async function moveFolderHere(folderId: string) {
+    if (!selectedFolder) return;
+    const { error } = await supabase.rpc('move_folder', {
+      p_folder_id: folderId,
+      p_parent_folder_id: selectedFolder.id,
+      p_sort_order: selectedEntries.length,
+    });
+    if (error) throw new Error(error.message);
+    setFolders((allFolders) => allFolders.map((folder) => folder.id === folderId
+      ? { ...folder, parent_folder_id: selectedFolder.id }
+      : folder));
+    setFolderEntries((entries) => [...entries, {
+      parent_folder_id: selectedFolder.id, entry_kind: 'folder', folder_id: folderId,
+      folder_catalog_id: null, folder_source_id: null, sort_order: entries.length,
+    }]);
+  }
+
+  function openFolder(folderId: string) {
+    const folder = folders.find((candidate) => candidate.id === folderId);
+    if (folder) {
+      setSelectedFolder(folder);
+      setTab('contents');
+    }
+  }
 
   return (
     <AppShell>
@@ -506,8 +641,8 @@ export default function CatalogPage() {
             ) : tab === 'folders' ? (
               <FolderGrid
                 collection={selected}
-                folders={folders}
-                onSelectFolder={(f) => { setSelectedFolder(f); setTab('artwork'); }}
+                folders={rootFolders}
+                onSelectFolder={(f) => { setSelectedFolder(f); setTab('contents'); }}
                 onAddFolder={addFolder}
                 onDragStart={(i) => (folderDrag.current = i)}
                 onDrop={reorderFolders}
@@ -515,6 +650,28 @@ export default function CatalogPage() {
                 onMoveDown={moveFolderDown}
                 onDeleteFolder={deleteFolder}
               />
+            ) : tab === 'contents' ? (
+              selectedFolder ? (
+                <div className="flex flex-col gap-5">
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <p className="font-mono text-[11px] uppercase tracking-widest text-accent">Folder · {selectedFolder.name}</p>
+                      <p className="mt-1 text-sm text-muted">Build a nested folder and media-source layout.</p>
+                    </div>
+                    <Button size="sm" onClick={() => void addFolder(selectedFolder.id)}>+ Add subfolder</Button>
+                  </div>
+                  <FolderEntriesEditor
+                    entries={selectedEntries}
+                    onSave={saveFolderEntries}
+                    onOpenFolder={openFolder}
+                    onMoveFolderToRoot={moveFolderToRoot}
+                    movableFolders={rootFolders.filter((folder) => folder.id !== selectedFolder.id).map((folder) => ({ id: folder.id, label: folder.name }))}
+                    onMoveFolderHere={moveFolderHere}
+                  />
+                </div>
+              ) : (
+                <div className="py-16 text-center text-sm text-muted">Pick a folder from the Folders tab to edit its contents.</div>
+              )
             ) : tab === 'artwork' ? (
               selectedFolder ? (
                 <ArtworkGallery folder={selectedFolder} onBack={() => setTab('folders')} onSave={saveFolderArtwork} />

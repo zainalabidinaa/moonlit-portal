@@ -54,6 +54,7 @@ export interface Collection {
 export interface Folder {
   id: string;
   collection_id: string;
+  parent_folder_id?: string | null;
   name: string;
   cover_image: string | null;
   focus_gif: string | null;
@@ -66,6 +67,11 @@ export interface Folder {
   focus_gif_enabled: boolean;
   enabled: boolean;
 }
+
+export type FolderEntry =
+  | { entryKind: 'folder'; folderId: string; sortOrder: number; label?: string }
+  | { entryKind: 'catalog'; folderCatalogId: string; sortOrder: number; label?: string }
+  | { entryKind: 'source'; folderSourceId: string; sortOrder: number; label?: string };
 
 export interface FolderSource {
   id: string;

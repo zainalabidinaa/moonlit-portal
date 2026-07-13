@@ -13,6 +13,8 @@ interface Props {
 }
 
 export function FolderGrid({ collection, folders, onSelectFolder, onAddFolder, onDragStart, onDrop, onMoveUp, onMoveDown, onDeleteFolder }: Props) {
+  const rootFolders = folders.filter((folder) => folder.parent_folder_id == null);
+
   return (
     <div>
       {/* Collection backdrop */}
@@ -39,7 +41,7 @@ export function FolderGrid({ collection, folders, onSelectFolder, onAddFolder, o
       </div>
 
       <div className="grid gap-3.5 [grid-template-columns:repeat(auto-fill,minmax(180px,1fr))]">
-        {folders.map((f, i) => {
+        {rootFolders.map((f, i) => {
           const dimmed = f.enabled === false;
           return (
             <div key={f.id} className={`group relative ${dimmed ? 'opacity-50' : ''}`}>
@@ -85,7 +87,7 @@ export function FolderGrid({ collection, folders, onSelectFolder, onAddFolder, o
               >↑</button>
               <button
                 onClick={(e) => { e.stopPropagation(); onMoveDown(i); }}
-                disabled={i === folders.length - 1}
+                disabled={i === rootFolders.length - 1}
                 className="flex h-6 w-6 items-center justify-center rounded-lg bg-bg/80 font-mono text-[11px] text-muted backdrop-blur transition-colors hover:bg-accent hover:text-[#2a1206] disabled:opacity-20"
                 title="Move down"
               >↓</button>
