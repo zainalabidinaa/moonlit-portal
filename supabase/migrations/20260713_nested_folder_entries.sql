@@ -41,6 +41,73 @@ create unique index if not exists folder_entries_catalog_id_unique
 create unique index if not exists folder_entries_source_id_unique
   on public.folder_entries (folder_source_id) where folder_source_id is not null;
 
+create or replace function public.validate_folder_hierarchy()
+returns trigger
+language plpgsql
+set search_path = public
+as $$
+declare
+  v_parent_collection_id uuid;
+  v_has_cross_collection_descendant boolean;
+  v_would_cycle boolean;
+begin
+  if new.parent_folder_id is not null then
+    if new.id = new.parent_folder_id then
+      raise exception 'a folder cannot contain itself';
+    end if;
+
+    select collection_id into v_parent_collection_id
+    from folders
+    where id = new.parent_folder_id;
+    if v_parent_collection_id is null then
+      raise exception 'parent folder % does not exist', new.parent_folder_id;
+    end if;
+    if new.collection_id <> v_parent_collection_id then
+      raise exception 'folders cannot cross collections';
+    end if;
+
+    with recursive ancestors(id) as (
+      select new.parent_folder_id
+      union all
+      select f.parent_folder_id
+      from folders f
+      join ancestors a on a.id = f.id
+      where f.parent_folder_id is not null
+    )
+    select exists (select 1 from ancestors where id = new.id) into v_would_cycle;
+    if v_would_cycle then
+      raise exception 'folder parent would introduce a cycle';
+    end if;
+  end if;
+
+  -- A direct collection update must not leave an existing descendant attached
+  -- to a parent in another collection.
+  with recursive descendants(id) as (
+    select f.id from folders f where f.parent_folder_id = new.id
+    union all
+    select f.id
+    from folders f
+    join descendants d on f.parent_folder_id = d.id
+  )
+  select exists (
+    select 1
+    from descendants d
+    join folders f on f.id = d.id
+    where f.collection_id <> new.collection_id
+  ) into v_has_cross_collection_descendant;
+  if v_has_cross_collection_descendant then
+    raise exception 'folder collection change would cross collection boundaries';
+  end if;
+
+  return new;
+end;
+$$;
+
+drop trigger if exists validate_folder_hierarchy_before_write on public.folders;
+create trigger validate_folder_hierarchy_before_write
+before insert or update of parent_folder_id, collection_id on public.folders
+for each row execute function public.validate_folder_hierarchy();
+
 create or replace function public.validate_folder_entry()
 returns trigger
 language plpgsql
@@ -276,7 +343,7 @@ declare
   v_invalid_count integer;
   v_would_cycle boolean;
 begin
-  if jsonb_typeof(p_entries) <> 'array' then
+  if p_entries is null or jsonb_typeof(p_entries) <> 'array' then
     raise exception 'entries must be a JSON array';
   end if;
 

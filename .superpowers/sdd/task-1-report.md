@@ -88,3 +88,30 @@ cycle / cross-collection rejection, and an invalid `replace_folder_entries`
 payload preserving the old order. The supplied worktree cannot perform that
 database verification because its base schema and Supabase project configuration
 are absent.
+
+## Review-fix addendum
+
+The review found that direct SQL writes to `folders.parent_folder_id` or
+`folders.collection_id` could bypass the `folder_entries` trigger, and that a
+SQL `NULL` `p_entries` value could pass the prior JSON type check.
+
+- Added `validate_folder_hierarchy_before_write`, a `BEFORE INSERT OR UPDATE OF
+  parent_folder_id, collection_id` trigger on `folders`. It rejects a missing
+  parent, self-parenting, parent/child cross-collection relationships, cycles,
+  and a collection update that would leave an existing descendant in another
+  collection.
+- Changed `replace_folder_entries` to reject `p_entries IS NULL` before any
+  parent/sibling lock or deletion.
+
+### Review-fix verification
+
+```text
+git diff --check
+exit 0 (no whitespace errors)
+```
+
+Database execution remains unavailable for the same reason documented above:
+no running local Postgres/Docker, no linked project/configuration, and no
+committed base schema to reset. The folder trigger is intentionally database
+level rather than RPC-only, so direct `INSERT`/`UPDATE` writes are covered when
+the migration is run against a disposable deployed-schema clone.
