@@ -70,3 +70,28 @@ The Supabase CLI is installed (`2.98.1`), but Docker is not running, so the loca
 
 - Local HTTP smoke testing remains blocked until Docker Desktop/the Docker daemon is available.
 - The full portal suite has a pre-existing environment configuration failure in `RouteGuards.test.tsx`; Task 2's focused tests pass.
+
+## Review follow-up: malformed folder entries
+
+### RED evidence
+
+Added a test with malformed rows interleaved between valid sibling entries: a non-string parent, unknown kind, missing reference, extra non-matching reference, and fractional sort order. The focused test failed before the implementation change:
+
+```text
+× buildOrganizerPayload > drops malformed entries without disturbing valid sibling order
+expected [ [ 'folder', +0 ], …(6) ] to deeply equal [ [ 'folder', +0 ], …(2) ]
+```
+
+### Fix and GREEN evidence
+
+`buildOrganizerPayload` now drops a row before sorting unless its parent is an emitted folder; kind is `folder`, `catalog`, or `source`; exactly its matching reference is present; the reference exists beneath that exact parent; and `sort_order` is a finite integer.
+
+```text
+$ npm test -- organizer
+✓ supabase/functions/home-organizer/organizer.test.ts (5 tests)
+Test Files  1 passed (1)
+Tests  5 passed (5)
+
+$ npm run build
+✓ built in 1.65s
+```

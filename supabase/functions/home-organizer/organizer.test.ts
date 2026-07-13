@@ -58,7 +58,8 @@ describe('buildOrganizerPayload', () => {
 
   it('sorts entries by parent before their portal order', () => {
     const payload = buildOrganizerPayload({
-      collections: [collection], folders: [horror, franchises], catalogs: [], folderSources: [],
+      collections: [collection], folders: [horror, franchises], catalogs: [],
+      folderSources: [{ id: 'source', folder_id: 'franchises', media_type: 'movie', provider: 'tmdb', tmdb_id: '1', sort_order: 0 }],
       folderEntries: [
         { parent_folder_id: 'horror', entry_kind: 'folder', folder_id: 'franchises', folder_catalog_id: null, folder_source_id: null, sort_order: 0 },
         { parent_folder_id: 'franchises', entry_kind: 'source', folder_id: null, folder_catalog_id: null, folder_source_id: 'source', sort_order: 9 },
@@ -68,6 +69,31 @@ describe('buildOrganizerPayload', () => {
     expect(payload[0].folderEntries.map((entry) => [entry.parentFolderId, entry.sortOrder])).toEqual([
       ['franchises', 9],
       ['horror', 0],
+    ]);
+  });
+
+  it('drops malformed entries without disturbing valid sibling order', () => {
+    const payload = buildOrganizerPayload({
+      collections: [collection],
+      folders: [horror, franchises],
+      catalogs: [{ id: 'catalog', folder_id: 'horror', media_type: 'movie', genre: null, catalog_id: 'popular' }],
+      folderSources: [{ id: 'source', folder_id: 'horror', media_type: 'movie', provider: 'tmdb', tmdb_id: '1', sort_order: 0 }],
+      folderEntries: [
+        { parent_folder_id: 'horror', entry_kind: 'folder', folder_id: 'franchises', folder_catalog_id: null, folder_source_id: null, sort_order: 0 },
+        { parent_folder_id: 7, entry_kind: 'catalog', folder_id: null, folder_catalog_id: 'catalog', folder_source_id: null, sort_order: 1 },
+        { parent_folder_id: 'horror', entry_kind: 'unknown', folder_id: null, folder_catalog_id: null, folder_source_id: 'source', sort_order: 1 },
+        { parent_folder_id: 'horror', entry_kind: 'catalog', folder_id: null, folder_catalog_id: 'missing', folder_source_id: null, sort_order: 1 },
+        { parent_folder_id: 'horror', entry_kind: 'catalog', folder_id: 'franchises', folder_catalog_id: 'catalog', folder_source_id: null, sort_order: 1 },
+        { parent_folder_id: 'horror', entry_kind: 'source', folder_id: null, folder_catalog_id: null, folder_source_id: 'source', sort_order: 1.5 },
+        { parent_folder_id: 'horror', entry_kind: 'catalog', folder_id: null, folder_catalog_id: 'catalog', folder_source_id: null, sort_order: 1 },
+        { parent_folder_id: 'horror', entry_kind: 'source', folder_id: null, folder_catalog_id: null, folder_source_id: 'source', sort_order: 2 },
+      ],
+    });
+
+    expect(payload[0].folderEntries.map((entry) => [entry.entryKind, entry.sortOrder])).toEqual([
+      ['folder', 0],
+      ['catalog', 1],
+      ['source', 2],
     ]);
   });
 

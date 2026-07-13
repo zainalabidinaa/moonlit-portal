@@ -35,6 +35,38 @@ function serializeEntry(entry: any) {
   };
 }
 
+function isAbsent(value: unknown) {
+  return value === null || value === undefined;
+}
+
+function isValidEntry(
+  entry: any,
+  folderIds: Set<string>,
+  foldersById: Map<string, any>,
+  catalogsById: Map<string, any>,
+  sourcesById: Map<string, any>,
+) {
+  if (!entry || typeof entry.parent_folder_id !== 'string' || !folderIds.has(entry.parent_folder_id)) return false;
+  if (!Number.isFinite(entry.sort_order) || !Number.isInteger(entry.sort_order)) return false;
+
+  if (entry.entry_kind === 'folder') {
+    const folder = foldersById.get(entry.folder_id);
+    return typeof entry.folder_id === 'string' && isAbsent(entry.folder_catalog_id) && isAbsent(entry.folder_source_id)
+      && folder?.parent_folder_id === entry.parent_folder_id;
+  }
+  if (entry.entry_kind === 'catalog') {
+    const catalog = catalogsById.get(entry.folder_catalog_id);
+    return isAbsent(entry.folder_id) && typeof entry.folder_catalog_id === 'string' && isAbsent(entry.folder_source_id)
+      && catalog?.folder_id === entry.parent_folder_id;
+  }
+  if (entry.entry_kind === 'source') {
+    const source = sourcesById.get(entry.folder_source_id);
+    return isAbsent(entry.folder_id) && isAbsent(entry.folder_catalog_id) && typeof entry.folder_source_id === 'string'
+      && source?.folder_id === entry.parent_folder_id;
+  }
+  return false;
+}
+
 export function buildOrganizerPayload({
   collections,
   folders,
@@ -54,12 +86,15 @@ export function buildOrganizerPayload({
   for (const source of folderSources) {
     (sourcesByFolder[source.folder_id] ??= []).push(source);
   }
+  const foldersById = new Map(folders.map((folder) => [folder.id, folder]));
+  const catalogsById = new Map(catalogs.map((catalog) => [catalog.id, catalog]));
+  const sourcesById = new Map(folderSources.map((source) => [source.id, source]));
 
   return collections.map((collection) => {
     const collectionFolders = foldersByCollection[collection.id] ?? [];
     const folderIds = new Set(collectionFolders.map((folder) => folder.id));
     const entries = folderEntries
-      .filter((entry) => folderIds.has(entry.parent_folder_id))
+      .filter((entry) => isValidEntry(entry, folderIds, foldersById, catalogsById, sourcesById))
       .sort((a, b) => a.parent_folder_id.localeCompare(b.parent_folder_id) || a.sort_order - b.sort_order)
       .map(serializeEntry);
 
