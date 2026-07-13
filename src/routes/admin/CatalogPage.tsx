@@ -8,6 +8,7 @@ import { ArtworkGallery } from '../../components/catalog/ArtworkGallery';
 import { SourcesTable } from '../../components/catalog/SourcesTable';
 import { JsonImport } from '../../components/catalog/JsonImport';
 import { CollectionSettings } from '../../components/catalog/CollectionSettings';
+import { buildFolderEntriesPayload, eligibleFolderCandidates } from '../../components/catalog/folderEntriesModel';
 import type { Collection, Folder, FolderSource, FolderCatalog, FolderEntry } from '../../types';
 
 type Tab = 'folders' | 'contents' | 'artwork' | 'sources' | 'json' | 'collection';
@@ -276,6 +277,32 @@ export default function CatalogPage() {
     return importBESTPack(p);
   }
 
+  function entryFromRow(row: FolderEntryRow): FolderEntry | null {
+    if (row.entry_kind === 'folder' && row.folder_id) return { entryKind: 'folder', folderId: row.folder_id, sortOrder: row.sort_order };
+    if (row.entry_kind === 'catalog' && row.folder_catalog_id) return { entryKind: 'catalog', folderCatalogId: row.folder_catalog_id, sortOrder: row.sort_order };
+    if (row.entry_kind === 'source' && row.folder_source_id) return { entryKind: 'source', folderSourceId: row.folder_source_id, sortOrder: row.sort_order };
+    return null;
+  }
+
+  async function replaceImportedFolderEntries(folderId: string, importedEntries: FolderEntry[]) {
+    if (importedEntries.length === 0) return;
+    const { data, error: entriesError } = await supabase.from('folder_entries').select('*').eq('parent_folder_id', folderId).order('sort_order');
+    if (entriesError) throw new Error(entriesError.message);
+    const existingEntries = ((data ?? []) as FolderEntryRow[]).flatMap((entry) => {
+      const parsed = entryFromRow(entry);
+      return parsed ? [parsed] : [];
+    });
+    const entries = [
+      ...existingEntries,
+      ...importedEntries.map((entry, index) => ({ ...entry, sortOrder: existingEntries.length + index })),
+    ];
+    const { error } = await supabase.rpc('replace_folder_entries', {
+      p_parent_folder_id: folderId,
+      p_entries: buildFolderEntriesPayload(entries),
+    });
+    if (error) throw new Error(error.message);
+  }
+
   // ---- Moonlit format import ----
   // Top-level array: [{ id, title, folders: [{ id, title, sources: [...], heroBackdropUrl, tileShape }] }]
   async function importMoonlitPack(moonlit: any[], discoverMap?: Map<string, string>) {
@@ -329,6 +356,7 @@ export default function CatalogPage() {
           ? f.catalogSources
           : rawSources;
         const seenCatalogIds = new Set<string>();
+        const importedEntries: FolderEntry[] = [];
         for (let si = 0; si < sources.length; si++) {
           const src = sources[si];
           const catalogId = resolveMoonlitCatalogId(src, discoverMap);
@@ -340,14 +368,18 @@ export default function CatalogPage() {
           const mediaType = normalizeMediaType(src.type ?? src.mediaType);
           const genre = src.genre && src.genre.toLowerCase() !== 'none' ? src.genre : null;
 
-          const { error } = await supabase.from('folder_catalogs').insert({
+          const { data, error } = await supabase.from('folder_catalogs').insert({
             folder_id: folderId,
             catalog_id: catalogId,
             media_type: mediaType,
             genre,
-          });
-          if (!error) totalSources++;
+          }).select().single();
+          if (!error && data) {
+            importedEntries.push({ entryKind: 'catalog', folderCatalogId: (data as FolderCatalog).id, sortOrder: importedEntries.length });
+            totalSources++;
+          }
         }
+        await replaceImportedFolderEntries(folderId, importedEntries);
       }
     }
 
@@ -421,20 +453,26 @@ export default function CatalogPage() {
 
     let sourceCount = 0;
     const perFolder: Record<string, number> = {};
+    const importedEntriesByFolder = new Map<string, FolderEntry[]>();
 
     const cats: any[] = Array.isArray(p.folder_catalogs) ? p.folder_catalogs : [];
     for (const c of cats) {
       const fid = nameToId[c.folder_name ?? c.folder];
       if (!fid) continue;
       const idx = perFolder[fid] ?? 0;
-      const { error } = await supabase.from('folder_catalogs').insert({
+      const { data, error } = await supabase.from('folder_catalogs').insert({
         folder_id: fid,
         catalog_id: c.catalog_id ?? c.provider ?? 'unknown',
         media_type: c.media_type ?? 'movie',
         genre: c.genre ?? null,
         extras: c.extras ?? null,
-      });
-      if (!error) { sourceCount++; perFolder[fid] = idx + 1; }
+      }).select().single();
+      if (!error && data) {
+        const entries = importedEntriesByFolder.get(fid) ?? [];
+        entries.push({ entryKind: 'catalog', folderCatalogId: (data as FolderCatalog).id, sortOrder: entries.length });
+        importedEntriesByFolder.set(fid, entries);
+        sourceCount++; perFolder[fid] = idx + 1;
+      }
     }
 
     const srcs: any[] = Array.isArray(p.folder_sources) ? p.folder_sources : [];
@@ -442,13 +480,20 @@ export default function CatalogPage() {
       const fid = nameToId[s.folder_name ?? s.folder];
       if (!fid) continue;
       const idx = perFolder[fid] ?? 0;
-      const { error } = await supabase.from('folder_sources').insert({
+      const { data, error } = await supabase.from('folder_sources').insert({
         folder_id: fid, provider: s.provider ?? 'unknown',
         title: s.title ?? null, tmdb_id: s.tmdb_id ?? null,
         media_type: s.media_type ?? null, sort_order: idx,
-      });
-      if (!error) { sourceCount++; perFolder[fid] = idx + 1; }
+      }).select().single();
+      if (!error && data) {
+        const entries = importedEntriesByFolder.get(fid) ?? [];
+        entries.push({ entryKind: 'source', folderSourceId: (data as FolderSource).id, sortOrder: entries.length });
+        importedEntriesByFolder.set(fid, entries);
+        sourceCount++; perFolder[fid] = idx + 1;
+      }
     }
+
+    await Promise.all([...importedEntriesByFolder.entries()].map(([folderId, entries]) => replaceImportedFolderEntries(folderId, entries)));
 
     await loadCollections();
     setSelectedId(collectionId);
@@ -484,14 +529,9 @@ export default function CatalogPage() {
 
   async function saveFolderEntries(entries: FolderEntry[]) {
     if (!selectedFolder) return;
-    const p_entries = entries.map((entry) => {
-      if (entry.entryKind === 'folder') return { entry_kind: 'folder', folder_id: entry.folderId };
-      if (entry.entryKind === 'catalog') return { entry_kind: 'catalog', folder_catalog_id: entry.folderCatalogId };
-      return { entry_kind: 'source', folder_source_id: entry.folderSourceId };
-    });
     const { error } = await supabase.rpc('replace_folder_entries', {
       p_parent_folder_id: selectedFolder.id,
-      p_entries,
+      p_entries: buildFolderEntriesPayload(entries),
     });
     if (error) throw new Error(error.message);
     setFolderEntries(entries.map((entry, sortOrder) => ({
@@ -665,7 +705,7 @@ export default function CatalogPage() {
                     onSave={saveFolderEntries}
                     onOpenFolder={openFolder}
                     onMoveFolderToRoot={moveFolderToRoot}
-                    movableFolders={rootFolders.filter((folder) => folder.id !== selectedFolder.id).map((folder) => ({ id: folder.id, label: folder.name }))}
+                    movableFolders={eligibleFolderCandidates(folders, selectedFolder.id).map((folder) => ({ id: folder.id, label: folder.name }))}
                     onMoveFolderHere={moveFolderHere}
                   />
                 </div>
