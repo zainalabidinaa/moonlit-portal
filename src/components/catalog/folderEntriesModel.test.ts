@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildFolderEntriesPayload, eligibleFolderCandidates } from './folderEntriesModel';
+import { buildFolderEntriesPayload, eligibleFolderCandidates, orderBestImportEntries } from './folderEntriesModel';
 
 describe('folder entries model', () => {
   it('builds an ordered RPC payload while retaining existing child-folder entries', () => {
@@ -26,6 +26,20 @@ describe('folder entries model', () => {
     expect(eligibleFolderCandidates(folders, 'horror').map((folder) => folder.id)).toEqual([
       'international',
       'thriller',
+    ]);
+  });
+
+  it('builds the BEST import RPC payload from the merged source/catalog sequence', () => {
+    const ordered = orderBestImportEntries([
+      { entry: { entryKind: 'catalog', folderCatalogId: 'catalog-1', sortOrder: 0 }, inputIndex: 0, sortOrder: 1 },
+      { entry: { entryKind: 'source', folderSourceId: 'source-1', sortOrder: 0 }, inputIndex: 0, sortOrder: 0 },
+      { entry: { entryKind: 'source', folderSourceId: 'source-2', sortOrder: 0 }, inputIndex: 1, sortOrder: 2 },
+    ]).map((candidate, sortOrder) => ({ ...candidate.entry, sortOrder }));
+
+    expect(buildFolderEntriesPayload(ordered)).toEqual([
+      { entry_kind: 'source', folder_source_id: 'source-1' },
+      { entry_kind: 'catalog', folder_catalog_id: 'catalog-1' },
+      { entry_kind: 'source', folder_source_id: 'source-2' },
     ]);
   });
 });

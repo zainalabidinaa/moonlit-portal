@@ -6,6 +6,13 @@ export interface FolderCandidate {
   name: string;
 }
 
+export interface BestImportEntry {
+  entry: FolderEntry;
+  inputIndex: number;
+  sortOrder?: number;
+  unifiedOrder?: number;
+}
+
 export function buildFolderEntriesPayload(entries: FolderEntry[]) {
   return [...entries]
     .sort((left, right) => left.sortOrder - right.sortOrder)
@@ -25,4 +32,19 @@ export function eligibleFolderCandidates<T extends FolderCandidate>(folders: T[]
     parents = children.map((folder) => folder.id);
   }
   return folders.filter((folder) => !excluded.has(folder.id));
+}
+
+/**
+ * Uses an explicit cross-kind ordering field when supplied. Without one, the
+ * import falls back to each record's supplied sort order, then catalog before
+ * source, then its original index within that record kind for stable ties.
+ */
+export function orderBestImportEntries(entries: BestImportEntry[]): BestImportEntry[] {
+  return [...entries].sort((left, right) => {
+    const leftOrder = left.unifiedOrder ?? left.sortOrder ?? left.inputIndex;
+    const rightOrder = right.unifiedOrder ?? right.sortOrder ?? right.inputIndex;
+    if (leftOrder !== rightOrder) return leftOrder - rightOrder;
+    if (left.entry.entryKind !== right.entry.entryKind) return left.entry.entryKind.localeCompare(right.entry.entryKind);
+    return left.inputIndex - right.inputIndex;
+  });
 }

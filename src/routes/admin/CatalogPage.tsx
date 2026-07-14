@@ -8,7 +8,7 @@ import { ArtworkGallery } from '../../components/catalog/ArtworkGallery';
 import { SourcesTable } from '../../components/catalog/SourcesTable';
 import { JsonImport } from '../../components/catalog/JsonImport';
 import { CollectionSettings } from '../../components/catalog/CollectionSettings';
-import { buildFolderEntriesPayload, eligibleFolderCandidates } from '../../components/catalog/folderEntriesModel';
+import { buildFolderEntriesPayload, eligibleFolderCandidates, orderBestImportEntries, type BestImportEntry } from '../../components/catalog/folderEntriesModel';
 import type { Collection, Folder, FolderSource, FolderCatalog, FolderEntry } from '../../types';
 
 type Tab = 'folders' | 'contents' | 'artwork' | 'sources' | 'json' | 'collection';
@@ -417,6 +417,20 @@ export default function CatalogPage() {
     switch (v?.toUpperCase()) { case 'LANDSCAPE': return 'landscape'; case 'SQUARE': return 'square'; default: return 'poster'; }
   }
 
+  function importOrder(record: any) {
+    const asNumber = (value: unknown) => typeof value === 'number' && Number.isFinite(value) ? value : undefined;
+    return {
+      unifiedOrder: asNumber(
+        record.folder_entry_sort_order ?? record.folderEntrySortOrder
+        ?? record.entry_sort_order ?? record.entrySortOrder
+        ?? record.entry_order ?? record.entryOrder
+        ?? record.unified_sort_order ?? record.unifiedSortOrder
+        ?? record.folder_entry?.sort_order,
+      ),
+      sortOrder: asNumber(record.sort_order ?? record.sortOrder),
+    };
+  }
+
   // ---- BEST format import (existing logic) ----
   async function importBESTPack(p: any) {
     const col = p.collections?.[0] ?? { name: p.pack?.title ?? 'Imported pack' };
@@ -453,10 +467,11 @@ export default function CatalogPage() {
 
     let sourceCount = 0;
     const perFolder: Record<string, number> = {};
-    const importedEntriesByFolder = new Map<string, FolderEntry[]>();
+    const importedEntriesByFolder = new Map<string, BestImportEntry[]>();
 
     const cats: any[] = Array.isArray(p.folder_catalogs) ? p.folder_catalogs : [];
-    for (const c of cats) {
+    for (let catalogIndex = 0; catalogIndex < cats.length; catalogIndex++) {
+      const c = cats[catalogIndex];
       const fid = nameToId[c.folder_name ?? c.folder];
       if (!fid) continue;
       const idx = perFolder[fid] ?? 0;
@@ -469,14 +484,19 @@ export default function CatalogPage() {
       }).select().single();
       if (!error && data) {
         const entries = importedEntriesByFolder.get(fid) ?? [];
-        entries.push({ entryKind: 'catalog', folderCatalogId: (data as FolderCatalog).id, sortOrder: entries.length });
+        entries.push({
+          entry: { entryKind: 'catalog', folderCatalogId: (data as FolderCatalog).id, sortOrder: 0 },
+          inputIndex: catalogIndex,
+          ...importOrder(c),
+        });
         importedEntriesByFolder.set(fid, entries);
         sourceCount++; perFolder[fid] = idx + 1;
       }
     }
 
     const srcs: any[] = Array.isArray(p.folder_sources) ? p.folder_sources : [];
-    for (const s of srcs) {
+    for (let sourceIndex = 0; sourceIndex < srcs.length; sourceIndex++) {
+      const s = srcs[sourceIndex];
       const fid = nameToId[s.folder_name ?? s.folder];
       if (!fid) continue;
       const idx = perFolder[fid] ?? 0;
@@ -487,13 +507,20 @@ export default function CatalogPage() {
       }).select().single();
       if (!error && data) {
         const entries = importedEntriesByFolder.get(fid) ?? [];
-        entries.push({ entryKind: 'source', folderSourceId: (data as FolderSource).id, sortOrder: entries.length });
+        entries.push({
+          entry: { entryKind: 'source', folderSourceId: (data as FolderSource).id, sortOrder: 0 },
+          inputIndex: sourceIndex,
+          ...importOrder(s),
+        });
         importedEntriesByFolder.set(fid, entries);
         sourceCount++; perFolder[fid] = idx + 1;
       }
     }
 
-    await Promise.all([...importedEntriesByFolder.entries()].map(([folderId, entries]) => replaceImportedFolderEntries(folderId, entries)));
+    await Promise.all([...importedEntriesByFolder.entries()].map(([folderId, entries]) => replaceImportedFolderEntries(
+      folderId,
+      orderBestImportEntries(entries).map((candidate, sortOrder) => ({ ...candidate.entry, sortOrder })),
+    )));
 
     await loadCollections();
     setSelectedId(collectionId);
