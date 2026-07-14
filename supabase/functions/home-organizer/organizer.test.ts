@@ -97,16 +97,23 @@ describe('buildOrganizerPayload', () => {
     ]);
   });
 
-  it('preserves the legacy sources payload', () => {
+  it('includes stable source IDs so folder entries resolve to serialized sources', () => {
     const payload = buildOrganizerPayload({
-      collections: [collection], folders: [horror], folderEntries: [],
+      collections: [collection], folders: [horror],
       catalogs: [{ id: 'catalog', folder_id: 'horror', media_type: 'movie', genre: 'Horror', catalog_id: 'popular' }],
       folderSources: [{ id: 'source', folder_id: 'horror', media_type: 'series', provider: 'tmdb', tmdb_id: '99', tmdb_source_type: 'LIST', sort_order: 0 }],
+      folderEntries: [
+        { parent_folder_id: 'horror', entry_kind: 'catalog', folder_id: null, folder_catalog_id: 'catalog', folder_source_id: null, sort_order: 0 },
+        { parent_folder_id: 'horror', entry_kind: 'source', folder_id: null, folder_catalog_id: null, folder_source_id: 'source', sort_order: 1 },
+      ],
     });
 
     expect(payload[0].folders[0].sources).toEqual([
-      { type: 'movie', genre: 'Horror', addonId: 'aio-metadata', provider: 'addon', catalogId: 'popular' },
-      { type: 'series', genre: 'None', title: '', provider: 'tmdb', tmdbId: '99', tmdbSourceType: 'LIST' },
+      { id: 'catalog', type: 'movie', genre: 'Horror', addonId: 'aio-metadata', provider: 'addon', catalogId: 'popular' },
+      { id: 'source', type: 'series', genre: 'None', title: '', provider: 'tmdb', tmdbId: '99', tmdbSourceType: 'LIST' },
     ]);
+    expect(payload[0].folderEntries.every((entry) => payload[0].folders[0].sources.some((source) =>
+      source.id === (entry.folderCatalogId ?? entry.folderSourceId),
+    ))).toBe(true);
   });
 });

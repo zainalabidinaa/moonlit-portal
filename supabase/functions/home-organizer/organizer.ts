@@ -8,6 +8,7 @@ export type OrganizerRows = {
 
 function serializeSource(source: any) {
   const base: any = {
+    id: source.id,
     type: source.media_type ?? 'all',
     genre: 'None',
     title: source.title ?? '',
@@ -106,6 +107,7 @@ export function buildOrganizerPayload({
         title: folder.name,
         sources: [
           ...(catalogsByFolder[folder.id] ?? []).map((catalog) => ({
+            id: catalog.id,
             type: catalog.media_type,
             genre: catalog.genre ?? 'None',
             addonId: 'aio-metadata',

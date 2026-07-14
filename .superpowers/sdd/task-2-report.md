@@ -95,3 +95,28 @@ Tests  5 passed (5)
 $ npm run build
 ✓ built in 1.65s
 ```
+
+## Cross-task contract follow-up: source IDs
+
+### RED evidence
+
+Added a fixture with one catalog and one raw source referenced by `folderEntries`. Before the serializer change, the focused test failed because both emitted legacy `sources` objects omitted their database IDs:
+
+```text
+× includes stable source IDs so folder entries resolve to serialized sources
+expected [ { type: 'movie', …(4) }, …(1) ] to deeply equal [ { id: 'catalog', …(5) }, …(1) ]
+```
+
+### Fix and GREEN evidence
+
+Both catalog and raw-source serializers now emit their stable database row as `id`, preserving all existing fields. The test asserts both IDs and verifies every ordered catalog/source entry resolves to its corresponding serialized source.
+
+```text
+$ npm test -- organizer
+✓ supabase/functions/home-organizer/organizer.test.ts (5 tests)
+Test Files  1 passed (1)
+Tests  5 passed (5)
+
+$ npm run build
+✓ built in 2.97s
+```
