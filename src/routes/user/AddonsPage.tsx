@@ -10,11 +10,12 @@ import { Badge } from '../../components/ui/Badge';
 import type { InstalledAddon } from '../../types';
 
 export default function AddonsPage() {
-  const { activeProfile, role } = useAuth();
+  const { activeProfile, role, refreshProfiles } = useAuth();
   const [addons, setAddons] = useState<InstalledAddon[]>([]);
   const [newUrl, setNewUrl] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [installing, setInstalling] = useState(false);
   const [error, setError] = useState('');
   const dragIndex = useRef<number | null>(null);
 
@@ -75,6 +76,44 @@ export default function AddonsPage() {
     await Promise.all(reordered.map((a, idx) => supabase.from('installed_addons').update({ sort_order: idx }).eq('id', a.id)));
   }
 
+  // One-tap: copy the admin's curated set (read via get_shared_addons, which
+  // works regardless of the owner-only RLS) into THIS user's own installed_addons.
+  // The user initiates this themselves on the website; the app just syncs their
+  // own account. This is how Premium/F&F bring in a working setup (including their
+  // stream source) without the app ever provisioning it.
+  async function handleInstallCuratedSetup() {
+    if (!activeProfile) return;
+    setInstalling(true);
+    setError('');
+
+    const { data: shared, error: rpcErr } = await supabase.rpc('get_shared_addons');
+    if (rpcErr) { setError(rpcErr.message); setInstalling(false); return; }
+    const curatedUrls: string[] = (shared ?? []).map((r: { addon_url: string }) => r.addon_url);
+
+    // Dedupe against the user's OWN current addons (not the displayed/inherited list).
+    const { data: own } = await supabase
+      .from('installed_addons').select('addon_url').eq('profile_id', activeProfile.id);
+    const existing = new Set((own ?? []).map((a: { addon_url: string }) => a.addon_url));
+
+    const rows = curatedUrls
+      .filter(u => !existing.has(u))
+      .map((u, i) => ({ profile_id: activeProfile.id, addon_url: u, enabled: true, sort_order: existing.size + i }));
+
+    if (rows.length > 0) {
+      const { error: insErr } = await supabase.from('installed_addons').insert(rows);
+      if (insErr) { setError(insErr.message); setInstalling(false); return; }
+    }
+
+    // This profile now uses its own (just-populated) addon list.
+    await supabase.from('profiles').update({ uses_primary_addons: false }).eq('id', activeProfile.id);
+    await refreshProfiles?.();
+
+    const { data } = await supabase
+      .from('installed_addons').select('*').eq('profile_id', activeProfile.id).order('sort_order');
+    setAddons(data ?? []);
+    setInstalling(false);
+  }
+
   return (
     <AppShell>
       <div className="max-w-2xl mx-auto">
@@ -83,6 +122,16 @@ export default function AddonsPage() {
           {isManaged && <Badge variant="purple">Managed by Moonlit</Badge>}
           {role === 'friends_family' && <Badge>Inherited from admin</Badge>}
         </div>
+
+        {(role === 'premium' || role === 'friends_family') && (
+          <Card className="p-4 mb-6 flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-text">Install curated setup</p>
+              <p className="text-xs text-muted">Add Moonlit's recommended add-ons to your account in one tap. They'll sync to your apps.</p>
+            </div>
+            <Button onClick={handleInstallCuratedSetup} loading={installing} size="md">Install</Button>
+          </Card>
+        )}
 
         {canEdit && (
           <Card className="p-4 mb-6 flex gap-3">
