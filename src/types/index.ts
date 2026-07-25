@@ -48,6 +48,12 @@ export interface Collection {
   pin_to_top: boolean;
   enabled: boolean;
   show_on_home: boolean;
+  show_ios_home: boolean;
+  show_ios_movies: boolean;
+  show_ios_series: boolean;
+  show_mac_home: boolean;
+  show_mac_movies: boolean;
+  show_mac_series: boolean;
   created_at: string;
 }
 

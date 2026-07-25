@@ -140,6 +140,44 @@ function FolderRow({
   );
 }
 
+type TabFlagKey =
+  | 'show_ios_home' | 'show_ios_movies' | 'show_ios_series'
+  | 'show_mac_home' | 'show_mac_movies' | 'show_mac_series';
+
+const TAB_FLAG_ROWS: { label: string; keys: [TabFlagKey, TabFlagKey, TabFlagKey] }[] = [
+  { label: 'iOS', keys: ['show_ios_home', 'show_ios_movies', 'show_ios_series'] },
+  { label: 'Mac', keys: ['show_mac_home', 'show_mac_movies', 'show_mac_series'] },
+];
+
+const TAB_LETTERS = ['H', 'M', 'S'];
+const TAB_NAMES = ['Home', 'Movies', 'Series'];
+
+function TabFlagChips({ col, onToggle }: { col: Collection; onToggle: (key: TabFlagKey, value: boolean) => void }) {
+  return (
+    <div className="flex flex-none flex-col gap-1">
+      {TAB_FLAG_ROWS.map((row) => (
+        <div key={row.label} className="flex items-center gap-1">
+          <span className="w-7 text-right font-mono text-[9px] uppercase text-faint">{row.label}</span>
+          {row.keys.map((key, i) => (
+            <button
+              key={key}
+              onClick={() => onToggle(key, !col[key])}
+              title={`${row.label} · ${TAB_NAMES[i]} tab`}
+              className={`h-5 w-5 rounded font-mono text-[9px] leading-none transition-colors ${
+                col[key]
+                  ? 'bg-accent text-[#2a1206]'
+                  : 'border border-border text-faint hover:border-accent/40'
+              }`}
+            >
+              {TAB_LETTERS[i]}
+            </button>
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function HomeLayoutPage() {
@@ -193,7 +231,28 @@ export default function HomeLayoutPage() {
 
   async function toggleEnabled(id: string, enabled: boolean) {
     setCollections((prev) => prev.map((c) => (c.id === id ? { ...c, enabled } : c)));
-    await supabase.from('collections').update({ enabled }).eq('id', id);
+    const { error } = await supabase.from('collections').update({ enabled }).eq('id', id);
+    if (error) {
+      console.error('Failed to toggle collection enabled:', error);
+      setCollections((prev) => prev.map((c) => (c.id === id ? { ...c, enabled: !enabled } : c)));
+    }
+  }
+
+  async function toggleTabFlag(id: string, key: TabFlagKey, value: boolean) {
+    const prev = collections.find((c) => c.id === id);
+    if (!prev) return;
+    const patch: Partial<Collection> = { [key]: value };
+    if (key === 'show_ios_home' || key === 'show_mac_home') {
+      const iosHome = key === 'show_ios_home' ? value : prev.show_ios_home;
+      const macHome = key === 'show_mac_home' ? value : prev.show_mac_home;
+      patch.show_on_home = iosHome || macHome;
+    }
+    setCollections((p) => p.map((c) => (c.id === id ? { ...c, ...patch } : c)));
+    const { error } = await supabase.from('collections').update(patch).eq('id', id);
+    if (error) {
+      console.error('Failed to toggle tab flag:', error);
+      setCollections((p) => p.map((c) => (c.id === id ? { ...c, ...prev } : c)));
+    }
   }
 
   async function toggleFolderEnabled(folderId: string, enabled: boolean) {
@@ -205,7 +264,18 @@ export default function HomeLayoutPage() {
         ),
       }))
     );
-    await supabase.from('folders').update({ enabled }).eq('id', folderId);
+    const { error } = await supabase.from('folders').update({ enabled }).eq('id', folderId);
+    if (error) {
+      console.error('Failed to toggle folder enabled:', error);
+      setCollections((prev) =>
+        prev.map((col) => ({
+          ...col,
+          folders: col.folders.map((f) =>
+            f.id === folderId ? { ...f, enabled: !enabled } : f
+          ),
+        }))
+      );
+    }
   }
 
   // ── Reorder ───────────────────────────────────────────────────────────────
@@ -382,6 +452,9 @@ export default function HomeLayoutPage() {
                       {col.folders.reduce((n, f) => n + f.catalogs.length, 0)} sources
                     </span>
                   </div>
+
+                  {/* Tab visibility */}
+                  <TabFlagChips col={col} onToggle={(key, v) => toggleTabFlag(col.id, key, v)} />
 
                   {/* Enabled toggle */}
                   <Toggle on={col.enabled} onChange={(v) => toggleEnabled(col.id, v)} />

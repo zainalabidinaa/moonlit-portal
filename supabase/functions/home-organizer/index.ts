@@ -42,7 +42,6 @@ Deno.serve(async (req) => {
           .from('folders')
           .select('*')
           .in('collection_id', batch)
-          .eq('enabled', true)
           .order('sort_order');
         if (error) throw error;
         if (data) allFolders.push(...data);
@@ -126,6 +125,8 @@ Deno.serve(async (req) => {
                 base.traktListId = parseInt(s.tmdb_id, 10) || 0;
               } else if (s.provider === 'tvdb' && s.tmdb_id) {
                 base.catalogId = `tvdb.discover.${base.type}.${s.tmdb_id}`;
+              } else if (s.provider === 'mdblist' && s.tmdb_id) {
+                base.catalogId = `mdblist.${s.tmdb_id}`;
               } else {
                 base.tmdbId = s.tmdb_id;
                 base.tmdbSourceType = s.tmdb_source_type ?? 'DISCOVER';
@@ -162,6 +163,12 @@ Deno.serve(async (req) => {
           focusGlowEnabled: col.focus_glow_enabled ?? false,
           backdropImageUrl: col.backdrop_image ?? null,
           showOnHome: col.show_on_home ?? true,
+          showIosHome: col.show_ios_home ?? null,
+          showIosMovies: col.show_ios_movies ?? null,
+          showIosSeries: col.show_ios_series ?? null,
+          showMacHome: col.show_mac_home ?? null,
+          showMacMovies: col.show_mac_movies ?? null,
+          showMacSeries: col.show_mac_series ?? null,
         };
       })
       .filter(Boolean);

@@ -3,6 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { Navbar } from '../../components/layout/Navbar';
 import { Button } from '../../components/ui/Button';
+import { FeatureShowcase } from '../../components/landing/FeatureShowcase';
+import { CrossPlatform } from '../../components/landing/CrossPlatform';
+import { AppWindow } from '../../components/landing/AppWindow';
+import { AppMock } from '../../components/landing/AppMock';
 import type { Collection, Folder } from '../../types';
 
 const chips = ['4K • HDR', 'Multi-profile', 'Curated collections', 'iOS · Mac · Web'];
@@ -167,14 +171,14 @@ export default function LandingPage() {
         <div className="grid items-center gap-8 lg:grid-cols-[1.05fr_.95fr]">
           <div>
             <p className="mb-4 font-mono text-[11px] uppercase tracking-[0.28em] text-accent">
-              Your own private streaming universe
+              Your own streaming universe
             </p>
             <h1 className="font-display text-[clamp(48px,7vw,104px)] font-extrabold uppercase leading-[1.02]">
               Every screen.<br />
               One <span className="text-accent" style={{ textShadow: '0 0 40px var(--accent-glow)' }}>Moonlit.</span>
             </h1>
             <p className="mt-5 max-w-md text-[17px] text-muted">
-              A members-only streaming platform built on the Stremio engine — curated collections,
+              A streaming platform built on the Stremio engine — curated collections,
               gorgeous artwork, and your whole household on every device.
             </p>
             <div className="mt-7 flex flex-wrap gap-3">
@@ -190,14 +194,18 @@ export default function LandingPage() {
             </div>
           </div>
 
-          <div className="relative h-[400px] overflow-hidden rounded-3xl border border-border shadow-2xl lg:h-[480px]">
-            <img src="https://picsum.photos/seed/moonlithero88/900/1000" alt="" className="h-full w-full object-cover" />
+          <div className="relative">
             <div
-              className="absolute inset-0"
-              style={{ background: 'linear-gradient(160deg,rgba(250,130,77,.14),transparent 40%),linear-gradient(0deg,rgba(13,6,4,.88),transparent 55%)' }}
+              className="pointer-events-none absolute -inset-6 -z-10"
+              style={{ background: 'radial-gradient(60% 60% at 70% 30%, var(--accent-glow), transparent 70%)', opacity: 0.5 }}
             />
-            <div className="absolute inset-x-4 bottom-4 flex items-center gap-3.5 rounded-2xl border border-border bg-bg2/70 p-4 backdrop-blur-md">
-              <span className="h-16 w-12 flex-none rounded-lg shadow-glow" style={{ background: 'linear-gradient(160deg,#fa824d,#ff6a2b)' }} />
+            <AppWindow float>
+              <AppMock />
+            </AppWindow>
+            <div className="absolute -bottom-5 left-4 right-4 flex items-center gap-3.5 rounded-2xl border border-border bg-bg2/85 p-4 backdrop-blur-md shadow-2xl">
+              <span className="flex h-12 w-12 flex-none items-center justify-center rounded-lg shadow-glow" style={{ background: 'linear-gradient(160deg,#fa824d,#ff6a2b)' }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="#2a1206"><path d="M8 5v14l11-7z" /></svg>
+              </span>
               <div>
                 <div className="font-display text-lg font-extrabold">Tonight on Moonlit</div>
                 <div className="font-mono text-xs text-muted">12 collections · 480 titles synced</div>
@@ -209,8 +217,14 @@ export default function LandingPage() {
 
       <Marquee items={['Streaming', 'Collections', '4K HDR', 'Multi-profile', 'No ads', 'Cross-device']} />
 
+      {/* FEATURE SHOWCASE */}
+      <FeatureShowcase />
+
       {/* COLLECTIONS PREVIEW */}
       <CollectionsPreviewSection />
+
+      {/* CROSS-PLATFORM */}
+      <CrossPlatform />
 
       <div className="px-5 pb-8 text-center">
         <div className="text-stroke font-display text-[clamp(60px,12vw,150px)] font-extrabold uppercase leading-[.9] opacity-60">
@@ -278,11 +292,13 @@ export default function LandingPage() {
       <footer className="border-t border-border py-14 text-center">
         <div className="font-display text-4xl font-extrabold tracking-tight">MOONLIT</div>
         <div className="mt-4 flex flex-wrap justify-center gap-6 text-sm text-muted">
-          <a href="#">About</a><a href="#">Catalog</a>
+          <a href="#">About</a>
+          <a href="#" onClick={(e) => { e.preventDefault(); navigate('/catalog'); }}>Catalog</a>
+          <a href="#" onClick={(e) => { e.preventDefault(); navigate('/download'); }}>Download</a>
           <a href="#" onClick={(e) => { e.preventDefault(); navigate('/pricing'); }}>Pricing</a>
           <a href="#">Support</a><a href="#">Status</a>
         </div>
-        <p className="mt-4 font-mono text-xs text-faint">© 2026 Moonlit · A private Stremio-powered platform</p>
+        <p className="mt-4 font-mono text-xs text-faint">© 2026 Moonlit · A Stremio-powered platform</p>
       </footer>
     </div>
   );

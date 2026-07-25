@@ -71,6 +71,49 @@ h1, h2, h3 {
   -webkit-text-stroke: 1px #3a2c23;
 }
 
+/* ── landing feature-demo motion ─────────────────────────────── */
+
+/* player scrubber sweeping across the timeline */
+@keyframes moonlit-scrub {
+  0%   { width: 8%; }
+  50%  { width: 62%; }
+  100% { width: 8%; }
+}
+.animate-scrub { animation: moonlit-scrub 9s cubic-bezier(.4, 0, .2, 1) infinite; }
+
+/* soft vertical float for device frames */
+@keyframes moonlit-float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-10px); }
+}
+.animate-float { animation: moonlit-float 6s ease-in-out infinite; }
+.animate-float-slow { animation: moonlit-float 8s ease-in-out infinite; }
+
+/* sheen sweeping across a surface (source scan / loading) */
+@keyframes moonlit-sheen {
+  0%   { transform: translateX(-120%); }
+  100% { transform: translateX(220%); }
+}
+.animate-sheen { animation: moonlit-sheen 2.6s ease-in-out infinite; }
+
+/* gentle pulse for "live" dots and now-playing bars */
+@keyframes moonlit-eq {
+  0%, 100% { transform: scaleY(0.35); }
+  50%      { transform: scaleY(1); }
+}
+.animate-eq { animation: moonlit-eq 0.9s ease-in-out infinite; transform-origin: bottom; }
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-scrub,
+  .animate-float,
+  .animate-float-slow,
+  .animate-sheen,
+  .animate-eq,
+  .animate-marquee {
+    animation: none !important;
+  }
+}
+
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;

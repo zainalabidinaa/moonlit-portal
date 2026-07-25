@@ -28,7 +28,12 @@ export function CollectionSettings({ collection, folders, allCollections, onSave
     draft.focus_glow_enabled !== collection.focus_glow_enabled ||
     draft.pin_to_top !== collection.pin_to_top ||
     draft.enabled !== collection.enabled ||
-    draft.show_on_home !== collection.show_on_home;
+    draft.show_ios_home !== collection.show_ios_home ||
+    draft.show_ios_movies !== collection.show_ios_movies ||
+    draft.show_ios_series !== collection.show_ios_series ||
+    draft.show_mac_home !== collection.show_mac_home ||
+    draft.show_mac_movies !== collection.show_mac_movies ||
+    draft.show_mac_series !== collection.show_mac_series;
 
   function set<K extends keyof Collection>(key: K, value: Collection[K]) {
     setDraft((d) => ({ ...d, [key]: value }));
@@ -45,7 +50,13 @@ export function CollectionSettings({ collection, folders, allCollections, onSave
         focus_glow_enabled: draft.focus_glow_enabled,
         pin_to_top: draft.pin_to_top,
         enabled: draft.enabled,
-        show_on_home: draft.show_on_home,
+        show_on_home: draft.show_ios_home || draft.show_mac_home,
+        show_ios_home: draft.show_ios_home,
+        show_ios_movies: draft.show_ios_movies,
+        show_ios_series: draft.show_ios_series,
+        show_mac_home: draft.show_mac_home,
+        show_mac_movies: draft.show_mac_movies,
+        show_mac_series: draft.show_mac_series,
       });
     } finally {
       setSaving(false);
@@ -192,11 +203,54 @@ export function CollectionSettings({ collection, folders, allCollections, onSave
             <Toggle label="Focus glow" on={draft.focus_glow_enabled} onClick={() => set('focus_glow_enabled', !draft.focus_glow_enabled)} />
             <Toggle label="Pin to top" on={draft.pin_to_top} onClick={() => set('pin_to_top', !draft.pin_to_top)} />
             <Toggle label="Enabled" on={draft.enabled} onClick={() => set('enabled', !draft.enabled)} />
-            <Toggle label="Show on home" on={draft.show_on_home} onClick={() => set('show_on_home', !draft.show_on_home)} />
           </div>
           <div className="p-3.5">
             <span className="text-[13px] font-semibold text-text">Display flags</span>
             <p className="mt-1 text-[11px] text-faint">Controls how this collection is rendered in the app</p>
+          </div>
+        </div>
+
+        {/* Tab visibility matrix */}
+        <div className="overflow-hidden rounded-2xl border border-border bg-bg2">
+          <div className="flex h-[130px] items-center justify-center bg-surface-2 p-4">
+            <table className="border-separate [border-spacing:14px_8px]">
+              <thead>
+                <tr>
+                  <th />
+                  {['Home', 'Movies', 'Series'].map((t) => (
+                    <th key={t} className="font-mono text-[9px] font-normal uppercase tracking-widest text-faint">{t}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {([
+                  ['iOS', 'show_ios_home', 'show_ios_movies', 'show_ios_series'],
+                  ['Mac', 'show_mac_home', 'show_mac_movies', 'show_mac_series'],
+                ] as const).map(([label, ...keys]) => (
+                  <tr key={label}>
+                    <td className="font-mono text-[9px] uppercase tracking-widest text-faint">{label}</td>
+                    {keys.map((key) => (
+                      <td key={key} className="text-center">
+                        <button
+                          onClick={() => set(key, !draft[key])}
+                          className={`h-5 w-5 rounded-md border transition-colors ${
+                            draft[key]
+                              ? 'border-transparent bg-accent text-[#2a1206]'
+                              : 'border-border bg-surface-2 text-transparent hover:border-accent/40'
+                          }`}
+                        >
+                          ✓
+                        </button>
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="p-3.5">
+            <span className="text-[13px] font-semibold text-text">Tab visibility</span>
+            <p className="mt-1 text-[11px] text-faint">Pick which tabs show this collection, per platform</p>
           </div>
         </div>
       </div>

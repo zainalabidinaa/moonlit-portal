@@ -40,8 +40,8 @@ export function Navbar() {
           <NavLink to="/" end className={navClass}>
             {({ isActive }) => (<>Home<ActiveBar show={isActive} /></>)}
           </NavLink>
-          <NavLink to="/catalog" className={navClass}>
-            {({ isActive }) => (<>Catalog<ActiveBar show={isActive} /></>)}
+          <NavLink to="/download" className={navClass}>
+            {({ isActive }) => (<>Download<ActiveBar show={isActive} /></>)}
           </NavLink>
           {!session && (
             <NavLink to="/pricing" className={navClass}>

@@ -1,0 +1,1 @@
+ALTER TABLE collections ADD COLUMN IF NOT EXISTS show_on_home BOOLEAN NOT NULL DEFAULT true;
