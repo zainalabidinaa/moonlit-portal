@@ -7,6 +7,7 @@ import LoginPage from './routes/public/LoginPage';
 import SignupPage from './routes/public/SignupPage';
 import CollectionsPage from './routes/public/CollectionsPage';
 import DownloadPage from './routes/public/DownloadPage';
+import ActivatePage from './routes/public/ActivatePage';
 import ProfilesPage from './routes/user/ProfilesPage';
 import AddonsPage from './routes/user/AddonsPage';
 import BillingPage from './routes/user/BillingPage';
@@ -29,6 +30,7 @@ export default function App() {
           <Route path="/signup" element={<PublicRoute><SignupPage /></PublicRoute>} />
           <Route path="/catalog" element={<CollectionsPage />} />
           <Route path="/download" element={<DownloadPage />} />
+          <Route path="/activate" element={<ActivatePage />} />
 
           {/* User */}
           <Route path="/profiles" element={<UserRoute><ProfilesPage /></UserRoute>} />
