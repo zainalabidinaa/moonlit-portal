@@ -53,7 +53,7 @@ const plans = [
   },
   {
     name: 'Premium+', price: '$14.99', unit: '/mo', highlight: true,
-    features: ['4 simultaneous streams in 4K HDR', 'Unlimited profiles', 'Personal addon slots', 'Priority stream warm-up', 'Early access features'],
+    features: ['4 simultaneous streams in 4K HDR', 'Unlimited profiles', 'Add your own sources — optional, for power users', 'Priority stream warm-up', 'Early access features'],
     cta: 'Choose Premium+', to: '/signup?plan=premium_plus',
   },
   {
@@ -178,8 +178,8 @@ export default function LandingPage() {
               One <span className="text-accent" style={{ textShadow: '0 0 40px var(--accent-glow)' }}>Moonlit.</span>
             </h1>
             <p className="mt-5 max-w-md text-[17px] text-muted">
-              A streaming platform built on the Stremio engine — curated collections,
-              gorgeous artwork, and your whole household on every device.
+              Everything hand-picked, gorgeous artwork, and your whole household
+              on every device — sign up, open the app, press play.
             </p>
             <div className="mt-7 flex flex-wrap gap-3">
               <Button size="lg" className="rounded-full" onClick={() => navigate('/pricing')}>Get Moonlit →</Button>
@@ -298,7 +298,7 @@ export default function LandingPage() {
           <a href="#" onClick={(e) => { e.preventDefault(); navigate('/pricing'); }}>Pricing</a>
           <a href="#">Support</a><a href="#">Status</a>
         </div>
-        <p className="mt-4 font-mono text-xs text-faint">© 2026 Moonlit · A Stremio-powered platform</p>
+        <p className="mt-4 font-mono text-xs text-faint">© 2026 Moonlit</p>
       </footer>
     </div>
   );
