@@ -8,6 +8,7 @@ import { HowItWorks } from '../../components/landing/HowItWorks';
 import { CrossPlatform } from '../../components/landing/CrossPlatform';
 import { AppWindow } from '../../components/landing/AppWindow';
 import { AppMock } from '../../components/landing/AppMock';
+import { CuratorSpotlight } from '../../components/landing/CuratorSpotlight';
 import type { Collection, Folder } from '../../types';
 
 const chips = ['4K • HDR', 'Multi-profile', 'Curated collections', 'iOS · Mac · Web'];
@@ -223,6 +224,9 @@ export default function LandingPage() {
 
       {/* FEATURE SHOWCASE */}
       <FeatureShowcase />
+
+      {/* CURATOR SPOTLIGHT */}
+      <CuratorSpotlight />
 
       {/* COLLECTIONS PREVIEW */}
       <CollectionsPreviewSection />
