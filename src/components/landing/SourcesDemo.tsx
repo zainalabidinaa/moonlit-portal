@@ -11,7 +11,7 @@ const sources = [
  */
 export function SourcesDemo() {
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-border-strong bg-bg2 p-4 shadow-2xl">
+    <div className="relative overflow-hidden rounded-2xl border border-border-strong bg-bg2 p-3 md:p-4 shadow-2xl">
       {/* scan sheen */}
       <div className="pointer-events-none absolute inset-y-0 left-0 w-1/3 animate-sheen"
         style={{ background: 'linear-gradient(90deg,transparent,rgba(250,130,77,.10),transparent)' }} />

@@ -20,8 +20,8 @@ const steps = [
 
 export function HowItWorks() {
   return (
-    <section className="mx-auto max-w-7xl px-5 py-24">
-      <Reveal className="mx-auto mb-16 max-w-2xl text-center">
+    <section className="mx-auto max-w-7xl px-5 py-16 md:py-24">
+      <Reveal className="mx-auto mb-12 md:mb-16 max-w-2xl text-center">
         <p className="mb-3 font-mono text-[11px] uppercase tracking-[0.28em] text-accent">
           Getting started
         </p>
@@ -30,10 +30,10 @@ export function HowItWorks() {
         </h2>
       </Reveal>
 
-      <div className="grid gap-8 md:grid-cols-3">
+      <div className="grid gap-5 md:gap-8 md:grid-cols-3">
         {steps.map((s, i) => (
           <Reveal key={s.n} delay={i * 90}>
-            <div className="rounded-2xl border border-border bg-surface p-7 text-center">
+            <div className="rounded-2xl border border-border bg-surface p-5 md:p-7 text-center">
               <div
                 className="font-display text-4xl font-extrabold text-accent"
                 style={{ textShadow: '0 0 30px var(--accent-glow)' }}

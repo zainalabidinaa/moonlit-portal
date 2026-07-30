@@ -30,10 +30,10 @@ export function Navbar() {
 
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-bg/75 backdrop-blur-xl">
-      <div className="mx-auto flex max-w-7xl items-center gap-5 px-5 py-3.5">
+      <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-2.5 md:gap-5 md:px-5 md:py-3.5">
         <Link to="/" className="flex flex-none items-center gap-2 font-display text-xl font-extrabold tracking-tight">
           <img src="/moonlit-icon.png" alt="Moonlit" className="h-7 w-7" />
-          MOONLIT
+          <span className="hidden sm:inline">MOONLIT</span>
         </Link>
 
         <nav className="mx-auto flex items-center gap-0.5 overflow-x-auto [scrollbar-width:none]">
@@ -83,7 +83,7 @@ export function Navbar() {
           )}
         </nav>
 
-        <div className="flex flex-none items-center gap-3">
+        <div className="flex flex-none items-center gap-2 md:gap-3">
           {isAdmin && (
             <span className="hidden items-center gap-2 rounded-full border border-accent/40 px-3 py-1.5 font-mono text-[10px] uppercase tracking-widest text-accent sm:flex">
               <span className="h-2 w-2 rounded-full bg-accent shadow-glow" />
@@ -94,8 +94,8 @@ export function Navbar() {
             <Button variant="ghost" size="sm" onClick={handleSignOut}>Sign out</Button>
           ) : (
             <>
-              <Button variant="ghost" size="sm" onClick={() => navigate('/login')}>Sign in</Button>
-              <Button size="sm" onClick={() => navigate('/pricing')}>Get Moonlit</Button>
+              <Button variant="ghost" size="sm" className="hidden sm:inline-flex" onClick={() => navigate('/login')}>Sign in</Button>
+              <Button size="sm" className="text-xs md:text-sm" onClick={() => navigate('/pricing')}>Get Moonlit</Button>
             </>
           )}
         </div>

@@ -72,8 +72,8 @@ function CollectionsPreviewSection() {
   if (collections.length === 0) return null;
 
   return (
-    <section className="mx-auto max-w-7xl px-5 py-24">
-      <div className="mb-10 flex flex-wrap items-end justify-between gap-4">
+    <section className="mx-auto max-w-7xl px-5 py-16 md:py-24">
+      <div className="mb-8 flex flex-wrap items-end justify-between gap-4 md:mb-10">
         <div>
           <p className="mb-3 font-mono text-[11px] uppercase tracking-[0.28em] text-accent">The catalog</p>
           <h2 className="font-display text-[clamp(32px,5vw,60px)] font-extrabold uppercase">
@@ -98,7 +98,7 @@ function CollectionsPreviewSection() {
               onClick={() => navigate('/catalog')}
               className="group overflow-hidden rounded-2xl border border-border bg-surface text-left transition-transform hover:-translate-y-1.5"
             >
-              <div className="relative h-[200px] overflow-hidden bg-bg2">
+              <div className="relative h-[160px] md:h-[200px] overflow-hidden bg-bg2">
                 {heroImg ? (
                   <img src={heroImg} alt="" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
                 ) : (
@@ -153,7 +153,7 @@ function Marquee({ items }: { items: string[] }) {
   );
   return (
     <div className="overflow-hidden border-y border-border bg-bg2 py-3.5">
-      <div className="flex w-max gap-12 whitespace-nowrap font-display text-[15px] font-extrabold tracking-wide text-faint animate-marquee">
+      <div className="flex w-max gap-12 whitespace-nowrap font-display text-[13px] font-extrabold tracking-wide text-faint animate-marquee md:text-[15px]">
         {row}
         {row}
       </div>
@@ -165,21 +165,21 @@ export default function LandingPage() {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-bg">
+    <div className="min-h-screen bg-bg overflow-x-hidden">
       <Navbar />
 
       {/* HERO */}
-      <section className="mx-auto max-w-7xl px-5 pb-8 pt-16">
-        <div className="grid items-center gap-8 lg:grid-cols-[1.05fr_.95fr]">
+      <section className="mx-auto max-w-7xl px-5 pb-4 pt-12 md:pb-8 md:pt-16">
+        <div className="grid items-center gap-6 lg:grid-cols-[1.05fr_.95fr] lg:gap-8">
           <div>
-            <p className="mb-4 font-mono text-[11px] uppercase tracking-[0.28em] text-accent">
+            <p className="mb-3 font-mono text-[10px] uppercase tracking-[0.22em] text-accent md:mb-4 md:text-[11px] md:tracking-[0.28em]">
               Your own streaming universe
             </p>
-            <h1 className="font-display text-[clamp(48px,7vw,104px)] font-extrabold uppercase leading-[1.02]">
+            <h1 className="font-display text-[clamp(40px,8vw,104px)] font-extrabold uppercase leading-[1.04]">
               Every screen.<br />
               One <span className="text-accent" style={{ textShadow: '0 0 40px var(--accent-glow)' }}>Moonlit.</span>
             </h1>
-            <p className="mt-5 max-w-md text-[17px] text-muted">
+            <p className="mt-4 max-w-md text-[15px] text-muted md:mt-5 md:text-[17px]">
               Everything hand-picked, gorgeous artwork, and your whole household
               on every device — sign up, open the app, press play.
             </p>
@@ -204,13 +204,13 @@ export default function LandingPage() {
             <AppWindow float>
               <AppMock />
             </AppWindow>
-            <div className="absolute -bottom-5 left-4 right-4 flex items-center gap-3.5 rounded-2xl border border-border bg-bg2/85 p-4 backdrop-blur-md shadow-2xl">
-              <span className="flex h-12 w-12 flex-none items-center justify-center rounded-lg shadow-glow" style={{ background: 'linear-gradient(160deg,#fa824d,#ff6a2b)' }}>
+            <div className="absolute -bottom-5 left-4 right-4 flex items-center gap-3 rounded-2xl border border-border bg-bg2/85 p-3 backdrop-blur-md shadow-2xl md:gap-3.5 md:p-4">
+              <span className="flex h-10 w-10 flex-none items-center justify-center rounded-lg shadow-glow md:h-12 md:w-12" style={{ background: 'linear-gradient(160deg,#fa824d,#ff6a2b)' }}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="#2a1206"><path d="M8 5v14l11-7z" /></svg>
               </span>
               <div>
-                <div className="font-display text-lg font-extrabold">Tonight on Moonlit</div>
-                <div className="font-mono text-xs text-muted">12 collections · 480 titles synced</div>
+                <div className="font-display text-base font-extrabold md:text-lg">Tonight on Moonlit</div>
+                <div className="font-mono text-[10px] text-muted md:text-xs">12 collections · 480 titles synced</div>
               </div>
             </div>
           </div>
@@ -234,8 +234,8 @@ export default function LandingPage() {
       {/* CROSS-PLATFORM */}
       <CrossPlatform />
 
-      <div className="px-5 pb-8 text-center">
-        <div className="text-stroke font-display text-[clamp(60px,12vw,150px)] font-extrabold uppercase leading-[.9] opacity-60">
+      <div className="px-5 pb-8 text-center overflow-hidden">
+        <div className="text-stroke font-display text-[clamp(48px,14vw,150px)] font-extrabold uppercase leading-[.9] opacity-60">
           MOONLIT
         </div>
       </div>
@@ -246,10 +246,10 @@ export default function LandingPage() {
           <p className="mb-3.5 font-mono text-[11px] uppercase tracking-[0.28em] text-accent">By the numbers</p>
           <h2 className="font-display text-[clamp(32px,5vw,60px)] font-extrabold uppercase">Built for households</h2>
         </div>
-        <div className="mt-11 grid gap-4.5 gap-5 md:grid-cols-3">
+        <div className="mt-11 grid gap-4 md:gap-5 md:grid-cols-3">
           {stats.map((s) => (
-            <div key={s.l} className="rounded-2xl border border-border bg-surface px-6 py-9 text-center">
-              <div className="font-display text-5xl font-extrabold text-accent" style={{ textShadow: '0 0 30px var(--accent-glow)' }}>{s.n}</div>
+            <div key={s.l} className="rounded-2xl border border-border bg-surface px-6 py-8 md:py-9 text-center">
+              <div className="font-display text-4xl md:text-5xl font-extrabold text-accent" style={{ textShadow: '0 0 30px var(--accent-glow)' }}>{s.n}</div>
               <div className="mt-1.5 font-mono text-[11px] uppercase tracking-widest text-muted">{s.l}</div>
             </div>
           ))}
@@ -259,14 +259,14 @@ export default function LandingPage() {
       <Marquee items={['Moon so bright', 'Watch anything', 'Invite your people']} />
 
       {/* PRICING TEASER */}
-      <section className="mx-auto max-w-7xl px-5 py-24 text-center">
+      <section className="mx-auto max-w-7xl px-5 py-16 md:py-24 text-center">
         <p className="mb-3.5 font-mono text-[11px] uppercase tracking-[0.28em] text-accent">Choose your moon</p>
         <h2 className="font-display text-[clamp(32px,5vw,60px)] font-extrabold uppercase">Pick your plan</h2>
-        <div className="mt-12 grid gap-5 text-left md:grid-cols-3">
+        <div className="mt-10 grid gap-5 text-left md:mt-12 md:grid-cols-3">
           {plans.map((p) => (
             <div
               key={p.name}
-              className={`relative rounded-2xl border bg-surface p-7 ${p.highlight ? 'border-accent shadow-glow-lg' : 'border-border'}`}
+              className={`relative rounded-2xl border bg-surface p-5 md:p-7 ${p.highlight ? 'border-accent shadow-glow-lg' : 'border-border'}`}
             >
               {p.highlight && (
                 <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-accent px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-widest text-[#2a1206]">
@@ -274,7 +274,7 @@ export default function LandingPage() {
                 </span>
               )}
               <div className="font-mono text-[11px] uppercase tracking-widest text-muted">{p.name}</div>
-              <div className="mb-0.5 mt-2.5 font-display text-[46px] font-extrabold leading-none">
+              <div className="mb-0.5 mt-2.5 font-display text-[38px] md:text-[46px] font-extrabold leading-none">
                 {p.price}<span className="text-[15px] font-normal text-muted">{p.unit}</span>
               </div>
               <ul className="my-6 flex flex-col gap-3">
@@ -297,9 +297,9 @@ export default function LandingPage() {
       </section>
 
       {/* FOOTER */}
-      <footer className="border-t border-border py-14 text-center">
-        <div className="font-display text-4xl font-extrabold tracking-tight">MOONLIT</div>
-        <div className="mt-4 flex flex-wrap justify-center gap-6 text-sm text-muted">
+      <footer className="border-t border-border py-10 md:py-14 text-center">
+        <div className="font-display text-3xl md:text-4xl font-extrabold tracking-tight">MOONLIT</div>
+        <div className="mt-4 flex flex-wrap justify-center gap-x-5 gap-y-2 text-xs md:text-sm text-muted">
           <a href="#">About</a>
           <a href="#" onClick={(e) => { e.preventDefault(); navigate('/catalog'); }}>Catalog</a>
           <a href="#" onClick={(e) => { e.preventDefault(); navigate('/download'); }}>Download</a>

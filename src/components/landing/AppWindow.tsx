@@ -32,7 +32,7 @@ export function AppWindow({ children, url = 'trymoonlit.app', className = '', fl
           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" className="text-faint">
             <path d="M12 2a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2h-1V7a5 5 0 0 0-5-5Zm3 8H9V7a3 3 0 0 1 6 0v3Z" fill="currentColor" />
           </svg>
-          <span className="font-mono text-[10px] text-faint">{url}</span>
+          <span className="font-mono text-[10px] text-faint truncate max-w-[140px] sm:max-w-none">{url}</span>
         </div>
       </div>
       {children}

@@ -17,7 +17,7 @@ interface FeatureRowProps {
 
 function FeatureRow({ eyebrow, title, body, points, visual, flip }: FeatureRowProps) {
   return (
-    <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-16">
+    <div className="grid items-center gap-6 lg:grid-cols-2 lg:gap-16">
       <Reveal from={flip ? 'right' : 'left'} className={flip ? 'lg:order-2' : ''}>
         <p className="mb-3 font-mono text-[11px] uppercase tracking-[0.28em] text-accent">{eyebrow}</p>
         <h3 className="font-display text-[clamp(28px,4vw,48px)] font-extrabold uppercase leading-[1.04]">{title}</h3>
@@ -41,8 +41,8 @@ function FeatureRow({ eyebrow, title, body, points, visual, flip }: FeatureRowPr
 
 export function FeatureShowcase() {
   return (
-    <section id="features" className="mx-auto max-w-7xl px-5 py-24">
-      <Reveal className="mx-auto mb-20 max-w-2xl text-center">
+    <section id="features" className="mx-auto max-w-7xl px-5 py-16 md:py-24">
+      <Reveal className="mx-auto mb-14 md:mb-20 max-w-2xl text-center">
         <p className="mb-3 font-mono text-[11px] uppercase tracking-[0.28em] text-accent">What you get</p>
         <h2 className="font-display text-[clamp(34px,5.5vw,68px)] font-extrabold uppercase leading-[1.02]">
           A player that shows off
@@ -53,7 +53,7 @@ export function FeatureShowcase() {
         </p>
       </Reveal>
 
-      <div className="flex flex-col gap-28">
+      <div className="flex flex-col gap-16 md:gap-28">
         <FeatureRow
           eyebrow="Plays everything"
           title={<>Every format,<br />on the first try.</>}

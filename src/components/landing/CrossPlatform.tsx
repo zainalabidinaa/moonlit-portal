@@ -11,7 +11,7 @@ function PhoneFrame() {
     'linear-gradient(160deg,#2f3d2a,#141a10)',
   ];
   return (
-    <div className="animate-float relative w-[190px] rounded-[2.2rem] border border-border-strong bg-black p-2 shadow-2xl">
+    <div className="animate-float relative w-[150px] md:w-[190px] rounded-[2.2rem] border border-border-strong bg-black p-2 shadow-2xl">
       <div className="overflow-hidden rounded-[1.7rem] bg-bg">
         {/* notch */}
         <div className="relative h-6 bg-bg">
@@ -58,7 +58,7 @@ const platforms = [
 
 export function CrossPlatform() {
   return (
-    <section className="relative overflow-hidden border-y border-border bg-bg2 py-24">
+    <section className="relative overflow-hidden border-y border-border bg-bg2 py-16 md:py-24">
       <div
         className="pointer-events-none absolute inset-0"
         style={{ background: 'radial-gradient(900px 400px at 50% 0%, rgba(250,130,77,.08), transparent 60%)' }}
@@ -82,7 +82,7 @@ export function CrossPlatform() {
         <div className="mx-auto mt-16 grid max-w-4xl gap-4 md:grid-cols-3">
           {platforms.map((p, i) => (
             <Reveal key={p.name} delay={i * 90}>
-              <div className="h-full rounded-2xl border border-border bg-surface p-6 text-center">
+              <div className="h-full rounded-2xl border border-border bg-surface p-5 md:p-6 text-center">
                 <div className="font-display text-2xl font-extrabold uppercase text-accent">{p.name}</div>
                 <div className="mt-1 font-mono text-[10px] uppercase tracking-widest text-faint">{p.tag}</div>
                 <p className="mt-3 text-sm text-muted">{p.note}</p>

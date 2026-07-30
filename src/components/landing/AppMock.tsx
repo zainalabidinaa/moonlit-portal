@@ -66,7 +66,7 @@ function NavPill({ icon, label, active }: { icon: ReactNode; label: string; acti
       }
     >
       {icon}
-      {label}
+      <span className="hidden sm:inline">{label}</span>
     </span>
   );
 }
@@ -82,7 +82,7 @@ export function AppMock() {
 
         <div className="absolute bottom-4 left-5 right-5">
           <div className="mb-1.5 font-mono text-[9px] uppercase tracking-[0.28em] text-accent">Featured tonight</div>
-          <div className="font-display text-2xl font-extrabold uppercase leading-none sm:text-[30px]">Midnight Reel</div>
+          <div className="font-display text-xl font-extrabold uppercase leading-none sm:text-[30px]">Midnight Reel</div>
           <div className="mt-1.5 flex items-center gap-2 font-mono text-[9px] text-muted">
             <span className="rounded border border-accent/40 bg-accent/10 px-1.5 py-0.5 text-accent">4K</span>
             <span className="rounded border border-border bg-surface px-1.5 py-0.5">HDR</span>
@@ -110,7 +110,7 @@ export function AppMock() {
             className="h-4 w-4 rounded-full ring-1 ring-white/20"
             style={{ background: 'linear-gradient(160deg,#fa824d,#ff6a2b)' }}
           />
-          <span className="text-[9px] font-medium text-white/70">Jordan</span>
+          <span className="text-[9px] font-medium text-white/70 hidden sm:inline">Jordan</span>
         </span>
       </nav>
 
@@ -120,7 +120,7 @@ export function AppMock() {
           <div className="mb-2 font-mono text-[9px] uppercase tracking-widest text-faint">Continue watching</div>
           <div className="flex gap-2 overflow-hidden">
             {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => (
-              <Poster key={i} i={i} className="w-[58px]" />
+              <Poster key={i} i={i} className="w-[44px] sm:w-[58px]" />
             ))}
           </div>
         </div>
@@ -128,7 +128,7 @@ export function AppMock() {
           <div className="mb-2 font-mono text-[9px] uppercase tracking-widest text-faint">Curated collections</div>
           <div className="flex gap-2 overflow-hidden">
             {[3, 4, 5, 6, 7, 0, 1, 2].map((i) => (
-              <Poster key={i} i={i} className="w-[58px]" />
+              <Poster key={i} i={i} className="w-[44px] sm:w-[58px]" />
             ))}
           </div>
         </div>

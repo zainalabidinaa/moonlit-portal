@@ -43,7 +43,7 @@ export function CuratorSpotlight() {
   const trending = useTrendingNow();
 
   return (
-    <section className="mx-auto max-w-7xl px-5 py-24">
+    <section className="mx-auto max-w-7xl px-5 py-16 md:py-24">
       <Reveal className="mx-auto max-w-2xl text-center">
         <p className="mb-3 font-mono text-[11px] uppercase tracking-[0.28em] text-accent">
           From the team
@@ -65,7 +65,7 @@ export function CuratorSpotlight() {
           </p>
           <div className="flex gap-4 overflow-x-auto pb-2">
             {trending.map((item) => (
-              <div key={`${item.media_type}-${item.id}`} className="w-32 flex-none">
+              <div key={`${item.media_type}-${item.id}`} className="w-24 flex-none md:w-32">
                 <div className="aspect-[2/3] overflow-hidden rounded-lg border border-border bg-bg2">
                   {item.poster_path ? (
                     <img
