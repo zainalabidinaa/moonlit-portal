@@ -4,6 +4,7 @@ import { supabase } from '../../lib/supabase';
 import { Navbar } from '../../components/layout/Navbar';
 import { Button } from '../../components/ui/Button';
 import { FeatureShowcase } from '../../components/landing/FeatureShowcase';
+import { HowItWorks } from '../../components/landing/HowItWorks';
 import { CrossPlatform } from '../../components/landing/CrossPlatform';
 import { AppWindow } from '../../components/landing/AppWindow';
 import { AppMock } from '../../components/landing/AppMock';
@@ -216,6 +217,9 @@ export default function LandingPage() {
       </section>
 
       <Marquee items={['Streaming', 'Collections', '4K HDR', 'Multi-profile', 'No ads', 'Cross-device']} />
+
+      {/* HOW IT WORKS */}
+      <HowItWorks />
 
       {/* FEATURE SHOWCASE */}
       <FeatureShowcase />
