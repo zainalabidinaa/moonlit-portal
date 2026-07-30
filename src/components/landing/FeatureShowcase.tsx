@@ -48,8 +48,8 @@ export function FeatureShowcase() {
           A player that shows off
         </h2>
         <p className="mt-4 text-[16px] text-muted">
-          Moonlit wraps the Stremio engine in an interface built for the couch — cinematic, fast,
-          and the same everywhere you sign in.
+          An interface built for the couch — cinematic, fast, and the same
+          everywhere you sign in.
         </p>
       </Reveal>
 
@@ -89,7 +89,7 @@ export function FeatureShowcase() {
             'Cam rips, dead links & wrong episodes removed',
             'Ranked by quality, codec and health',
             'Top pick auto-selected — override anytime',
-            'Your own Stremio addons, loaded as-is',
+            'Already have your own sources? Bring them along too',
           ]}
           visual={<SourcesDemo />}
         />
