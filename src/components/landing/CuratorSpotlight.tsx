@@ -46,15 +46,15 @@ export function CuratorSpotlight() {
     <section className="mx-auto max-w-7xl px-5 py-16 md:py-24">
       <Reveal className="mx-auto max-w-2xl text-center">
         <p className="mb-3 font-mono text-[11px] uppercase tracking-[0.28em] text-accent">
-          From the team
+          Why we built it
         </p>
         <h2 className="font-display text-[clamp(32px,5vw,60px)] font-extrabold uppercase leading-[1.05]">
-          No algorithm runs this place
+          We were the ones scrolling
         </h2>
         <p className="mt-4 text-[15px] text-muted md:text-[16px]">
-          Nothing here is boosted, promoted or tested on you. A person chose every
-          row on purpose, in an order that makes sense at 11pm on a couch — so the
-          gap between sitting down and pressing play stays about ten seconds.
+          Five apps, forty minutes of browsing, and everyone settles for something
+          they've already seen. Moonlit is the fix we wanted for our own living
+          room.
         </p>
       </Reveal>
 
