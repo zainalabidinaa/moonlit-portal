@@ -21,7 +21,7 @@ const posterGradients = [
 function Poster({ i, className = '' }: { i: number; className?: string }) {
   return (
     <div
-      className={`aspect-[2/3] flex-none rounded-md ${className}`}
+      className={`aspect-[2/3] w-full rounded-md ${className}`}
       style={{
         background: posterGradients[i % posterGradients.length],
         boxShadow: 'inset 0 -30px 40px -20px rgba(0,0,0,.6)',
@@ -114,21 +114,22 @@ export function AppMock() {
         </span>
       </nav>
 
-      {/* rows */}
-      <div className="space-y-3 px-5 py-4">
+      {/* rows — a fixed 8-column grid so the posters scale with the frame instead
+          of setting a min-content floor that would widen the page on phones */}
+      <div className="space-y-3 px-4 py-4 sm:px-5">
         <div>
           <div className="mb-2 font-mono text-[9px] uppercase tracking-widest text-faint">Continue watching</div>
-          <div className="flex gap-2 overflow-hidden">
+          <div className="grid grid-cols-8 gap-1.5 sm:gap-2">
             {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => (
-              <Poster key={i} i={i} className="w-[44px] sm:w-[58px]" />
+              <Poster key={i} i={i} />
             ))}
           </div>
         </div>
         <div>
           <div className="mb-2 font-mono text-[9px] uppercase tracking-widest text-faint">Curated collections</div>
-          <div className="flex gap-2 overflow-hidden">
+          <div className="grid grid-cols-8 gap-1.5 sm:gap-2">
             {[3, 4, 5, 6, 7, 0, 1, 2].map((i) => (
-              <Poster key={i} i={i} className="w-[44px] sm:w-[58px]" />
+              <Poster key={i} i={i} />
             ))}
           </div>
         </div>

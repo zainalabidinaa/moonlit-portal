@@ -11,23 +11,23 @@ const sources = [
  */
 export function SourcesDemo() {
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-border-strong bg-bg2 p-3 md:p-4 shadow-2xl">
+    <div className="relative min-w-0 overflow-hidden rounded-2xl border border-border-strong bg-bg2 p-3 md:p-4 shadow-2xl">
       {/* scan sheen */}
       <div className="pointer-events-none absolute inset-y-0 left-0 w-1/3 animate-sheen"
         style={{ background: 'linear-gradient(90deg,transparent,rgba(250,130,77,.10),transparent)' }} />
 
-      <div className="mb-3 flex items-center justify-between">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5">
         <span className="font-mono text-[10px] uppercase tracking-widest text-faint">Sources · ranked</span>
         <span className="rounded-full border border-accent/40 bg-accent/10 px-2 py-0.5 font-mono text-[9px] text-accent">
           Best pick auto-selected
         </span>
       </div>
 
-      <div className="flex flex-col gap-2">
+      <div className="flex min-w-0 flex-col gap-2">
         {sources.map((src) => (
           <div
             key={src.t}
-            className={`flex items-center gap-3 rounded-xl border px-3 py-2.5 ${
+            className={`flex min-w-0 items-center gap-2.5 rounded-xl border px-2.5 py-2.5 sm:gap-3 sm:px-3 ${
               src.top ? 'border-accent/50 bg-accent/[0.07]' : 'border-border bg-surface'
             }`}
           >
@@ -39,7 +39,7 @@ export function SourcesDemo() {
               {src.q}
             </span>
             <div className="min-w-0 flex-1">
-              <div className="truncate font-mono text-[11px] text-text">{src.t}</div>
+              <div className="truncate font-mono text-[10px] text-text sm:text-[11px]">{src.t}</div>
               <div className="truncate font-mono text-[9px] text-faint">{src.s}</div>
             </div>
             {src.top && (
@@ -51,9 +51,9 @@ export function SourcesDemo() {
         ))}
       </div>
 
-      <div className="mt-3 flex items-center gap-2 font-mono text-[9px] text-faint">
-        <span className="text-accent">●</span>
-        Cam rips, dead links & wrong episodes filtered before ranking
+      <div className="mt-3 flex items-start gap-2 font-mono text-[9px] leading-relaxed text-faint">
+        <span className="flex-none text-accent">●</span>
+        <span className="min-w-0">Cam rips, dead links &amp; wrong episodes filtered before ranking</span>
       </div>
     </div>
   );

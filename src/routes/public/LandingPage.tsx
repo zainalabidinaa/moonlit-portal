@@ -47,21 +47,23 @@ const stats = [
   { n: '0', l: 'Ads, ever' },
 ];
 
+// Ordered so Premium sits in the middle column on desktop; on phones it is
+// pulled to the top (order-first) so the headline plan is what you see first.
 const plans = [
-  {
-    name: 'Premium', price: '$9.99', unit: '/mo', highlight: false,
-    features: ['2 simultaneous streams', 'Up to 6 profiles', 'Full curated catalog', 'iOS · Mac · Web'],
-    cta: 'Choose Premium', to: '/signup?plan=premium',
-  },
-  {
-    name: 'Premium+', price: '$14.99', unit: '/mo', highlight: true,
-    features: ['4 simultaneous streams in 4K HDR', 'Unlimited profiles', 'Add your own sources — optional, for power users', 'Priority stream warm-up', 'Early access features'],
-    cta: 'Choose Premium+', to: '/signup?plan=premium_plus',
-  },
   {
     name: 'Friends & Family', price: 'Invite', unit: 'only', highlight: false,
     features: ['Granted by an admin', 'Shared household catalog', 'Personal profile & library', 'No billing'],
     cta: 'Have a code?', to: '/signup?tab=invite',
+  },
+  {
+    name: 'Premium', price: '$6.99', unit: '/mo', highlight: true,
+    features: ['2 simultaneous streams', 'Up to 6 profiles', 'Full curated catalog', 'iOS · Mac · Web'],
+    cta: 'Choose Premium', to: '/signup?plan=premium',
+  },
+  {
+    name: 'Premium+', price: '$9.99', unit: '/mo', highlight: false,
+    features: ['4 simultaneous streams in 4K HDR', 'Unlimited profiles', 'Add your own sources — optional, for power users', 'Priority stream warm-up', 'Early access features'],
+    cta: 'Choose Premium+', to: '/signup?plan=premium_plus',
   },
 ];
 
@@ -170,8 +172,10 @@ export default function LandingPage() {
 
       {/* HERO */}
       <section className="mx-auto max-w-7xl px-5 pb-4 pt-12 md:pb-8 md:pt-16">
-        <div className="grid items-center gap-6 lg:grid-cols-[1.05fr_.95fr] lg:gap-8">
-          <div>
+        <div className="grid items-center gap-8 lg:grid-cols-[1.05fr_.95fr] lg:gap-8">
+          {/* min-w-0 keeps the columns inside the viewport on phones — grid items
+              default to min-width:auto and would otherwise be sized by the mockup. */}
+          <div className="min-w-0">
             <p className="mb-3 font-mono text-[10px] uppercase tracking-[0.22em] text-accent md:mb-4 md:text-[11px] md:tracking-[0.28em]">
               Your own streaming universe
             </p>
@@ -196,7 +200,7 @@ export default function LandingPage() {
             </div>
           </div>
 
-          <div className="relative">
+          <div className="relative mb-8 min-w-0 md:mb-0">
             <div
               className="pointer-events-none absolute -inset-6 -z-10"
               style={{ background: 'radial-gradient(60% 60% at 70% 30%, var(--accent-glow), transparent 70%)', opacity: 0.5 }}
@@ -266,7 +270,9 @@ export default function LandingPage() {
           {plans.map((p) => (
             <div
               key={p.name}
-              className={`relative rounded-2xl border bg-surface p-5 md:p-7 ${p.highlight ? 'border-accent shadow-glow-lg' : 'border-border'}`}
+              className={`relative rounded-2xl border bg-surface p-5 md:p-7 ${
+                p.highlight ? 'order-first border-accent shadow-glow-lg md:order-none' : 'border-border'
+              }`}
             >
               {p.highlight && (
                 <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-accent px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-widest text-[#2a1206]">

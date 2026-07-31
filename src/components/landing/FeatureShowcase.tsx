@@ -17,22 +17,25 @@ interface FeatureRowProps {
 
 function FeatureRow({ eyebrow, title, body, points, visual, flip }: FeatureRowProps) {
   return (
-    <div className="grid items-center gap-6 lg:grid-cols-2 lg:gap-16">
-      <Reveal from={flip ? 'right' : 'left'} className={flip ? 'lg:order-2' : ''}>
+    <div className="grid items-center gap-8 lg:grid-cols-2 lg:gap-16">
+      {/* min-w-0 on both columns: grid items default to min-width:auto, which lets
+          a wide visual (poster rows, long release names) push the track past the
+          viewport on phones. */}
+      <Reveal from={flip ? 'right' : 'left'} className={`min-w-0 ${flip ? 'lg:order-2' : ''}`}>
         <p className="mb-3 font-mono text-[11px] uppercase tracking-[0.28em] text-accent">{eyebrow}</p>
         <h3 className="font-display text-[clamp(28px,4vw,48px)] font-extrabold uppercase leading-[1.04]">{title}</h3>
-        <p className="mt-4 max-w-md text-[16px] text-muted">{body}</p>
+        <p className="mt-4 max-w-md text-[15px] text-muted md:text-[16px]">{body}</p>
         <ul className="mt-6 flex flex-col gap-2.5">
           {points.map((p) => (
             <li key={p} className="flex items-start gap-2.5 text-sm text-muted">
-              <span className="mt-0.5 text-accent">✓</span>
-              {p}
+              <span className="mt-0.5 flex-none text-accent">✓</span>
+              <span className="min-w-0">{p}</span>
             </li>
           ))}
         </ul>
       </Reveal>
 
-      <Reveal from={flip ? 'left' : 'right'} delay={80} className={flip ? 'lg:order-1' : ''}>
+      <Reveal from={flip ? 'left' : 'right'} delay={80} className={`min-w-0 ${flip ? 'lg:order-1' : ''}`}>
         {visual}
       </Reveal>
     </div>
