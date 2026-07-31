@@ -3,11 +3,18 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-const insert = vi.fn();
+// hoisted so the vi.mock factory below can reach them at module-init time
+const { insert, invoke } = vi.hoisted(() => ({ insert: vi.fn(), invoke: vi.fn() }));
 
+// insert(...).select('id').single() — the chain the page uses.
 vi.mock('../../lib/supabase', () => ({
   supabase: {
-    from: () => ({ insert }),
+    from: () => ({
+      insert: (row: unknown) => ({
+        select: () => ({ single: () => insert(row) }),
+      }),
+    }),
+    functions: { invoke },
     auth: { signOut: vi.fn() },
   },
 }));
@@ -35,7 +42,9 @@ async function fillForm(user: ReturnType<typeof userEvent.setup>) {
 describe('SupportPage', () => {
   beforeEach(() => {
     insert.mockReset();
-    insert.mockResolvedValue({ error: null });
+    invoke.mockReset();
+    insert.mockResolvedValue({ data: { id: 'req-1' }, error: null });
+    invoke.mockResolvedValue({ data: { sent: true }, error: null });
   });
 
   it('shows the support email and a contact form', () => {
@@ -85,8 +94,32 @@ describe('SupportPage', () => {
     expect(await screen.findByRole('heading', { name: /message sent/i })).toBeInTheDocument();
   });
 
+  it('asks the notify function to email the stored request', async () => {
+    const user = userEvent.setup();
+    setup();
+
+    await fillForm(user);
+    await user.click(screen.getByRole('button', { name: /send message/i }));
+
+    expect(await screen.findByRole('heading', { name: /message sent/i })).toBeInTheDocument();
+    expect(invoke).toHaveBeenCalledWith('support-notify', { body: { id: 'req-1' } });
+  });
+
+  it('still confirms the message when the email notification fails', async () => {
+    invoke.mockResolvedValue({ data: null, error: { message: 'resend down' } });
+    const user = userEvent.setup();
+    setup();
+
+    await fillForm(user);
+    await user.click(screen.getByRole('button', { name: /send message/i }));
+
+    // The request is saved either way, so the visitor must not be told to retry.
+    expect(await screen.findByRole('heading', { name: /message sent/i })).toBeInTheDocument();
+    expect(screen.queryByText(/could not send that/i)).not.toBeInTheDocument();
+  });
+
   it('falls back to the email address when the insert fails', async () => {
-    insert.mockResolvedValue({ error: { message: 'nope' } });
+    insert.mockResolvedValue({ data: null, error: { message: 'nope' } });
     const user = userEvent.setup();
     setup();
 

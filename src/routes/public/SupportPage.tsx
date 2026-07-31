@@ -77,19 +77,37 @@ export default function SupportPage() {
     if (!validate()) return;
 
     setSubmitting(true);
-    const { error } = await supabase.from('support_requests').insert({
-      user_id: session?.user?.id ?? null,
-      name: name.trim(),
-      email: email.trim(),
-      topic,
-      message: message.trim(),
-    });
-    setSubmitting(false);
+    const { data, error } = await supabase
+      .from('support_requests')
+      .insert({
+        user_id: session?.user?.id ?? null,
+        name: name.trim(),
+        email: email.trim(),
+        topic,
+        message: message.trim(),
+      })
+      .select('id')
+      .single();
 
     if (error) {
+      setSubmitting(false);
       setSendError(`We could not send that. Email us at ${SUPPORT_EMAIL} and we will pick it up there.`);
       return;
     }
+
+    // The message is stored at this point. Emailing it to the team inbox is a
+    // separate step, and a failure there must not tell the visitor to write
+    // again — it is logged, and the admin inbox flags rows that never went out.
+    try {
+      const { error: notifyErr } = await supabase.functions.invoke('support-notify', {
+        body: { id: data.id },
+      });
+      if (notifyErr) console.error('support-notify failed:', notifyErr.message);
+    } catch (err) {
+      console.error('support-notify failed:', err);
+    }
+
+    setSubmitting(false);
     setSent(true);
     setMessage('');
   }

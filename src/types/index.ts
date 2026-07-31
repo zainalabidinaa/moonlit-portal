@@ -107,4 +107,6 @@ export interface SupportRequest {
   status: SupportStatus;
   created_at: string;
   resolved_at: string | null;
+  /** Set once the request has been emailed to the team inbox. */
+  notified_at: string | null;
 }

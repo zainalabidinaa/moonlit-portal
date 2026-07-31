@@ -119,6 +119,15 @@ export default function SupportRequestsPage() {
                     <span className="font-medium text-text">{r.name}</span>
                     <Badge variant={STATUS_BADGE[r.status]}>{STATUS_LABELS[r.status]}</Badge>
                     <Badge>{TOPIC_LABELS[r.topic] ?? r.topic}</Badge>
+                    {!r.notified_at && (
+                      <span
+                        title="Saved here, but the email notification never went out — check the support-notify function logs."
+                        className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/40 px-2 py-0.5 font-mono text-[10px] uppercase tracking-widest text-amber-400"
+                      >
+                        <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
+                        Not emailed
+                      </span>
+                    )}
                   </div>
                   <a href={`mailto:${r.email}`} className="mt-1 block text-sm text-accent">{r.email}</a>
                 </div>
