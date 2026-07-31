@@ -101,7 +101,7 @@ export function Navbar() {
           ) : (
             <>
               <Button variant="ghost" size="sm" className="hidden sm:inline-flex" onClick={() => navigate('/login')}>Sign in</Button>
-              <Button size="sm" className="text-xs md:text-sm" onClick={() => navigate('/pricing')}>Get Moonlit</Button>
+              <Button size="sm" className="hidden text-xs sm:inline-flex md:text-sm" onClick={() => navigate('/pricing')}>Get Moonlit</Button>
             </>
           )}
         </div>
