@@ -93,3 +93,18 @@ export interface FolderCatalog {
 }
 
 export type Plan = 'premium' | 'premium_plus';
+
+export type SupportTopic = 'general' | 'billing' | 'account' | 'playback' | 'bug';
+export type SupportStatus = 'new' | 'open' | 'resolved';
+
+export interface SupportRequest {
+  id: string;
+  user_id: string | null;
+  name: string;
+  email: string;
+  topic: SupportTopic;
+  message: string;
+  status: SupportStatus;
+  created_at: string;
+  resolved_at: string | null;
+}

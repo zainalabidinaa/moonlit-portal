@@ -61,6 +61,9 @@ export function Navbar() {
               </NavLink>
             </>
           )}
+          <NavLink to="/contact" className={navClass}>
+            {({ isActive }) => (<>Contact<ActiveBar show={isActive} /></>)}
+          </NavLink>
           {isAdmin && (
             <>
               <span className="mx-2 h-4 w-px flex-none bg-border" />
@@ -78,6 +81,9 @@ export function Navbar() {
               </NavLink>
               <NavLink to="/admin/invites" className={navClass}>
                 {({ isActive }) => (<>Invites<ActiveBar show={isActive} /></>)}
+              </NavLink>
+              <NavLink to="/admin/support" className={navClass}>
+                {({ isActive }) => (<>Support<ActiveBar show={isActive} /></>)}
               </NavLink>
             </>
           )}

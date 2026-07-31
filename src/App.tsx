@@ -8,6 +8,7 @@ import SignupPage from './routes/public/SignupPage';
 import CollectionsPage from './routes/public/CollectionsPage';
 import DownloadPage from './routes/public/DownloadPage';
 import ActivatePage from './routes/public/ActivatePage';
+import SupportPage from './routes/public/SupportPage';
 import ProfilesPage from './routes/user/ProfilesPage';
 import AddonsPage from './routes/user/AddonsPage';
 import BillingPage from './routes/user/BillingPage';
@@ -16,6 +17,7 @@ import HomeLayoutPage from './routes/admin/HomeLayoutPage';
 import TemplatesPage from './routes/admin/TemplatesPage';
 import UsersPage from './routes/admin/UsersPage';
 import InvitesPage from './routes/admin/InvitesPage';
+import SupportRequestsPage from './routes/admin/SupportRequestsPage';
 import CardGeneratorPage from './routes/tools/CardGeneratorPage';
 
 export default function App() {
@@ -31,6 +33,8 @@ export default function App() {
           <Route path="/catalog" element={<CollectionsPage />} />
           <Route path="/download" element={<DownloadPage />} />
           <Route path="/activate" element={<ActivatePage />} />
+          <Route path="/contact" element={<SupportPage />} />
+          <Route path="/support" element={<SupportPage />} />
 
           {/* User */}
           <Route path="/profiles" element={<UserRoute><ProfilesPage /></UserRoute>} />
@@ -43,6 +47,7 @@ export default function App() {
           <Route path="/admin/templates" element={<AdminRoute><TemplatesPage /></AdminRoute>} />
           <Route path="/admin/users" element={<AdminRoute><UsersPage /></AdminRoute>} />
           <Route path="/admin/invites" element={<AdminRoute><InvitesPage /></AdminRoute>} />
+          <Route path="/admin/support" element={<AdminRoute><SupportRequestsPage /></AdminRoute>} />
 
           <Route path="/tools/card-generator" element={<CardGeneratorPage />} />
           <Route path="*" element={<div className="min-h-screen bg-bg flex items-center justify-center"><p className="text-muted">Page not found</p></div>} />

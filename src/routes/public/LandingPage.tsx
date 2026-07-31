@@ -304,7 +304,9 @@ export default function LandingPage() {
           <a href="#" onClick={(e) => { e.preventDefault(); navigate('/catalog'); }}>Catalog</a>
           <a href="#" onClick={(e) => { e.preventDefault(); navigate('/download'); }}>Download</a>
           <a href="#" onClick={(e) => { e.preventDefault(); navigate('/pricing'); }}>Pricing</a>
-          <a href="#">Support</a><a href="#">Status</a>
+          <a href="#" onClick={(e) => { e.preventDefault(); navigate('/support'); }}>Support</a>
+          <a href="#" onClick={(e) => { e.preventDefault(); navigate('/contact'); }}>Contact</a>
+          <a href="#">Status</a>
         </div>
         <p className="mt-4 font-mono text-xs text-faint">© 2026 Moonlit</p>
       </footer>
