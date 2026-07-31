@@ -10,7 +10,7 @@ describe('CuratorSpotlight', () => {
   it('always renders the founder note', () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => [] }));
     render(<CuratorSpotlight />);
-    expect(screen.getByText(/why (i|we) built moonlit/i)).toBeInTheDocument();
+    expect(screen.getByText(/no algorithm runs this place/i)).toBeInTheDocument();
   });
 
   it('renders trending titles once the TMDB fetch resolves', async () => {
@@ -31,7 +31,7 @@ describe('CuratorSpotlight', () => {
   it('renders no trending strip (but still the founder note) if the fetch fails', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network error')));
     render(<CuratorSpotlight />);
-    await waitFor(() => expect(screen.getByText(/why (i|we) built moonlit/i)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText(/no algorithm runs this place/i)).toBeInTheDocument());
     expect(screen.queryByText(/trending now/i)).not.toBeInTheDocument();
   });
 });

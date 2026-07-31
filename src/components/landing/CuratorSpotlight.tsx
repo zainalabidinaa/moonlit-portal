@@ -48,13 +48,13 @@ export function CuratorSpotlight() {
         <p className="mb-3 font-mono text-[11px] uppercase tracking-[0.28em] text-accent">
           From the team
         </p>
-        <h2 className="font-display text-[clamp(32px,5vw,60px)] font-extrabold uppercase">
-          Why we built Moonlit
+        <h2 className="font-display text-[clamp(32px,5vw,60px)] font-extrabold uppercase leading-[1.05]">
+          No algorithm runs this place
         </h2>
-        <p className="mt-4 text-[16px] text-muted">
-          We got tired of juggling five apps just to find something to watch with
-          the people we live with. Every collection here is picked by hand, on
-          purpose — no clutter, no dead ends, just press play.
+        <p className="mt-4 text-[15px] text-muted md:text-[16px]">
+          Nothing here is boosted, promoted or tested on you. A person chose every
+          row on purpose, in an order that makes sense at 11pm on a couch — so the
+          gap between sitting down and pressing play stays about ten seconds.
         </p>
       </Reveal>
 
