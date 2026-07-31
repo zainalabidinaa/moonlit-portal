@@ -5,3 +5,4 @@ dist
 .env.production
 .DS_Store
 supabase/.temp
+deno.lock

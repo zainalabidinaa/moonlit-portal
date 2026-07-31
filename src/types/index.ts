@@ -109,4 +109,8 @@ export interface SupportRequest {
   resolved_at: string | null;
   /** Set once the request has been emailed to the team inbox. */
   notified_at: string | null;
+  /** Set once the sender has been sent their confirmation copy. */
+  confirmed_at: string | null;
+  /** Salted hash of the submitter's IP, used only for rate limiting. */
+  submitter_ip_hash: string | null;
 }
