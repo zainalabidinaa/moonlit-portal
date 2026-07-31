@@ -9,7 +9,7 @@ import { supabase } from '../../lib/supabase';
 import type { SupportTopic } from '../../types';
 
 /** Where the "email us directly" links point. Change here to reroute support mail. */
-export const SUPPORT_EMAIL = 'support@moonlit.app';
+export const SUPPORT_EMAIL = 'hey@trymoonlit.app';
 
 const topics: { value: SupportTopic; label: string }[] = [
   { value: 'general', label: 'General question' },

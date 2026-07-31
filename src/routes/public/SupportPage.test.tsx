@@ -41,7 +41,7 @@ describe('SupportPage', () => {
   it('shows the support email and a contact form', () => {
     setup();
     expect(screen.getByRole('heading', { name: /send a message/i })).toBeInTheDocument();
-    expect(screen.getAllByRole('link', { name: /support@moonlit\.app/i }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole('link', { name: /hey@trymoonlit\.app/i }).length).toBeGreaterThan(0);
   });
 
   it('rejects an empty submission without hitting the database', async () => {
