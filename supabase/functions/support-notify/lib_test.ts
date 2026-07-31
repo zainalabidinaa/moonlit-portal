@@ -56,3 +56,39 @@ Deno.test('renderConfirmation pins the colour scheme to light', () => {
   const { html } = renderConfirmation(sample);
   assertEquals(html.includes('name="color-scheme" content="light only"'), true);
 });
+
+import { DEFAULT_POLICY, rateLimitDecision } from './lib.ts';
+
+Deno.test('allows a submitter under both limits', () => {
+  assertEquals(rateLimitDecision({ byEmail: 0, bySubmitter: 0 }), { allowed: true });
+  assertEquals(rateLimitDecision({ byEmail: 2, bySubmitter: 9 }), { allowed: true });
+});
+
+Deno.test('blocks once the per-address limit is reached', () => {
+  assertEquals(rateLimitDecision({ byEmail: 3, bySubmitter: 0 }), {
+    allowed: false, reason: 'email',
+  });
+});
+
+Deno.test('blocks once the per-submitter limit is reached', () => {
+  assertEquals(rateLimitDecision({ byEmail: 0, bySubmitter: 10 }), {
+    allowed: false, reason: 'submitter',
+  });
+});
+
+Deno.test('reports the address limit first when both are exceeded', () => {
+  assertEquals(rateLimitDecision({ byEmail: 5, bySubmitter: 20 }), {
+    allowed: false, reason: 'email',
+  });
+});
+
+Deno.test('honours an overridden policy', () => {
+  assertEquals(
+    rateLimitDecision({ byEmail: 1, bySubmitter: 0 }, { maxPerEmail: 1, maxPerSubmitter: 10 }),
+    { allowed: false, reason: 'email' },
+  );
+});
+
+Deno.test('default policy is 3 per address and 10 per submitter', () => {
+  assertEquals(DEFAULT_POLICY, { maxPerEmail: 3, maxPerSubmitter: 10 });
+});

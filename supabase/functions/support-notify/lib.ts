@@ -103,3 +103,37 @@ Sent because you contacted Moonlit support on ${escapeHtml(date)}.
 
   return { html, text };
 }
+
+export interface RateLimitCounts {
+  /** Confirmations sent to this address in the window. */
+  byEmail: number;
+  /** Confirmations triggered by this submitter hash in the window. */
+  bySubmitter: number;
+}
+
+export interface RateLimitPolicy {
+  maxPerEmail: number;
+  maxPerSubmitter: number;
+}
+
+export type RateLimitVerdict =
+  | { allowed: true }
+  | { allowed: false; reason: 'email' | 'submitter' };
+
+/** Window all counts are taken over. */
+export const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000;
+
+/**
+ * Per-address stops one inbox being bombed. Per-submitter stops one actor
+ * spraying many different addresses, which a per-address limit never sees.
+ */
+export const DEFAULT_POLICY: RateLimitPolicy = { maxPerEmail: 3, maxPerSubmitter: 10 };
+
+export function rateLimitDecision(
+  counts: RateLimitCounts,
+  policy: RateLimitPolicy = DEFAULT_POLICY,
+): RateLimitVerdict {
+  if (counts.byEmail >= policy.maxPerEmail) return { allowed: false, reason: 'email' };
+  if (counts.bySubmitter >= policy.maxPerSubmitter) return { allowed: false, reason: 'submitter' };
+  return { allowed: true };
+}
