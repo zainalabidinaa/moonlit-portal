@@ -128,6 +128,15 @@ export default function SupportRequestsPage() {
                         Not emailed
                       </span>
                     )}
+                    {r.notified_at && !r.confirmed_at && (
+                      <span
+                        title="Reached the team, but the sender never got their confirmation copy — rate limited, or check the support-notify logs."
+                        className="inline-flex items-center gap-1.5 rounded-full border border-border-strong px-2 py-0.5 font-mono text-[10px] uppercase tracking-widest text-faint"
+                      >
+                        <span className="h-1.5 w-1.5 rounded-full bg-faint" />
+                        No confirmation
+                      </span>
+                    )}
                   </div>
                   <a href={`mailto:${r.email}`} className="mt-1 block text-sm text-accent">{r.email}</a>
                 </div>
@@ -140,7 +149,7 @@ export default function SupportRequestsPage() {
 
               <div className="mt-5 flex flex-wrap gap-2">
                 <a
-                  href={`mailto:${r.email}?subject=${encodeURIComponent('Re: your Moonlit support request')}`}
+                  href={`mailto:${r.email}?subject=${encodeURIComponent(`Re: Your Moonlit support request — ${TOPIC_LABELS[r.topic] ?? r.topic}`)}`}
                   className="inline-flex items-center justify-center rounded-lg border border-border bg-transparent px-3 py-1.5 text-sm font-medium text-muted transition-colors hover:bg-surface-2 hover:text-text"
                 >
                   Reply by email
