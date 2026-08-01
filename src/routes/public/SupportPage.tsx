@@ -77,17 +77,24 @@ export default function SupportPage() {
     if (!validate()) return;
 
     setSubmitting(true);
-    const { data, error } = await supabase
+
+    // The id is generated here rather than read back from the insert. This page
+    // is public, and RLS grants anon INSERT but no SELECT policy covers it — so
+    // `.select()` compiles to RETURNING, Postgres evaluates it against the
+    // SELECT policies, and the whole statement aborts with 42501 for every
+    // logged-out visitor. Generating it client-side keeps the insert write-only.
+    const requestId = crypto.randomUUID();
+
+    const { error } = await supabase
       .from('support_requests')
       .insert({
+        id: requestId,
         user_id: session?.user?.id ?? null,
         name: name.trim(),
         email: email.trim(),
         topic,
         message: message.trim(),
-      })
-      .select('id')
-      .single();
+      });
 
     if (error) {
       setSubmitting(false);
@@ -100,7 +107,7 @@ export default function SupportPage() {
     // again — it is logged, and the admin inbox flags rows that never went out.
     try {
       const { error: notifyErr } = await supabase.functions.invoke('support-notify', {
-        body: { id: data.id },
+        body: { id: requestId },
       });
       if (notifyErr) console.error('support-notify failed:', notifyErr.message);
     } catch (err) {

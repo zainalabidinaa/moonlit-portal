@@ -6,18 +6,20 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 // hoisted so the vi.mock factory below can reach them at module-init time
 const { insert, invoke } = vi.hoisted(() => ({ insert: vi.fn(), invoke: vi.fn() }));
 
-// insert(...).select('id').single() — the chain the page uses.
+// A bare insert(...) — deliberately NOT insert(...).select().single().
+// RLS grants anon INSERT but no SELECT policy covers it, so a RETURNING clause
+// aborts the whole statement with 42501 for logged-out visitors. Mocking the
+// bare call keeps that constraint enforced: reintroduce .select() and this
+// mock throws rather than quietly passing.
 vi.mock('../../lib/supabase', () => ({
   supabase: {
-    from: () => ({
-      insert: (row: unknown) => ({
-        select: () => ({ single: () => insert(row) }),
-      }),
-    }),
+    from: () => ({ insert: (row: unknown) => insert(row) }),
     functions: { invoke },
     auth: { signOut: vi.fn() },
   },
 }));
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 vi.mock('../../context/AuthContext', () => ({
   useAuth: () => ({ session: null, role: null, activeProfile: null }),
@@ -43,7 +45,7 @@ describe('SupportPage', () => {
   beforeEach(() => {
     insert.mockReset();
     invoke.mockReset();
-    insert.mockResolvedValue({ data: { id: 'req-1' }, error: null });
+    insert.mockResolvedValue({ error: null });
     invoke.mockResolvedValue({ data: { sent: true }, error: null });
   });
 
@@ -85,6 +87,7 @@ describe('SupportPage', () => {
     await user.click(screen.getByRole('button', { name: /send message/i }));
 
     expect(insert).toHaveBeenCalledWith({
+      id: expect.stringMatching(UUID_RE),
       user_id: null,
       name: 'Ada Lovelace',
       email: 'ada@example.com',
@@ -102,7 +105,22 @@ describe('SupportPage', () => {
     await user.click(screen.getByRole('button', { name: /send message/i }));
 
     expect(await screen.findByRole('heading', { name: /message sent/i })).toBeInTheDocument();
-    expect(invoke).toHaveBeenCalledWith('support-notify', { body: { id: 'req-1' } });
+    const row = insert.mock.calls[0][0] as { id: string };
+    expect(invoke).toHaveBeenCalledWith('support-notify', { body: { id: row.id } });
+  });
+
+  // Regression guard for the 42501 outage: the contact page is public, and RLS
+  // lets anon write but never read. The id therefore has to come from the
+  // client, so the insert never needs a RETURNING clause.
+  it('generates the request id client-side so an anonymous insert needs no read-back', async () => {
+    const user = userEvent.setup();
+    setup();
+
+    await fillForm(user);
+    await user.click(screen.getByRole('button', { name: /send message/i }));
+
+    const row = insert.mock.calls[0][0] as { id: string };
+    expect(row.id).toMatch(UUID_RE);
   });
 
   it('still confirms the message when the email notification fails', async () => {
