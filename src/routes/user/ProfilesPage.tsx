@@ -6,7 +6,7 @@ import { ProfileCard } from '../../components/profiles/ProfileCard';
 import { ProfileEditor } from '../../components/profiles/ProfileEditor';
 
 export default function ProfilesPage() {
-  const { profiles, setActiveProfile, user } = useAuth();
+  const { profiles, setActiveProfile, user, role, loading } = useAuth();
   const navigate = useNavigate();
   const [editMode, setEditMode] = useState(false);
   const [editingProfile, setEditingProfile] = useState<typeof profiles[0] | null>(null);
@@ -43,7 +43,7 @@ export default function ProfilesPage() {
               onEdit={() => setEditingProfile(p)}
             />
           ))}
-          {profiles.length < 5 && !editMode && (
+          {!loading && profiles.length < 5 && !editMode && (
             <div
               onClick={() => setCreatingNew(true)}
               className="flex flex-col items-center gap-2 cursor-pointer group"
@@ -63,7 +63,8 @@ export default function ProfilesPage() {
           onClose={() => { setEditingProfile(null); setCreatingNew(false); }}
           onSaved={handleSaved}
           userId={user.id}
-          nextIndex={profiles.length}
+          nextIndex={profiles.reduce((max, p) => Math.max(max, p.profile_index), -1) + 1}
+          accountRole={role ?? 'free'}
         />
       )}
     </AppShell>

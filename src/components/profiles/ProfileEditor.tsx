@@ -3,7 +3,7 @@ import { supabase } from '../../lib/supabase';
 import { Modal } from '../ui/Modal';
 import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
-import type { Profile } from '../../types';
+import type { Profile, UserRole } from '../../types';
 
 const COLORS = ['#6d28d9', '#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#ec4899', '#8b5cf6', '#06b6d4'];
 
@@ -51,9 +51,10 @@ interface ProfileEditorProps {
   onSaved: () => void;
   userId: string;
   nextIndex: number;
+  accountRole: UserRole;
 }
 
-export function ProfileEditor({ profile, onClose, onSaved, userId, nextIndex }: ProfileEditorProps) {
+export function ProfileEditor({ profile, onClose, onSaved, userId, nextIndex, accountRole }: ProfileEditorProps) {
   const [name, setName] = useState(profile?.name ?? '');
   const [color, setColor] = useState(profile?.avatar_color ?? COLORS[0]);
   const [avatarId, setAvatarId] = useState<number | null>(profile?.avatar_id ?? null);
@@ -81,7 +82,10 @@ export function ProfileEditor({ profile, onClose, onSaved, userId, nextIndex }: 
         pin_enabled: pinEnabled,
         profile_index: nextIndex,
         uses_primary_addons: false,
-        role: 'user',
+        // New profiles share the account's role — role-gated UI (canEdit,
+        // Install curated setup, etc.) reads profiles[0]?.role for the whole
+        // account, so a mismatched per-profile role breaks it unpredictably.
+        role: accountRole,
       });
     }
     setLoading(false);
