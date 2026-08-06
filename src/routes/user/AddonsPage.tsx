@@ -17,6 +17,10 @@ export default function AddonsPage() {
   const [saving, setSaving] = useState(false);
   const [installing, setInstalling] = useState(false);
   const [error, setError] = useState('');
+  const [lastInstallCount, setLastInstallCount] = useState<number | null>(null);
+  const [curatedSyncedAt, setCuratedSyncedAt] = useState<string | null>(
+    activeProfile?.curated_setup_synced_at ?? null,
+  );
   const dragIndex = useRef<number | null>(null);
 
   const isManaged = role === 'premium';
@@ -104,13 +108,22 @@ export default function AddonsPage() {
       if (insErr) { setError(insErr.message); setInstalling(false); return; }
     }
 
-    // This profile now uses its own (just-populated) addon list.
-    await supabase.from('profiles').update({ uses_primary_addons: false }).eq('id', activeProfile.id);
+    // This profile now uses its own (just-populated) addon list, and opts
+    // into the every-2-days server-side re-sync (see curated-setup-sync
+    // edge function) so future admin changes keep landing without another tap.
+    const syncedAt = new Date().toISOString();
+    await supabase.from('profiles').update({
+      uses_primary_addons: false,
+      curated_setup_installed: true,
+      curated_setup_synced_at: syncedAt,
+    }).eq('id', activeProfile.id);
     await refreshProfiles?.();
 
     const { data } = await supabase
       .from('installed_addons').select('*').eq('profile_id', activeProfile.id).order('sort_order');
     setAddons(data ?? []);
+    setLastInstallCount(rows.length);
+    setCuratedSyncedAt(syncedAt);
     setInstalling(false);
   }
 
@@ -124,12 +137,25 @@ export default function AddonsPage() {
         </div>
 
         {(role === 'premium' || role === 'friends_family') && (
-          <Card className="p-4 mb-6 flex items-center justify-between gap-3">
-            <div className="min-w-0">
-              <p className="text-sm font-medium text-text">Install curated setup</p>
-              <p className="text-xs text-muted">Add Moonlit's recommended add-ons to your account in one tap. They'll sync to your apps.</p>
+          <Card className="p-4 mb-6">
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-text">Install curated setup</p>
+                <p className="text-xs text-muted">Add Moonlit's recommended add-ons to your account in one tap. They'll sync to your apps.</p>
+              </div>
+              <Button onClick={handleInstallCuratedSetup} loading={installing} size="md">Install</Button>
             </div>
-            <Button onClick={handleInstallCuratedSetup} loading={installing} size="md">Install</Button>
+            {error && <p className="text-xs text-red-500 mt-3">{error}</p>}
+            {lastInstallCount !== null && (
+              <p className="text-xs text-muted mt-3">
+                {lastInstallCount > 0 ? `Added ${lastInstallCount} new add-on${lastInstallCount === 1 ? '' : 's'}.` : 'Already up to date.'}
+              </p>
+            )}
+            {curatedSyncedAt && (
+              <p className="text-xs text-muted mt-1">
+                Last synced {new Date(curatedSyncedAt).toLocaleDateString()} · re-syncs automatically every 2 days
+              </p>
+            )}
           </Card>
         )}
 

@@ -12,6 +12,8 @@ export interface Profile {
   role: UserRole;
   role_expires_at: string | null;
   created_at: string;
+  curated_setup_installed: boolean;
+  curated_setup_synced_at: string | null;
 }
 
 export interface InstalledAddon {
