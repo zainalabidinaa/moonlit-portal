@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle">
+  <channel>
+    <title>Moonlit for Mac</title>
+    <link>https://trymoonlit.app/appcast.xml</link>
+    <description>Moonlit for macOS release feed</description>
+    <language>en</language>
+    <item>
+      <title>Version 1.0.0</title>
+      <pubDate>Thu, 06 Aug 2026 23:56:51 +0000</pubDate>
+      <sparkle:version>1.0.0</sparkle:version>
+      <sparkle:shortVersionString>1.0.0</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[
+        <h2>Welcome to Moonlit for Mac</h2>
+        <p>The first release of Moonlit's native macOS app — browse, stream, and manage your media library right on your desktop.</p>
+      ]]></description>
+      <enclosure
+        url="https://trymoonlit.app/downloads/Moonlit-1.0.0.zip"
+        sparkle:edSignature="JBJhFVZxw4p8bz8Dqsa7BZkwrn2RmwLjoYy45cEmLwmR4PQ+Jcqzt4SPgPzgumxYziTQyXQgEQ9x5gbJt5fvBg=="
+        length="54716240"
+        type="application/octet-stream" />
+    </item>
+  </channel>
+</rss>
