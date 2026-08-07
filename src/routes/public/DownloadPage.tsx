@@ -39,7 +39,14 @@ function WindowsIcon() {
 }
 
 const platforms = [
-  { name: 'macOS', sub: 'Apple silicon & Intel', note: 'Native desktop app with Live TV and IPTV built in.', icon: <AppleIcon /> },
+  {
+    name: 'macOS',
+    sub: 'Apple silicon & Intel',
+    note: 'Native desktop app with Live TV and IPTV built in.',
+    icon: <AppleIcon />,
+    downloadUrl: '/downloads/Moonlit-1.0.0.zip',
+    version: '1.0.0',
+  },
   { name: 'iOS', sub: 'iPhone & iPad', note: 'Native playback engine, downloads and AirPlay.', icon: <AppleIcon /> },
   { name: 'Apple TV', sub: 'tvOS', note: 'The big-screen Moonlit, built for the remote.', icon: <AppleTvIcon /> },
   { name: 'Windows', sub: 'Windows 10 & 11', note: 'Desktop app with hardware-accelerated playback.', icon: <WindowsIcon /> },
@@ -87,10 +94,19 @@ export default function DownloadPage() {
                 <p className="mt-3 flex-1 text-sm text-muted">{p.note}</p>
 
                 <div className="mt-6">
-                  <span className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-border-strong bg-bg2 px-4 py-2.5 font-mono text-[10px] uppercase tracking-widest text-faint">
-                    <span className="h-1.5 w-1.5 rounded-full bg-accent/70" />
-                    Coming soon
-                  </span>
+                  {p.downloadUrl ? (
+                    <a
+                      href={p.downloadUrl}
+                      className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-accent px-4 py-2.5 font-mono text-[10px] uppercase tracking-widest text-bg"
+                    >
+                      Download v{p.version}
+                    </a>
+                  ) : (
+                    <span className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-border-strong bg-bg2 px-4 py-2.5 font-mono text-[10px] uppercase tracking-widest text-faint">
+                      <span className="h-1.5 w-1.5 rounded-full bg-accent/70" />
+                      Coming soon
+                    </span>
+                  )}
                 </div>
               </div>
             </Reveal>
