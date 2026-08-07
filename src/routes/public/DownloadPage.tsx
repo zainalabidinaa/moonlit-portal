@@ -44,7 +44,7 @@ const platforms = [
     sub: 'Apple silicon & Intel',
     note: 'Native desktop app with Live TV and IPTV built in.',
     icon: <AppleIcon />,
-    downloadUrl: '/downloads/Moonlit-1.0.0.zip',
+    downloadUrl: '/downloads/Moonlit-1.0.0.dmg',
     version: '1.0.0',
   },
   { name: 'iOS', sub: 'iPhone & iPad', note: 'Native playback engine, downloads and AirPlay.', icon: <AppleIcon /> },
@@ -117,6 +117,28 @@ export default function DownloadPage() {
           <p className="mt-10 text-center font-mono text-xs text-faint">
             Sign up today and every app lands on the account you already have.
           </p>
+        </Reveal>
+
+        <Reveal delay={160}>
+          <div className="mx-auto mt-10 max-w-2xl rounded-2xl border border-border bg-surface p-6 text-sm text-muted">
+            <p className="font-display text-xs font-extrabold uppercase tracking-widest text-text">
+              Installing on Mac
+            </p>
+            <ol className="mt-3 list-decimal space-y-1 pl-5">
+              <li>Open the downloaded <span className="text-text">.dmg</span>.</li>
+              <li>
+                Drag <span className="text-text">MoonlitMac</span> onto the{' '}
+                <span className="text-text">Applications</span> folder in the same window.
+              </li>
+              <li>
+                Launch it from Applications. macOS asks once whether you're sure you want to open an
+                app downloaded from the internet — click <span className="text-text">Open</span>.
+              </li>
+            </ol>
+            <p className="mt-3">
+              Moonlit is signed and notarized by Apple, so that's the only prompt you'll see.
+            </p>
+          </div>
         </Reveal>
       </section>
     </div>

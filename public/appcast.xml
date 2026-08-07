@@ -16,10 +16,10 @@
         <p>The first release of Moonlit's native macOS app — browse, stream, and manage your media library right on your desktop.</p>
       ]]></description>
       <enclosure
-        url="https://trymoonlit.app/downloads/Moonlit-1.0.0.zip"
-        sparkle:edSignature="JBJhFVZxw4p8bz8Dqsa7BZkwrn2RmwLjoYy45cEmLwmR4PQ+Jcqzt4SPgPzgumxYziTQyXQgEQ9x5gbJt5fvBg=="
-        length="54716240"
-        type="application/octet-stream" />
+        url="https://trymoonlit.app/downloads/Moonlit-1.0.0.dmg"
+        sparkle:edSignature="uGyRW/lxHl3nC4ZZ03447ckGZ4hUjokaCdaRmmw97Gx5Xihlo1occAVdCkBKasS/obItuxUaq9e1OZYgJKf1BA=="
+        length="59041433"
+        type="application/x-apple-diskimage" />
     </item>
   </channel>
 </rss>
