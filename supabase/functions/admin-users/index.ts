@@ -3,7 +3,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'GET, PATCH, OPTIONS',
+  'Access-Control-Allow-Methods': 'GET, PATCH, DELETE, OPTIONS',
 };
 
 Deno.serve(async (req) => {
@@ -72,9 +72,20 @@ Deno.serve(async (req) => {
           page++;
         }
 
+        // Streams entitlement is the LIVE state on the profile, not the
+        // includes_streams flag on whichever invite code was redeemed — the
+        // admin can grant/revoke it directly, and old codes predate the
+        // column entirely. The invite page needs the real answer, not a
+        // frozen snapshot of what the code said the day it was made.
+        const { data: matchedProfiles } = await supabaseAdmin
+          .from('profiles')
+          .select('user_id, stream_addons_enabled')
+          .in('user_id', ids);
+        const streamsMap = new Map((matchedProfiles ?? []).map((p: any) => [p.user_id, p.stream_addons_enabled]));
+
         const users = allAuthUsers
           .filter(u => ids.includes(u.id))
-          .map(u => ({ id: u.id, email: u.email }));
+          .map(u => ({ id: u.id, email: u.email, stream_addons_enabled: streamsMap.get(u.id) ?? false }));
 
         return new Response(JSON.stringify({ users }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -94,7 +105,9 @@ Deno.serve(async (req) => {
         page++;
       }
 
-      const { data: profiles } = await supabaseAdmin.from('profiles').select('user_id, role, name, role_expires_at');
+      const { data: profiles } = await supabaseAdmin
+        .from('profiles')
+        .select('user_id, role, name, role_expires_at, stream_addons_enabled');
       const profileMap = new Map((profiles ?? []).map((p: any) => [p.user_id, p]));
 
       const users = allAuthUsers.map((u) => {
@@ -106,6 +119,7 @@ Deno.serve(async (req) => {
           name: p?.name ?? u.email?.split('@')[0] ?? null,
           role: p?.role ?? 'premium',
           role_expires_at: p?.role_expires_at ?? null,
+          stream_addons_enabled: p?.stream_addons_enabled ?? false,
           created_at: u.created_at,
         };
       });
@@ -116,25 +130,29 @@ Deno.serve(async (req) => {
     }
 
     if (req.method === 'PATCH') {
-      const { userId, role, role_expires_at } = await req.json();
-      if (!userId || !role) {
-        return new Response(JSON.stringify({ error: 'userId and role are required' }), {
+      const { userId, role, role_expires_at, stream_addons_enabled } = await req.json();
+      if (!userId || (!role && stream_addons_enabled === undefined)) {
+        return new Response(JSON.stringify({ error: 'userId and (role or stream_addons_enabled) are required' }), {
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
 
       const validRoles = ['admin', 'friends_family', 'premium', 'premium_plus', 'free', 'restricted'];
-      if (!validRoles.includes(role)) {
+      if (role && !validRoles.includes(role)) {
         return new Response(JSON.stringify({ error: 'Invalid role' }), {
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
 
-      const updateFields: Record<string, any> = { role };
+      const updateFields: Record<string, any> = {};
+      if (role) updateFields.role = role;
       if (role_expires_at !== undefined) {
         updateFields.role_expires_at = role_expires_at || null;
+      }
+      if (stream_addons_enabled !== undefined) {
+        updateFields.stream_addons_enabled = stream_addons_enabled;
       }
 
       // Update the first profile for this user, or insert if none exists
@@ -145,26 +163,113 @@ Deno.serve(async (req) => {
         .order('profile_index')
         .limit(1);
 
+      let profileId: string | null = null;
+
       if (existing && existing.length > 0) {
+        profileId = existing[0].id;
         const { error: updateErr } = await supabaseAdmin
           .from('profiles')
           .update(updateFields)
-          .eq('id', existing[0].id);
+          .eq('id', profileId);
 
         if (updateErr) throw updateErr;
       } else {
-        const { error: insertErr } = await supabaseAdmin
+        const { data: inserted, error: insertErr } = await supabaseAdmin
           .from('profiles')
           .insert({
             user_id: userId,
-            role,
+            role: role ?? 'premium',
             name: 'User',
             profile_index: 0,
             ...updateFields,
-          });
+          })
+          .select('id')
+          .single();
 
         if (insertErr) throw insertErr;
+        profileId = inserted?.id ?? null;
       }
+
+      // Re-provision immediately when the streams grant changed, rather than
+      // waiting for the next cron sync — the admin flipping this switch
+      // should be reflected the next time that user's app loads addons.
+      if (stream_addons_enabled !== undefined && profileId) {
+        const { error: rpcErr } = await supabaseAdmin.rpc('install_curated_setup', { p_profile_id: profileId });
+        if (rpcErr) throw rpcErr;
+      }
+
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (req.method === 'DELETE') {
+      const { userId, confirmEmail } = await req.json();
+      if (!userId || !confirmEmail) {
+        return new Response(JSON.stringify({ error: 'userId and confirmEmail are required' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      // Never let the admin delete their own account through this path — the
+      // portal's own account-deletion flow (with its own confirmation) exists
+      // for that; this button is for OTHER users only.
+      if (userId === user.id) {
+        return new Response(JSON.stringify({ error: 'Cannot delete your own account here' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      const { data: targetAuthUser, error: getUserErr } = await supabaseAdmin.auth.admin.getUserById(userId);
+      if (getUserErr || !targetAuthUser?.user) {
+        return new Response(JSON.stringify({ error: 'User not found' }), {
+          status: 404,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      // The confirmation must match the ACTUAL target email, checked server-side
+      // — not just whatever the client claims. This is what makes "type the
+      // email to confirm" a real guard instead of a UI-only speed bump: a
+      // crafted request without the right email is rejected exactly like a
+      // careless click would be.
+      if (confirmEmail.trim().toLowerCase() !== (targetAuthUser.user.email ?? '').toLowerCase()) {
+        return new Response(JSON.stringify({ error: 'Email confirmation did not match' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      const { data: targetProfiles } = await supabaseAdmin
+        .from('profiles')
+        .select('id, role')
+        .eq('user_id', userId);
+
+      // Deleting the last admin account would lock everyone out of this page.
+      if ((targetProfiles ?? []).some((p: any) => p.role === 'admin')) {
+        return new Response(JSON.stringify({ error: 'Cannot delete an admin account from here' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      // Delete profile rows first. installed_addons, user_lists, list_items and
+      // profile_recommendations all reference profiles(id) ON DELETE CASCADE, so
+      // this takes their data with it before the auth user (and thus their
+      // login) is removed.
+      const profileIds = (targetProfiles ?? []).map((p: any) => p.id);
+      if (profileIds.length > 0) {
+        const { error: deleteProfilesErr } = await supabaseAdmin
+          .from('profiles')
+          .delete()
+          .in('id', profileIds);
+        if (deleteProfilesErr) throw deleteProfilesErr;
+      }
+
+      const { error: deleteAuthErr } = await supabaseAdmin.auth.admin.deleteUser(userId);
+      if (deleteAuthErr) throw deleteAuthErr;
 
       return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

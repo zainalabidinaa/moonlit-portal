@@ -3,6 +3,8 @@ import { useAuth } from '../../context/AuthContext';
 import { authHeaders } from '../../lib/auth-headers';
 import { AppShell } from '../../components/layout/AppShell';
 import { Badge } from '../../components/ui/Badge';
+import { Button } from '../../components/ui/Button';
+import { DeleteUserModal } from '../../components/admin/DeleteUserModal';
 import type { UserRole } from '../../types';
 
 type AdminUser = {
@@ -13,6 +15,7 @@ type AdminUser = {
   role: UserRole;
   role_expires_at: string | null;
   created_at: string;
+  stream_addons_enabled: boolean;
 };
 
 const ROLE_LABELS: Record<UserRole, string> = {
@@ -75,6 +78,8 @@ export default function UsersPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [changingRole, setChangingRole] = useState<string | null>(null);
+  const [changingStreams, setChangingStreams] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<AdminUser | null>(null);
   const [changingExpiry, setChangingExpiry] = useState<string | null>(null);
   const [customUsers, setCustomUsers] = useState<Set<string>>(new Set());
   const [customValues, setCustomValues] = useState<Record<string, string>>({});
@@ -109,6 +114,41 @@ export default function UsersPage() {
     } finally {
       setChangingRole(null);
     }
+  }
+
+  // Toggling this re-runs install_curated_setup() server-side immediately (see
+  // the admin-users PATCH handler), so it takes effect the next time that
+  // user's app loads addons — not on the next cron pass two days from now.
+  async function handleStreamsToggle(userId: string, next: boolean) {
+    setChangingStreams(userId);
+    try {
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_FUNCTIONS_URL}/admin-users`, {
+        method: 'PATCH',
+        headers: await authHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ userId, stream_addons_enabled: next }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? `HTTP ${res.status}`);
+      setUsers(prev => prev.map(u => u.user_id === userId ? { ...u, stream_addons_enabled: next } : u));
+    } catch (e) {
+      setError((e as Error).message || 'Failed to change streams access');
+      setTimeout(() => setError(''), 4000);
+    } finally {
+      setChangingStreams(null);
+    }
+  }
+
+  // The server independently re-checks confirmEmail against the target's real
+  // email (see the admin-users DELETE handler) — this isn't just UI trust.
+  async function handleDeleteUser(userId: string, confirmEmail: string) {
+    const res = await fetch(`${import.meta.env.VITE_SUPABASE_FUNCTIONS_URL}/admin-users`, {
+      method: 'DELETE',
+      headers: await authHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ userId, confirmEmail }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error ?? `HTTP ${res.status}`);
+    setUsers(prev => prev.filter(u => u.user_id !== userId));
   }
 
   async function handleExpiryPreset(userId: string, preset: string) {
@@ -184,7 +224,9 @@ export default function UsersPage() {
                   <th className="text-left px-4 py-3 font-medium text-muted">Email</th>
                   <th className="text-left px-4 py-3 font-medium text-muted">Role</th>
                   <th className="text-left px-4 py-3 font-medium text-muted">Expires</th>
+                  <th className="text-left px-4 py-3 font-medium text-muted">Streams</th>
                   <th className="text-left px-4 py-3 font-medium text-muted">Joined</th>
+                  <th className="px-4 py-3" />
                   <th className="px-4 py-3" />
                 </tr>
               </thead>
@@ -230,6 +272,20 @@ export default function UsersPage() {
                         <span className="text-muted/60">{isoToDisplay(u.role_expires_at)}</span>
                       )}
                     </td>
+                    <td className="px-4 py-3">
+                      <label className="flex items-center gap-1.5 cursor-pointer select-none w-fit">
+                        <input
+                          type="checkbox"
+                          checked={u.stream_addons_enabled}
+                          disabled={changingStreams === u.user_id}
+                          onChange={e => handleStreamsToggle(u.user_id, e.target.checked)}
+                          className="accent-accent"
+                        />
+                        {u.stream_addons_enabled
+                          ? <Badge variant="success">Streams</Badge>
+                          : <span className="text-xs text-muted/60">Catalogs only</span>}
+                      </label>
+                    </td>
                     <td className="px-4 py-3 text-muted">{new Date(u.created_at).toLocaleDateString()}</td>
                     <td className="px-4 py-3">
                       <select
@@ -243,6 +299,16 @@ export default function UsersPage() {
                         ))}
                       </select>
                     </td>
+                    <td className="px-4 py-3">
+                      {/* Admin accounts can't be deleted from here at all — the
+                          server rejects it too, but hiding the affordance keeps
+                          the intent visible before the modal is even opened. */}
+                      {u.role !== 'admin' && (
+                        <Button size="sm" variant="ghost" onClick={() => setDeleteTarget(u)}>
+                          Delete
+                        </Button>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -250,6 +316,15 @@ export default function UsersPage() {
           </div>
         )}
       </div>
+
+      {deleteTarget && (
+        <DeleteUserModal
+          open={!!deleteTarget}
+          onClose={() => setDeleteTarget(null)}
+          userEmail={deleteTarget.email ?? deleteTarget.user_id}
+          onConfirm={() => handleDeleteUser(deleteTarget.user_id, deleteTarget.email ?? '')}
+        />
+      )}
     </AppShell>
   );
 }

@@ -8,7 +8,12 @@ import { Badge } from '../../components/ui/Badge';
 import { Card } from '../../components/ui/Card';
 import type { InviteCode } from '../../types';
 
-type InviteRow = InviteCode & { redeemed_by_label?: string | null };
+// `redeemed_streams` is the redeemer's LIVE profile state, not the code's
+// static `includes_streams` flag — the admin can grant/revoke streams directly
+// on the Users page after redemption, and codes issued before that column
+// existed default to false forever even for users who now have streams.
+// Undefined means "not yet redeemed"; the table falls back to the code's flag.
+type InviteRow = InviteCode & { redeemed_by_label?: string | null; redeemed_streams?: boolean };
 
 function generateCode(): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -54,10 +59,12 @@ export default function InvitesPage() {
         );
         if (res.ok) {
           const data = await res.json();
-          const userMap = new Map<string, string>((data.users ?? []).map((u: { id: string; email: string }) => [u.id, u.email]));
+          type Row = { id: string; email: string; stream_addons_enabled: boolean };
+          const userMap = new Map<string, Row>((data.users ?? []).map((u: Row) => [u.id, u]));
           setCodes(codes.map(c => ({
             ...c,
-            redeemed_by_label: c.used_email || (c.used_by ? userMap.get(c.used_by) || c.used_by : null),
+            redeemed_by_label: c.used_email || (c.used_by ? userMap.get(c.used_by)?.email || c.used_by : null),
+            redeemed_streams: c.used_by ? userMap.get(c.used_by)?.stream_addons_enabled : undefined,
           })));
         } else {
           console.warn('admin-users?ids= failed:', res.status);
@@ -256,7 +263,11 @@ export default function InvitesPage() {
                     </td>
                     <td className="px-4 py-3 text-muted">{durationDisplay(c.role_duration_days)}</td>
                     <td className="px-4 py-3">
-                      {c.includes_streams
+                      {/* Redeemed codes show the user's CURRENT entitlement (can
+                          diverge from what the code originally granted — see the
+                          Users page toggle); unredeemed codes preview what
+                          redeeming would grant. */}
+                      {(c.redeemed_streams ?? c.includes_streams)
                         ? <Badge variant="success">Streams</Badge>
                         : <span className="text-muted/60">Catalogs only</span>}
                     </td>
