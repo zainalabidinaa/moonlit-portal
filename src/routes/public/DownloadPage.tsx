@@ -47,7 +47,13 @@ const platforms = [
     downloadUrl: '/downloads/Moonlit-1.0.0.dmg',
     version: '1.0.0',
   },
-  { name: 'iOS', sub: 'iPhone & iPad', note: 'Native playback engine, downloads and AirPlay.', icon: <AppleIcon /> },
+  {
+    name: 'iOS',
+    sub: 'iPhone & iPad',
+    note: 'Native playback engine, downloads and AirPlay. Public beta via TestFlight.',
+    icon: <AppleIcon />,
+    testflightUrl: 'https://testflight.apple.com/join/9HSBA4vz',
+  },
   { name: 'Apple TV', sub: 'tvOS', note: 'The big-screen Moonlit, built for the remote.', icon: <AppleTvIcon /> },
   { name: 'Windows', sub: 'Windows 10 & 11', note: 'Desktop app with hardware-accelerated playback.', icon: <WindowsIcon /> },
 ];
@@ -100,6 +106,15 @@ export default function DownloadPage() {
                       className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-accent px-4 py-2.5 font-mono text-[10px] uppercase tracking-widest text-bg"
                     >
                       Download v{p.version}
+                    </a>
+                  ) : p.testflightUrl ? (
+                    <a
+                      href={p.testflightUrl}
+                      target="_blank"
+                      rel="noreferrer noopener"
+                      className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-accent px-4 py-2.5 font-mono text-[10px] uppercase tracking-widest text-bg"
+                    >
+                      Join the beta →
                     </a>
                   ) : (
                     <span className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-border-strong bg-bg2 px-4 py-2.5 font-mono text-[10px] uppercase tracking-widest text-faint">
