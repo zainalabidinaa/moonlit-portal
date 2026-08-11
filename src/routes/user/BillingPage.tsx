@@ -19,7 +19,7 @@ const PLAN_LABELS: Record<UserRole, string> = {
 };
 
 export default function BillingPage() {
-  const { role, session, user, activeProfile } = useAuth();
+  const { role, session, user, activeProfile, isOwner } = useAuth();
   const [loading, setLoading] = useState(false);
   const [inviteCode, setInviteCode] = useState('');
   const [inviteLoading, setInviteLoading] = useState(false);
@@ -105,6 +105,21 @@ export default function BillingPage() {
     setPwSuccess('Password updated successfully');
     setNewPassword('');
     setTimeout(() => setPwSuccess(''), 4000);
+  }
+
+  // Defense in depth: the Navbar link is already hidden from non-owners, but
+  // this guards direct navigation to /billing too.
+  if (!isOwner) {
+    return (
+      <AppShell>
+        <div className="max-w-lg mx-auto">
+          <h1 className="text-2xl font-bold text-text mb-6">Billing</h1>
+          <Card className="p-6">
+            <p className="text-sm text-muted">Only the account owner can manage billing. Switch to that profile to view this page.</p>
+          </Card>
+        </div>
+      </AppShell>
+    );
   }
 
   return (

@@ -10,6 +10,16 @@ interface AuthContextValue {
   profiles: Profile[];
   activeProfile: Profile | null;
   setActiveProfile: (p: Profile) => void;
+  /** True when the currently ACTIVE profile is profile_index 0 — the account's
+   *  first-ever profile, the one the signup gate creates. This gates
+   *  owner-only actions (billing, adding/deleting other profiles), matching
+   *  Netflix's "Primary profile" distinction. NOTE: this is a UI-level
+   *  convenience, not a security boundary — every profile shares one login,
+   *  and profiles.pin_enabled exists in the schema but isn't enforced
+   *  anywhere, so nothing actually stops selecting the owner's own profile
+   *  directly. Real separation would mean wiring up per-profile PIN entry
+   *  before a profile switch is allowed. */
+  isOwner: boolean;
   loading: boolean;
   refreshProfiles: () => void;
 }
@@ -78,9 +88,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const role = profiles[0]?.role ?? null;
+  // `profiles` is fetched ordered by profile_index ascending, so profiles[0]
+  // is whichever profile actually has the lowest index right now — NOT a
+  // hardcoded "index must literally be 0". That distinction matters for any
+  // account whose original first profile was deleted before this owner
+  // concept existed: comparing against profile_index === 0 directly would
+  // leave that account with no profile anyone could ever be recognized as
+  // owning again, whereas this self-heals to whichever profile is now
+  // earliest.
+  const isOwner = !!activeProfile && activeProfile.id === profiles[0]?.id;
 
   return (
-    <AuthContext.Provider value={{ session, user: session?.user ?? null, role, profiles, activeProfile, setActiveProfile, loading, refreshProfiles }}>
+    <AuthContext.Provider value={{ session, user: session?.user ?? null, role, profiles, activeProfile, setActiveProfile, isOwner, loading, refreshProfiles }}>
       {children}
     </AuthContext.Provider>
   );

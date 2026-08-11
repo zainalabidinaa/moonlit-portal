@@ -19,7 +19,7 @@ function ActiveBar({ show }: { show: boolean }) {
 }
 
 export function Navbar() {
-  const { session, role } = useAuth();
+  const { session, role, isOwner } = useAuth();
   const navigate = useNavigate();
   const isAdmin = role === 'admin';
 
@@ -56,9 +56,11 @@ export function Navbar() {
               <NavLink to="/addons" className={navClass}>
                 {({ isActive }) => (<>Addons<ActiveBar show={isActive} /></>)}
               </NavLink>
-              <NavLink to="/billing" className={navClass}>
-                {({ isActive }) => (<>Billing<ActiveBar show={isActive} /></>)}
-              </NavLink>
+              {isOwner && (
+                <NavLink to="/billing" className={navClass}>
+                  {({ isActive }) => (<>Billing<ActiveBar show={isActive} /></>)}
+                </NavLink>
+              )}
             </>
           )}
           <NavLink to="/contact" className={navClass}>
@@ -84,6 +86,9 @@ export function Navbar() {
               </NavLink>
               <NavLink to="/admin/support" className={navClass}>
                 {({ isActive }) => (<>Support<ActiveBar show={isActive} /></>)}
+              </NavLink>
+              <NavLink to="/admin/tab-visibility" className={navClass}>
+                {({ isActive }) => (<>Tab Visibility<ActiveBar show={isActive} /></>)}
               </NavLink>
             </>
           )}
