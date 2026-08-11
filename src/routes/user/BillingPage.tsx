@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../lib/supabase';
+import { authHeaders } from '../../lib/auth-headers';
 import { AppShell } from '../../components/layout/AppShell';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
@@ -36,7 +37,7 @@ export default function BillingPage() {
     setLoading(true);
     const res = await fetch(`${import.meta.env.VITE_SUPABASE_FUNCTIONS_URL}/create-checkout-session`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+      headers: await authHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({ action: 'portal' }),
     });
     const { url } = await res.json();

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
+import { authHeaders } from '../../lib/auth-headers';
 import { useAuth } from '../../context/AuthContext';
 import { AppShell } from '../../components/layout/AppShell';
 import { Button } from '../../components/ui/Button';
@@ -49,7 +50,7 @@ export default function InvitesPage() {
       try {
         const res = await fetch(
           `${import.meta.env.VITE_SUPABASE_FUNCTIONS_URL}/admin-users?ids=${usedIds.join(',')}`,
-          { headers: { Authorization: `Bearer ${session.access_token}` } },
+          { headers: await authHeaders() },
         );
         if (res.ok) {
           const data = await res.json();

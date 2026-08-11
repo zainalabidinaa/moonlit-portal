@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { authHeaders } from '../../lib/auth-headers';
 import { AppShell } from '../../components/layout/AppShell';
 import { Badge } from '../../components/ui/Badge';
 import type { UserRole } from '../../types';
@@ -80,9 +81,8 @@ export default function UsersPage() {
 
   useEffect(() => {
     if (!session) return;
-    fetch(`${import.meta.env.VITE_SUPABASE_FUNCTIONS_URL}/admin-users`, {
-      headers: { Authorization: `Bearer ${session.access_token}` },
-    })
+    authHeaders()
+      .then(headers => fetch(`${import.meta.env.VITE_SUPABASE_FUNCTIONS_URL}/admin-users`, { headers }))
       .then(async r => {
         const data = await r.json();
         if (!r.ok) throw new Error(data.error ?? `HTTP ${r.status}`);
@@ -97,7 +97,7 @@ export default function UsersPage() {
     try {
       const res = await fetch(`${import.meta.env.VITE_SUPABASE_FUNCTIONS_URL}/admin-users`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session!.access_token}` },
+        headers: await authHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ userId, role: newRole }),
       });
       const data = await res.json();
@@ -151,7 +151,7 @@ export default function UsersPage() {
     try {
       const res = await fetch(`${import.meta.env.VITE_SUPABASE_FUNCTIONS_URL}/admin-users`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session!.access_token}` },
+        headers: await authHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ userId, role, role_expires_at: iso }),
       });
       const data = await res.json();
