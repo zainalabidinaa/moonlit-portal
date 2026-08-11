@@ -57,13 +57,17 @@ export default function SignupPage() {
       ? new Date(Date.now() + durationDays * 24 * 60 * 60 * 1000).toISOString()
       : null;
 
-    // Insert profile
+    // Insert profile. The `profiles_install_curated_setup` trigger copies the
+    // admin's curated addons into this profile's own `installed_addons` rows and
+    // flips `uses_primary_addons` to false — so the apps (which read that table
+    // directly and know nothing about `uses_primary_addons`) see a working setup
+    // on first launch. See 20260811_curated_addons_auto_install.sql.
     await supabase.from('profiles').insert({
       user_id: authData.user.id,
       name: email.split('@')[0],
       role: 'friends_family',
       role_expires_at: roleExpiresAt,
-      uses_primary_addons: true,
+      uses_primary_addons: false,
       profile_index: 0,
     });
 

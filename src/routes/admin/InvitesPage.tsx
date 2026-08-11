@@ -31,6 +31,9 @@ export default function InvitesPage() {
   const [newCodeDuration, setNewCodeDuration] = useState('30');
   const [newCodeCustomDays, setNewCodeCustomDays] = useState('');
   const [showCustomDuration, setShowCustomDuration] = useState(false);
+  // Whether the code grants stream addons. Off by default: a code should only
+  // carry a stream source when you deliberately say so.
+  const [newCodeIncludesStreams, setNewCodeIncludesStreams] = useState(false);
 
   useEffect(() => {
     if (!session) return;
@@ -91,6 +94,10 @@ export default function InvitesPage() {
       p_created_by: user.id,
       p_expires_at: expiresIso,
       p_role_duration_days: durationDays,
+      // Redeeming this code stamps profiles.stream_addons_enabled, which makes
+      // install_curated_setup() provision stream addons too. See
+      // 20260811_invite_code_stream_addons.sql.
+      p_includes_streams: newCodeIncludesStreams,
     });
     if (!error) { setLastGenerated(code); load(); }
     setGenerating(false);
@@ -185,6 +192,18 @@ export default function InvitesPage() {
               className="rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none focus:border-accent"
             />
             <Button size="sm" variant="ghost" onClick={() => setNewCodeExpiresAt('')}>Never</Button>
+            <label
+              className="flex items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text cursor-pointer select-none"
+              title="Grants the redeemer your stream addons on top of the usual catalogs and metadata"
+            >
+              <input
+                type="checkbox"
+                checked={newCodeIncludesStreams}
+                onChange={e => setNewCodeIncludesStreams(e.target.checked)}
+                className="accent-accent"
+              />
+              Stream addons
+            </label>
             <Button onClick={handleGenerate} loading={generating}>Generate Code</Button>
             <Button variant="danger" onClick={handleDeleteAll} loading={deleting} disabled={codes.length === 0}>Delete All</Button>
           </div>
@@ -211,6 +230,7 @@ export default function InvitesPage() {
                   <th className="text-left px-4 py-3 font-medium text-muted">Status</th>
                   <th className="text-left px-4 py-3 font-medium text-muted">Used by</th>
                   <th className="text-left px-4 py-3 font-medium text-muted">Role duration</th>
+                  <th className="text-left px-4 py-3 font-medium text-muted">Addons</th>
                   <th className="text-left px-4 py-3 font-medium text-muted">Code expires</th>
                   <th className="text-left px-4 py-3 font-medium text-muted">Created</th>
                   <th className="px-4 py-3" />
@@ -234,6 +254,11 @@ export default function InvitesPage() {
                       )}
                     </td>
                     <td className="px-4 py-3 text-muted">{durationDisplay(c.role_duration_days)}</td>
+                    <td className="px-4 py-3">
+                      {c.includes_streams
+                        ? <Badge variant="success">Streams</Badge>
+                        : <span className="text-muted/60">Catalogs only</span>}
+                    </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         <input

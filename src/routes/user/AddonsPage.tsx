@@ -64,6 +64,17 @@ export default function AddonsPage() {
     setAddons(prev => prev.map(a => a.id === addon.id ? { ...a, enabled: !a.enabled } : a));
   }
 
+  // Marks one of the admin's own addons as a stream source, which excludes it
+  // from provisioning for users whose invite code didn't include streams.
+  // Takes effect on the next sync pass (or immediately for new signups).
+  async function handleToggleStreamSource(addon: InstalledAddon) {
+    const next = !addon.provides_stream;
+    const { error: e } = await supabase
+      .from('installed_addons').update({ provides_stream: next }).eq('id', addon.id);
+    if (e) { setError(e.message); return; }
+    setAddons(prev => prev.map(a => a.id === addon.id ? { ...a, provides_stream: next } : a));
+  }
+
   async function handleRemove(id: string) {
     await supabase.from('installed_addons').delete().eq('id', id);
     setAddons(prev => prev.filter(a => a.id !== id));
@@ -80,50 +91,32 @@ export default function AddonsPage() {
     await Promise.all(reordered.map((a, idx) => supabase.from('installed_addons').update({ sort_order: idx }).eq('id', a.id)));
   }
 
-  // One-tap: copy the admin's curated set (read via get_shared_addons, which
-  // works regardless of the owner-only RLS) into THIS user's own installed_addons.
-  // The user initiates this themselves on the website; the app just syncs their
-  // own account. This is how Premium/F&F bring in a working setup (including their
-  // stream source) without the app ever provisioning it.
+  // Manual re-sync. Profiles are provisioned automatically now — a trigger calls
+  // install_curated_setup() on profile insert and the every-2-days cron pass
+  // re-mirrors everyone — so this button is "apply the admin's current list right
+  // now", not the one-time opt-in it used to be.
+  //
+  // The RPC does the whole job server-side: adds missing curated addons, removes
+  // curated ones the admin dropped, leaves the user's own additions alone, and
+  // tags its rows source = 'curated' so mirroring keeps working. Inserting from
+  // here instead would write source = 'user' rows that can never be un-provisioned.
   async function handleInstallCuratedSetup() {
     if (!activeProfile) return;
     setInstalling(true);
     setError('');
 
-    const { data: shared, error: rpcErr } = await supabase.rpc('get_shared_addons');
+    const { data: changed, error: rpcErr } = await supabase.rpc('install_curated_setup', {
+      p_profile_id: activeProfile.id,
+    });
     if (rpcErr) { setError(rpcErr.message); setInstalling(false); return; }
-    const curatedUrls: string[] = (shared ?? []).map((r: { addon_url: string }) => r.addon_url);
 
-    // Dedupe against the user's OWN current addons (not the displayed/inherited list).
-    const { data: own } = await supabase
-      .from('installed_addons').select('addon_url').eq('profile_id', activeProfile.id);
-    const existing = new Set((own ?? []).map((a: { addon_url: string }) => a.addon_url));
-
-    const rows = curatedUrls
-      .filter(u => !existing.has(u))
-      .map((u, i) => ({ profile_id: activeProfile.id, addon_url: u, enabled: true, sort_order: existing.size + i }));
-
-    if (rows.length > 0) {
-      const { error: insErr } = await supabase.from('installed_addons').insert(rows);
-      if (insErr) { setError(insErr.message); setInstalling(false); return; }
-    }
-
-    // This profile now uses its own (just-populated) addon list, and opts
-    // into the every-2-days server-side re-sync (see curated-setup-sync
-    // edge function) so future admin changes keep landing without another tap.
-    const syncedAt = new Date().toISOString();
-    await supabase.from('profiles').update({
-      uses_primary_addons: false,
-      curated_setup_installed: true,
-      curated_setup_synced_at: syncedAt,
-    }).eq('id', activeProfile.id);
     await refreshProfiles?.();
 
     const { data } = await supabase
       .from('installed_addons').select('*').eq('profile_id', activeProfile.id).order('sort_order');
     setAddons(data ?? []);
-    setLastInstallCount(rows.length);
-    setCuratedSyncedAt(syncedAt);
+    setLastInstallCount(typeof changed === 'number' ? changed : 0);
+    setCuratedSyncedAt(new Date().toISOString());
     setInstalling(false);
   }
 
@@ -186,6 +179,23 @@ export default function AddonsPage() {
                   <p className="text-sm font-medium text-text truncate">{addon.addon_name ?? addon.addon_url}</p>
                   {addon.addon_name && <p className="text-xs text-muted truncate">{addon.addon_url}</p>}
                 </div>
+                {/* Admin only: classifying an addon as a stream source is what
+                    lets invite codes withhold it. An unmarked stream addon goes
+                    out to EVERY user regardless of their code. */}
+                {role === 'admin' && (
+                  <label
+                    className="flex items-center gap-1.5 text-xs cursor-pointer select-none shrink-0"
+                    title="This addon provides streams — only users whose invite code included stream addons will receive it"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={addon.provides_stream}
+                      onChange={() => handleToggleStreamSource(addon)}
+                      className="accent-accent"
+                    />
+                    <span className={addon.provides_stream ? 'text-accent' : 'text-muted'}>Stream source</span>
+                  </label>
+                )}
                 {canEdit && (
                   <>
                     <label className="relative inline-flex items-center cursor-pointer">

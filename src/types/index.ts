@@ -24,6 +24,12 @@ export interface InstalledAddon {
   enabled: boolean;
   sort_order: number;
   created_at: string;
+  /** 'curated' rows are provisioned from the admin's list and re-mirrored by the
+   *  sync pass; 'user' rows are the user's own and are never auto-removed. */
+  source: 'user' | 'curated';
+  /** Admin-only flag: marks an addon as a stream source, so it is excluded from
+   *  provisioning unless curated_addon_settings.curated_streams_enabled is on. */
+  provides_stream: boolean;
 }
 
 export interface InviteCode {
@@ -37,6 +43,9 @@ export interface InviteCode {
   max_uses: number;
   is_active: boolean;
   role_duration_days: number | null;
+  /** When true, redeeming this code also provisions the admin's stream addons,
+   *  not just catalogs/metadata/subtitles. */
+  includes_streams: boolean;
 }
 
 export interface Collection {

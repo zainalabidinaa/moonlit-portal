@@ -1,15 +1,19 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 /**
- * Re-applies "Install curated setup" for every profile that has already
- * opted in once (`profiles.curated_setup_installed = true`), so Friends &
- * Family / Premium accounts stay in sync with whatever the admin currently
- * curates instead of drifting after their one-time install.
+ * Re-applies the admin's curated addon set to EVERY non-admin profile, so all
+ * accounts stay mirrored to whatever the admin currently curates.
+ *
+ * The work itself lives in the `sync_all_curated_setups()` SQL function (see
+ * 20260811_curated_addons_auto_install.sql), which adds missing curated addons,
+ * removes curated ones the admin dropped, and leaves the user's own additions
+ * alone. New profiles are provisioned on insert by a trigger; this pass keeps
+ * everyone in sync afterwards.
  *
  * Triggered every 2 days by the `curated-setup-sync` pg_cron job
- * (see 20260802130000_curated_setup_sync.sql). Runs with the service role,
- * so it can read/write `installed_addons` across profiles despite the
- * owner-only RLS that scopes normal client access to one's own rows.
+ * (see 20260802130000_curated_setup_sync.sql). Runs with the service role, which
+ * bypasses both the owner-only RLS on `installed_addons` and the deliberate lack
+ * of an `authenticated` grant on `sync_all_curated_setups()`.
  *
  * Deploy with:
  *   supabase functions deploy curated-setup-sync
@@ -25,50 +29,18 @@ Deno.serve(async (req) => {
 
   const supabase = createClient(supabaseUrl, serviceRoleKey);
 
-  const { data: sharedAddons, error: sharedErr } = await supabase.rpc('get_shared_addons');
-  if (sharedErr) {
-    return new Response(JSON.stringify({ error: sharedErr.message }), { status: 500 });
-  }
-  const curatedUrls: string[] = (sharedAddons ?? []).map((r: { addon_url: string }) => r.addon_url);
-
-  const { data: profiles, error: profilesErr } = await supabase
-    .from('profiles')
-    .select('id')
-    .eq('curated_setup_installed', true);
-  if (profilesErr) {
-    return new Response(JSON.stringify({ error: profilesErr.message }), { status: 500 });
+  const { data, error } = await supabase.rpc('sync_all_curated_setups');
+  if (error) {
+    return new Response(JSON.stringify({ error: error.message }), { status: 500 });
   }
 
-  const results: { profileId: string; added: number }[] = [];
-
-  for (const profile of profiles ?? []) {
-    const { data: own } = await supabase
-      .from('installed_addons')
-      .select('addon_url')
-      .eq('profile_id', profile.id);
-    const existing = new Set((own ?? []).map((a: { addon_url: string }) => a.addon_url));
-
-    const missing = curatedUrls.filter((u) => !existing.has(u));
-    if (missing.length > 0) {
-      const rows = missing.map((addon_url, i) => ({
-        profile_id: profile.id,
-        addon_url,
-        enabled: true,
-        sort_order: existing.size + i,
-      }));
-      await supabase.from('installed_addons').insert(rows);
-    }
-
-    await supabase
-      .from('profiles')
-      .update({ curated_setup_synced_at: new Date().toISOString() })
-      .eq('id', profile.id);
-
-    results.push({ profileId: profile.id, added: missing.length });
-  }
-
-  return new Response(JSON.stringify({ synced: results.length, results }), {
-    status: 200,
-    headers: { 'Content-Type': 'application/json' },
-  });
+  const results = (data ?? []) as { profile_id: string; changed: number }[];
+  return new Response(
+    JSON.stringify({
+      synced: results.length,
+      changed: results.filter((r) => r.changed > 0).length,
+      results,
+    }),
+    { status: 200, headers: { 'Content-Type': 'application/json' } },
+  );
 });
