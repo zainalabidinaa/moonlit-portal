@@ -70,11 +70,12 @@ export default function DownloadPage() {
         <Reveal>
           <p className="mb-3 font-mono text-[11px] uppercase tracking-[0.28em] text-accent">Downloads</p>
           <h1 className="font-display text-[clamp(40px,6vw,80px)] font-extrabold uppercase leading-[1.02]">
-            Coming to<br />every screen.
+            Built for<br />every screen.
           </h1>
           <p className="mt-5 max-w-xl text-[17px] text-muted">
-            The native Moonlit apps are on the way — built for real playback, not a browser tab.
-            Moonlit already runs in any modern browser while you wait.
+            Moonlit for Mac is out now, and the iPhone and iPad beta is open on TestFlight —
+            native apps built for real playback, not a browser tab. Apple TV and Windows are
+            next, and Moonlit runs in any modern browser today.
           </p>
           <div className="mt-7 flex flex-wrap gap-3">
             <Button size="lg" className="rounded-full" onClick={() => navigate('/pricing')}>
