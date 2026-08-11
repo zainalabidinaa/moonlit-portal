@@ -7,6 +7,7 @@ import { Card } from '../../components/ui/Card';
 import type { Plan } from '../../types';
 
 type Tab = 'invite' | 'subscribe';
+type InviteStep = 'form' | 'confirm';
 
 const PLAN_LABELS: Record<Plan, string> = {
   premium: 'Premium — $9.99/mo',
@@ -20,6 +21,7 @@ export default function SignupPage() {
   const initialPlan = (params.get('plan') as Plan | null) ?? 'premium';
 
   const [tab, setTab] = useState<Tab>(initialTab);
+  const [inviteStep, setInviteStep] = useState<InviteStep>('form');
   const [code, setCode] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -27,8 +29,18 @@ export default function SignupPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  async function handleInviteSignup(e: React.FormEvent) {
+  // Wrong-email signups are hard to undo — the invite code is single-use, so a
+  // typo here burns the code on an account the person didn't mean to create.
+  // This step exists purely to make them look at what they typed before it's
+  // irreversible; "Change email" just goes back to the same form, code and
+  // password intact.
+  function handleReviewInvite(e: React.FormEvent) {
     e.preventDefault();
+    setError('');
+    setInviteStep('confirm');
+  }
+
+  async function handleInviteSignup() {
     setError('');
     setLoading(true);
 
@@ -36,40 +48,40 @@ export default function SignupPage() {
 
     // Create account first
     const { data: authData, error: signUpError } = await supabase.auth.signUp({ email, password });
-    if (signUpError || !authData.user) { setError(signUpError?.message ?? 'Signup failed'); setLoading(false); return; }
+    if (signUpError || !authData.user) {
+      setError(signUpError?.message ?? 'Signup failed');
+      setLoading(false);
+      setInviteStep('form');
+      return;
+    }
 
-    // Redeem invite code (validates + marks used, returns duration_days)
-    const { data: durationDays, error: redeemError } = await supabase.rpc('redeem_invite_code', {
+    // Redeem invite code (validates + marks used). The returned duration_days
+    // used to be turned into role_expires_at right here; that's now computed
+    // by the database from this redemption's own timestamp, whenever the
+    // first profile actually gets created (see below).
+    const { error: redeemError } = await supabase.rpc('redeem_invite_code', {
       p_code: trimmedCode,
       p_user_id: authData.user.id,
       p_email: email,
     });
 
-    console.log('redeem_invite_code result:', { durationDays, redeemError });
-
     if (redeemError) {
       setError(redeemError.message);
       setLoading(false);
+      setInviteStep('form');
       return;
     }
 
-    const roleExpiresAt = durationDays !== null && durationDays !== undefined
-      ? new Date(Date.now() + durationDays * 24 * 60 * 60 * 1000).toISOString()
-      : null;
-
-    // Insert profile. The `profiles_install_curated_setup` trigger copies the
-    // admin's curated addons into this profile's own `installed_addons` rows and
-    // flips `uses_primary_addons` to false — so the apps (which read that table
-    // directly and know nothing about `uses_primary_addons`) see a working setup
-    // on first launch. See 20260811_curated_addons_auto_install.sql.
-    await supabase.from('profiles').insert({
-      user_id: authData.user.id,
-      name: email.split('@')[0],
-      role: 'friends_family',
-      role_expires_at: roleExpiresAt,
-      uses_primary_addons: false,
-      profile_index: 0,
-    });
+    // Deliberately NOT inserting a profile here. The account now has zero
+    // profiles, which FirstProfileGate (mounted in AppShell) turns into a
+    // mandatory "create your profile" step the moment they land on any
+    // authenticated page — same one iOS/macOS already show for a profile-less
+    // account. Whichever client ends up creating that first profile, a
+    // database trigger (tg_apply_signup_grant) stamps it with the role and
+    // expiry this invite code granted — not from anything held in this
+    // browser tab, so it survives closing the site and coming back days
+    // later, or finishing signup on the phone instead. See
+    // 20260811_signup_profile_gate.sql.
 
     setLoading(false);
     navigate('/profiles');
@@ -108,13 +120,32 @@ export default function SignupPage() {
         </div>
 
         {tab === 'invite' ? (
-          <form onSubmit={handleInviteSignup} className="flex flex-col gap-4">
-            <Input id="code" label="Invite Code" value={code} onChange={e => setCode(e.target.value)} placeholder="XXXX-XXXX" required />
-            <Input id="email" label="Email" type="email" value={email} onChange={e => setEmail(e.target.value)} required autoComplete="email" />
-            <Input id="password" label="Password" type="password" value={password} onChange={e => setPassword(e.target.value)} required autoComplete="new-password" />
-            {error && <p className="text-xs text-red-500">{error}</p>}
-            <Button type="submit" loading={loading} className="w-full mt-1">Create Account</Button>
-          </form>
+          inviteStep === 'form' ? (
+            <form onSubmit={handleReviewInvite} className="flex flex-col gap-4">
+              <Input id="code" label="Invite Code" value={code} onChange={e => setCode(e.target.value)} placeholder="XXXX-XXXX" required />
+              <Input id="email" label="Email" type="email" value={email} onChange={e => setEmail(e.target.value)} required autoComplete="email" />
+              <Input id="password" label="Password" type="password" value={password} onChange={e => setPassword(e.target.value)} required autoComplete="new-password" />
+              {error && <p className="text-xs text-red-500">{error}</p>}
+              <Button type="submit" className="w-full mt-1">Continue</Button>
+            </form>
+          ) : (
+            <div className="flex flex-col gap-4">
+              <div>
+                <p className="text-sm text-muted mb-1">You're creating an account with:</p>
+                <p className="text-base font-semibold text-text break-all">{email}</p>
+              </div>
+              <p className="text-xs text-muted">
+                This invite code can only be used once — double-check the email before continuing.
+              </p>
+              {error && <p className="text-xs text-red-500">{error}</p>}
+              <Button onClick={handleInviteSignup} loading={loading} className="w-full">
+                This is correct — Create Account
+              </Button>
+              <Button variant="ghost" onClick={() => setInviteStep('form')} disabled={loading} className="w-full">
+                Change email
+              </Button>
+            </div>
+          )
         ) : (
           <div className="flex flex-col gap-4">
             <div className="flex flex-col gap-2">

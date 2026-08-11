@@ -52,9 +52,12 @@ interface ProfileEditorProps {
   userId: string;
   nextIndex: number;
   accountRole: UserRole;
+  /** No X, no backdrop-close, no Cancel — used when the account genuinely has
+   *  no profile yet and one must be created before anything else is usable. */
+  forceCreate?: boolean;
 }
 
-export function ProfileEditor({ profile, onClose, onSaved, userId, nextIndex, accountRole }: ProfileEditorProps) {
+export function ProfileEditor({ profile, onClose, onSaved, userId, nextIndex, accountRole, forceCreate = false }: ProfileEditorProps) {
   const [name, setName] = useState(profile?.name ?? '');
   const [color, setColor] = useState(profile?.avatar_color ?? COLORS[0]);
   const [avatarId, setAvatarId] = useState<number | null>(profile?.avatar_id ?? null);
@@ -66,15 +69,22 @@ export function ProfileEditor({ profile, onClose, onSaved, userId, nextIndex, ac
   async function handleSave() {
     if (!name.trim()) { setError('Name is required'); return; }
     setLoading(true);
+    setError('');
+
+    // Errors used to be silently swallowed here — onSaved() fired regardless,
+    // so a failed insert closed the form as if it had worked. That's fine for
+    // an optional "add another profile" flow, but fatal for forceCreate: the
+    // account would look stuck with no visible reason why.
     if (profile) {
-      await supabase.from('profiles').update({
+      const { error: err } = await supabase.from('profiles').update({
         name: name.trim(),
         avatar_color: color,
         avatar_id: avatarId,
         pin_enabled: pinEnabled,
       }).eq('id', profile.id);
+      if (err) { setError(err.message); setLoading(false); return; }
     } else {
-      await supabase.from('profiles').insert({
+      const { error: err } = await supabase.from('profiles').insert({
         user_id: userId,
         name: name.trim(),
         avatar_color: color,
@@ -85,8 +95,13 @@ export function ProfileEditor({ profile, onClose, onSaved, userId, nextIndex, ac
         // New profiles share the account's role — role-gated UI (canEdit,
         // Install curated setup, etc.) reads profiles[0]?.role for the whole
         // account, so a mismatched per-profile role breaks it unpredictably.
+        // For the account's FIRST EVER profile, a database trigger overrides
+        // this with whatever an invite code actually granted — accountRole is
+        // just a placeholder in that case (see tg_apply_signup_grant in
+        // 20260811_signup_profile_gate.sql).
         role: accountRole,
       });
+      if (err) { setError(err.message); setLoading(false); return; }
     }
     setLoading(false);
     onSaved();
@@ -102,8 +117,18 @@ export function ProfileEditor({ profile, onClose, onSaved, userId, nextIndex, ac
   const category = AVATAR_CATEGORIES[activeCategory];
 
   return (
-    <Modal open onClose={onClose} title={profile ? 'Edit Profile' : 'New Profile'}>
+    <Modal
+      open
+      onClose={onClose}
+      title={profile ? 'Edit Profile' : forceCreate ? 'Create your profile' : 'New Profile'}
+      dismissable={!forceCreate}
+    >
       <div className="p-6 flex flex-col gap-5 max-h-[80vh] overflow-y-auto">
+        {forceCreate && (
+          <p className="text-sm text-muted -mt-1">
+            One last step — set up your profile to start using Moonlit.
+          </p>
+        )}
         {/* Avatar preview */}
         <div className="flex justify-center">
           <div className="w-20 h-20 rounded-full overflow-hidden ring-2 ring-white/10">
