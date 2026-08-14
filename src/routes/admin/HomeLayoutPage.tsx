@@ -115,6 +115,8 @@ function FolderRow({
   onDragLeave,
   onDrop,
   onUnnest,
+  isCollectionDropTarget,
+  onDropCollection,
 }: {
   folder: FolderWithCatalogs;
   onAddCatalog: (folderId: string, catalogId: string, mediaType: string, genre: string | null) => Promise<void>;
@@ -127,6 +129,10 @@ function FolderRow({
   onDragLeave?: () => void;
   onDrop?: () => void;
   onUnnest?: () => void;
+  /** A collection is being dragged from the list above — show this folder as
+   *  a "drop to nest here" target instead of its normal folder-reorder drag. */
+  isCollectionDropTarget?: boolean;
+  onDropCollection?: () => void;
 }) {
   return (
     <div
@@ -135,10 +141,19 @@ function FolderRow({
       onDragOver={onDragOver}
       onDragLeave={onDragLeave}
       onDrop={onDrop}
-      className={`rounded-xl border px-4 py-3 transition-colors ${
+      className={`relative rounded-xl border px-4 py-3 transition-colors ${
         dropHighlight ? 'border-accent bg-accent-light/40' : 'border-border bg-bg'
       } ${draggable ? 'cursor-grab active:cursor-grabbing' : ''}`}
     >
+      {isCollectionDropTarget && (
+        <div
+          onDragOver={(e) => e.preventDefault()}
+          onDrop={(e) => { e.preventDefault(); e.stopPropagation(); onDropCollection?.(); }}
+          className="absolute inset-0 z-[5] flex items-center justify-center rounded-xl border-2 border-dashed border-accent bg-accent-light/30"
+        >
+          <span className="rounded-lg bg-bg/90 px-2 py-1 font-mono text-[10px] text-accent">Drop to nest collection here</span>
+        </div>
+      )}
       <div className="mb-2.5 flex items-center gap-2">
         {folder.cover_image && (
           <img src={folder.cover_image} alt="" className="h-7 w-7 flex-none rounded-md object-cover" />
@@ -187,6 +202,8 @@ function FolderList({
   onToggleEnabled,
   onNest,
   onUnnest,
+  isCollectionDragActive,
+  onDropCollectionOntoFolder,
 }: {
   folders: FolderWithCatalogs[];
   onAddCatalog: (folderId: string, catalogId: string, mediaType: string, genre: string | null) => Promise<void>;
@@ -194,6 +211,10 @@ function FolderList({
   onToggleEnabled: (folderId: string, enabled: boolean) => void;
   onNest: (folderId: string, parentFolderId: string) => void;
   onUnnest: (folderId: string) => void;
+  /** A collection is being dragged from the list above (not a folder
+   *  reorder) — every folder becomes a "drop to nest" target instead. */
+  isCollectionDragActive?: boolean;
+  onDropCollectionOntoFolder?: (folderId: string) => void;
 }) {
   const dragFolderId = useRef<string | null>(null);
   const [dropTargetId, setDropTargetId] = useState<string | null>(null);
@@ -228,6 +249,8 @@ function FolderList({
                 setDropTargetId(null);
                 if (draggedId && draggedId !== f.id) onNest(draggedId, f.id);
               }}
+              isCollectionDropTarget={isCollectionDragActive}
+              onDropCollection={() => onDropCollectionOntoFolder?.(f.id)}
             />
             {children.length > 0 && (
               <div className="ml-6 flex flex-col gap-3 border-l border-border pl-4">
@@ -241,6 +264,8 @@ function FolderList({
                     draggable
                     onDragStart={() => { dragFolderId.current = child.id; }}
                     onUnnest={() => onUnnest(child.id)}
+                    isCollectionDropTarget={isCollectionDragActive}
+                    onDropCollection={() => onDropCollectionOntoFolder?.(child.id)}
                   />
                 ))}
               </div>
@@ -375,6 +400,10 @@ export default function HomeLayoutPage() {
   const [previewLoading, setPreviewLoading] = useState(false);
   const dragId = useRef<string | null>(null);
   const [dragOver, setDragOver] = useState<{ id: string; zone: DropZone } | null>(null);
+  // True while a collection row is mid-drag, so every visible folder tile
+  // (in any expanded collection's editor) can render as a "drop to nest
+  // here" target — no need to switch pages/tabs to see the target folder.
+  const [isCollectionDragActive, setIsCollectionDragActive] = useState(false);
 
   useEffect(() => { loadAll(); }, []);
 
@@ -525,6 +554,22 @@ export default function HomeLayoutPage() {
     const { error } = await supabase.from('collections').update({ parent_collection_id: parentId }).eq('id', childId);
     if (error) {
       console.error('Failed to nest collection:', error);
+      await loadAll();
+    }
+  }
+
+  // Nests a collection under a FOLDER (e.g. "Horror genre" under the
+  // "Horror" folder in "Genres") — the third nesting relationship, distinct
+  // from collection-under-collection. Clears parent_collection_id since a
+  // collection can only have one parent at a time.
+  async function nestCollectionInFolder(collectionId: string, folderId: string) {
+    setCollections((prev) => prev.map((c) => (c.id === collectionId ? { ...c, parent_folder_id: folderId, parent_collection_id: null } : c)));
+    const { error } = await supabase
+      .from('collections')
+      .update({ parent_folder_id: folderId, parent_collection_id: null })
+      .eq('id', collectionId);
+    if (error) {
+      console.error('Failed to nest collection in folder:', error);
       await loadAll();
     }
   }
@@ -722,7 +767,8 @@ export default function HomeLayoutPage() {
                 <div
                   key={col.id}
                   draggable
-                  onDragStart={() => { dragId.current = col.id; }}
+                  onDragStart={() => { dragId.current = col.id; setIsCollectionDragActive(true); }}
+                  onDragEnd={() => setIsCollectionDragActive(false)}
                   onDragOver={(e) => handleRowDragOver(e, col.id)}
                   onDragLeave={() => { if (dragOver?.id === col.id) setDragOver(null); }}
                   onDrop={() => handleCollectionDrop(col.id)}
@@ -752,6 +798,12 @@ export default function HomeLayoutPage() {
                         onToggleEnabled={toggleFolderEnabled}
                         onNest={nestFolder}
                         onUnnest={unnestFolder}
+                        isCollectionDragActive={isCollectionDragActive}
+                        onDropCollectionOntoFolder={(folderId) => {
+                          const draggedId = dragId.current;
+                          setIsCollectionDragActive(false);
+                          if (draggedId && draggedId !== col.id) nestCollectionInFolder(draggedId, folderId);
+                        }}
                       />
                     </div>
                   )}
@@ -768,7 +820,8 @@ export default function HomeLayoutPage() {
                         <div
                           key={child.id}
                           draggable
-                          onDragStart={() => { dragId.current = child.id; }}
+                          onDragStart={() => { dragId.current = child.id; setIsCollectionDragActive(true); }}
+                          onDragEnd={() => setIsCollectionDragActive(false)}
                           onDragOver={(e) => handleRowDragOver(e, child.id)}
                           onDragLeave={() => { if (dragOver?.id === child.id) setDragOver(null); }}
                           onDrop={() => handleCollectionDrop(child.id)}
@@ -795,6 +848,12 @@ export default function HomeLayoutPage() {
                                 onToggleEnabled={toggleFolderEnabled}
                                 onNest={nestFolder}
                                 onUnnest={unnestFolder}
+                                isCollectionDragActive={isCollectionDragActive}
+                                onDropCollectionOntoFolder={(folderId) => {
+                                  const draggedId = dragId.current;
+                                  setIsCollectionDragActive(false);
+                                  if (draggedId && draggedId !== child.id) nestCollectionInFolder(draggedId, folderId);
+                                }}
                               />
                             </div>
                           )}
