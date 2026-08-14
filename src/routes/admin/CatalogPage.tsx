@@ -31,6 +31,10 @@ export default function CatalogPage() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const colDrag = useRef<number | null>(null);
   const folderDrag = useRef<number | null>(null);
+  // True while a sidebar collection is mid-drag, so the Folders tab's tiles
+  // can render as "drop to nest here" targets instead of their normal
+  // reorder-only drag behavior.
+  const [isCollectionDragActive, setIsCollectionDragActive] = useState(false);
 
   useEffect(() => {
     loadCollections();
@@ -119,6 +123,21 @@ export default function CatalogPage() {
     setCollections(next);
     colDrag.current = null;
     await Promise.all(next.map((c, i) => supabase.from('collections').update({ sort_order: i }).eq('id', c.id)));
+  }
+
+  // Nests a collection under a folder (e.g. "Horror genre" under the
+  // "Horror" folder in "Genres") — a collection can only have one parent at
+  // a time, so this clears parent_collection_id if it had one.
+  async function nestCollectionInFolder(collectionId: string, folderId: string) {
+    setCollections((p) => p.map((c) => (c.id === collectionId ? { ...c, parent_folder_id: folderId, parent_collection_id: null } : c)));
+    const { error } = await supabase
+      .from('collections')
+      .update({ parent_folder_id: folderId, parent_collection_id: null })
+      .eq('id', collectionId);
+    if (error) {
+      console.error('Failed to nest collection in folder:', error);
+      await loadCollections();
+    }
   }
 
   // ---- folders ----
@@ -444,7 +463,8 @@ export default function CatalogPage() {
               <div
                 key={c.id}
                 draggable
-                onDragStart={() => (colDrag.current = i)}
+                onDragStart={() => { colDrag.current = i; setIsCollectionDragActive(true); }}
+                onDragEnd={() => setIsCollectionDragActive(false)}
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={() => reorderCollections(i)}
                 onClick={() => setSelectedId(c.id)}
@@ -514,6 +534,16 @@ export default function CatalogPage() {
                 onMoveUp={moveFolderUp}
                 onMoveDown={moveFolderDown}
                 onDeleteFolder={deleteFolder}
+                isCollectionDragActive={isCollectionDragActive}
+                onDropCollectionOntoFolder={(folderId) => {
+                  const draggedId = colDrag.current !== null ? collections[colDrag.current]?.id : null;
+                  setIsCollectionDragActive(false);
+                  if (!draggedId) return;
+                  // A collection can't meaningfully nest under one of its own
+                  // folders (or itself, if colDrag somehow points at `selected`).
+                  if (draggedId === selected.id) return;
+                  nestCollectionInFolder(draggedId, folderId);
+                }}
               />
             ) : tab === 'artwork' ? (
               selectedFolder ? (

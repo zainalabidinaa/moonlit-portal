@@ -67,6 +67,7 @@ export interface Collection {
   show_mac_series: boolean;
   created_at: string;
   parent_collection_id: string | null;
+  parent_folder_id: string | null;
 }
 
 export interface Folder {

@@ -10,9 +10,17 @@ interface Props {
   onMoveUp: (i: number) => void;
   onMoveDown: (i: number) => void;
   onDeleteFolder: (id: string) => void;
+  /** A collection is being dragged from the sidebar (not a folder reorder) —
+   *  when set, folder tiles become drop targets: dropping one nests that
+   *  collection under this folder (parent_folder_id). */
+  isCollectionDragActive?: boolean;
+  onDropCollectionOntoFolder?: (folderId: string) => void;
 }
 
-export function FolderGrid({ collection, folders, onSelectFolder, onAddFolder, onDragStart, onDrop, onMoveUp, onMoveDown, onDeleteFolder }: Props) {
+export function FolderGrid({
+  collection, folders, onSelectFolder, onAddFolder, onDragStart, onDrop, onMoveUp, onMoveDown, onDeleteFolder,
+  isCollectionDragActive, onDropCollectionOntoFolder,
+}: Props) {
   return (
     <div>
       {/* Collection backdrop */}
@@ -43,6 +51,15 @@ export function FolderGrid({ collection, folders, onSelectFolder, onAddFolder, o
           const dimmed = f.enabled === false;
           return (
             <div key={f.id} className={`group relative ${dimmed ? 'opacity-50' : ''}`}>
+            {isCollectionDragActive && (
+              <div
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => { e.preventDefault(); e.stopPropagation(); onDropCollectionOntoFolder?.(f.id); }}
+                className="absolute inset-0 z-[5] rounded-2xl border-2 border-dashed border-accent bg-accent-light/30 flex items-center justify-center"
+              >
+                <span className="rounded-lg bg-bg/90 px-2 py-1 font-mono text-[10px] text-accent">Drop to nest here</span>
+              </div>
+            )}
             <button
               draggable
               onDragStart={() => onDragStart(i)}
