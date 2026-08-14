@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { AppShell } from '../../components/layout/AppShell';
 import { Button } from '../../components/ui/Button';
+import { useAutoScrollOnDrag } from '../../hooks/useAutoScrollOnDrag';
 import type { Collection, Folder, FolderCatalog } from '../../types';
 
 const FUNCTION_URL = 'https://hvfsntdyowapjxobtyli.supabase.co/functions/v1/home-organizer';
@@ -393,6 +394,7 @@ function CollectionHeaderRow({
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function HomeLayoutPage() {
+  useAutoScrollOnDrag();
   const [collections, setCollections] = useState<CollectionWithFolders[]>([]);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);

@@ -3,10 +3,12 @@ import { supabase } from '../../lib/supabase';
 import { AppShell } from '../../components/layout/AppShell';
 import { Button } from '../../components/ui/Button';
 import { FolderGrid } from '../../components/catalog/FolderGrid';
+import { CollectionTree } from '../../components/catalog/CollectionTree';
 import { ArtworkGallery } from '../../components/catalog/ArtworkGallery';
 import { SourcesTable } from '../../components/catalog/SourcesTable';
 import { JsonImport } from '../../components/catalog/JsonImport';
 import { CollectionSettings } from '../../components/catalog/CollectionSettings';
+import { useAutoScrollOnDrag } from '../../hooks/useAutoScrollOnDrag';
 import type { Collection, Folder, FolderSource, FolderCatalog } from '../../types';
 
 type Tab = 'folders' | 'artwork' | 'sources' | 'json' | 'collection';
@@ -19,8 +21,12 @@ const TABS: { id: Tab; label: string }[] = [
 ];
 
 export default function CatalogPage() {
+  useAutoScrollOnDrag();
   const [collections, setCollections] = useState<Collection[]>([]);
-  const [folderCounts, setFolderCounts] = useState<Record<string, number>>({});
+  // Every folder across every collection, for the sidebar tree — separate
+  // from `folders` below, which stays scoped to just the selected
+  // collection for the Folders/artwork/sources tabs.
+  const [allFolders, setAllFolders] = useState<Folder[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [folders, setFolders] = useState<Folder[]>([]);
   const [selectedFolder, setSelectedFolder] = useState<Folder | null>(null);
@@ -29,20 +35,18 @@ export default function CatalogPage() {
   const [tab, setTab] = useState<Tab>('folders');
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const colDrag = useRef<number | null>(null);
   const folderDrag = useRef<number | null>(null);
-  // True while a sidebar collection is mid-drag, so the Folders tab's tiles
-  // can render as "drop to nest here" targets instead of their normal
-  // reorder-only drag behavior.
-  const [isCollectionDragActive, setIsCollectionDragActive] = useState(false);
 
   useEffect(() => {
     loadCollections();
 
-    // Real-time: re-fetch when collections or folders change in Supabase
+    // Real-time: re-fetch when collections or folders change in Supabase.
+    // Folders are unfiltered here (not just the selected collection) because
+    // the sidebar tree now shows every collection's folders inline.
     const colSub = supabase
       .channel('collections-changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'collections' }, () => loadCollections())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'folders' }, () => loadCollections())
       .subscribe();
 
     return () => { supabase.removeChannel(colSub); };
@@ -85,10 +89,8 @@ export default function CatalogPage() {
     const rows = (data ?? []) as Collection[];
     setCollections(rows);
     if (rows.length) {
-      const { data: f } = await supabase.from('folders').select('collection_id').in('collection_id', rows.map((c) => c.id));
-      const counts: Record<string, number> = {};
-      for (const row of (f ?? []) as { collection_id: string }[]) counts[row.collection_id] = (counts[row.collection_id] ?? 0) + 1;
-      setFolderCounts(counts);
+      const { data: f } = await supabase.from('folders').select('*').in('collection_id', rows.map((c) => c.id)).order('sort_order');
+      setAllFolders((f ?? []) as Folder[]);
       setSelectedId((cur) => cur ?? rows[0].id);
     }
     setLoading(false);
@@ -115,16 +117,6 @@ export default function CatalogPage() {
     setCollections((p) => p.filter((c) => c.id !== id));
     if (selectedId === id) setSelectedId(collections.find((c) => c.id !== id)?.id ?? null);
   }
-  async function reorderCollections(to: number) {
-    if (colDrag.current === null || colDrag.current === to) return;
-    const next = [...collections];
-    const [moved] = next.splice(colDrag.current, 1);
-    next.splice(to, 0, moved);
-    setCollections(next);
-    colDrag.current = null;
-    await Promise.all(next.map((c, i) => supabase.from('collections').update({ sort_order: i }).eq('id', c.id)));
-  }
-
   // Nests a collection under a folder (e.g. "Horror genre" under the
   // "Horror" folder in "Genres") — a collection can only have one parent at
   // a time, so this clears parent_collection_id if it had one.
@@ -140,6 +132,119 @@ export default function CatalogPage() {
     }
   }
 
+  // ---- tree (sidebar): nesting/reordering across collections + folders ----
+
+  function isCollectionDescendant(candidateParentId: string, ofId: string): boolean {
+    let cur: string | null | undefined = candidateParentId;
+    while (cur) {
+      if (cur === ofId) return true;
+      cur = collections.find((c) => c.id === cur)?.parent_collection_id;
+    }
+    return false;
+  }
+
+  async function nestCollectionUnderCollection(childId: string, parentId: string) {
+    if (childId === parentId || isCollectionDescendant(parentId, childId)) return;
+    setCollections((p) => p.map((c) => (c.id === childId ? { ...c, parent_collection_id: parentId, parent_folder_id: null } : c)));
+    const { error } = await supabase.from('collections').update({ parent_collection_id: parentId, parent_folder_id: null }).eq('id', childId);
+    if (error) { console.error('Failed to nest collection:', error); await loadCollections(); }
+  }
+
+  async function toggleCollectionEnabled(id: string, enabled: boolean) {
+    setCollections((p) => p.map((c) => (c.id === id ? { ...c, enabled } : c)));
+    const { error } = await supabase.from('collections').update({ enabled }).eq('id', id);
+    if (error) { console.error('Failed to toggle collection enabled:', error); await loadCollections(); }
+  }
+
+  async function unnestCollection(id: string) {
+    setCollections((p) => p.map((c) => (c.id === id ? { ...c, parent_collection_id: null, parent_folder_id: null } : c)));
+    const { error } = await supabase.from('collections').update({ parent_collection_id: null, parent_folder_id: null }).eq('id', id);
+    if (error) { console.error('Failed to un-nest collection:', error); await loadCollections(); }
+  }
+
+  function isFolderDescendant(candidateParentId: string, ofId: string): boolean {
+    let cur: string | null | undefined = candidateParentId;
+    while (cur) {
+      if (cur === ofId) return true;
+      cur = allFolders.find((f) => f.id === cur)?.parent_folder_id;
+    }
+    return false;
+  }
+
+  async function nestFolderUnderFolder(folderId: string, parentFolderId: string) {
+    if (folderId === parentFolderId || isFolderDescendant(parentFolderId, folderId)) return;
+    setAllFolders((p) => p.map((f) => (f.id === folderId ? { ...f, parent_folder_id: parentFolderId } : f)));
+    const { error } = await supabase.from('folders').update({ parent_folder_id: parentFolderId }).eq('id', folderId);
+    if (error) { console.error('Failed to nest folder:', error); await loadCollections(); }
+  }
+
+  async function toggleFolderEnabledTree(id: string, enabled: boolean) {
+    setAllFolders((p) => p.map((f) => (f.id === id ? { ...f, enabled } : f)));
+    const { error } = await supabase.from('folders').update({ enabled }).eq('id', id);
+    if (error) { console.error('Failed to toggle folder enabled:', error); await loadCollections(); }
+    if (selectedFolder?.id === id) setSelectedFolder((p) => (p ? { ...p, enabled } : p));
+  }
+
+  async function unnestFolder(id: string) {
+    setAllFolders((p) => p.map((f) => (f.id === id ? { ...f, parent_folder_id: null } : f)));
+    const { error } = await supabase.from('folders').update({ parent_folder_id: null }).eq('id', id);
+    if (error) { console.error('Failed to un-nest folder:', error); await loadCollections(); }
+  }
+
+  // Reorders collections sharing the same tree parent (root level, under
+  // another collection, or under a folder) — sort_order is still one global
+  // column on `collections`, so this only touches the rows that share the
+  // dragged item's new parent, leaving everyone else's order untouched.
+  async function reorderCollectionSiblings(draggedId: string, targetId: string, zone: 'before' | 'after', parentKey: string | null) {
+    const dragged = collections.find((c) => c.id === draggedId);
+    const target = collections.find((c) => c.id === targetId);
+    if (!dragged || !target) return;
+    const parentCollectionId = parentKey?.startsWith('collection:') ? parentKey.slice('collection:'.length) : null;
+    const parentFolderId = parentKey?.startsWith('folder:') ? parentKey.slice('folder:'.length) : null;
+
+    const siblings = collections
+      .filter((c) => c.id !== draggedId && c.parent_collection_id === parentCollectionId && c.parent_folder_id === parentFolderId)
+      .sort((a, b) => a.sort_order - b.sort_order);
+    const targetIdx = siblings.findIndex((c) => c.id === targetId);
+    if (targetIdx === -1) return;
+    const insertAt = zone === 'before' ? targetIdx : targetIdx + 1;
+    siblings.splice(insertAt, 0, { ...dragged, parent_collection_id: parentCollectionId, parent_folder_id: parentFolderId });
+
+    setCollections((prev) => {
+      const byId = new Map(siblings.map((c, i) => [c.id, i]));
+      return prev.map((c) => (byId.has(c.id) ? { ...c, sort_order: byId.get(c.id)!, parent_collection_id: parentCollectionId, parent_folder_id: parentFolderId } : c));
+    });
+    await Promise.all(siblings.map((c, i) =>
+      supabase.from('collections').update({ sort_order: i, parent_collection_id: parentCollectionId, parent_folder_id: parentFolderId }).eq('id', c.id)
+    ));
+  }
+
+  // Same idea for folders — siblings share either a parent folder or (for
+  // top-level folders) their collection_id.
+  async function reorderFolderSiblings(draggedId: string, targetId: string, zone: 'before' | 'after', parentKey: string) {
+    const dragged = allFolders.find((f) => f.id === draggedId);
+    const target = allFolders.find((f) => f.id === targetId);
+    if (!dragged || !target) return;
+    const parentFolderId = parentKey.startsWith('folder:') ? parentKey.slice('folder:'.length) : null;
+    const collectionId = parentKey.startsWith('collection:') ? parentKey.slice('collection:'.length) : dragged.collection_id;
+
+    const siblings = allFolders
+      .filter((f) => f.id !== draggedId && f.collection_id === collectionId && f.parent_folder_id === parentFolderId)
+      .sort((a, b) => a.sort_order - b.sort_order);
+    const targetIdx = siblings.findIndex((f) => f.id === targetId);
+    if (targetIdx === -1) return;
+    const insertAt = zone === 'before' ? targetIdx : targetIdx + 1;
+    siblings.splice(insertAt, 0, { ...dragged, parent_folder_id: parentFolderId });
+
+    setAllFolders((prev) => {
+      const byId = new Map(siblings.map((f, i) => [f.id, i]));
+      return prev.map((f) => (byId.has(f.id) ? { ...f, sort_order: byId.get(f.id)!, parent_folder_id: parentFolderId } : f));
+    });
+    await Promise.all(siblings.map((f, i) =>
+      supabase.from('folders').update({ sort_order: i, parent_folder_id: parentFolderId }).eq('id', f.id)
+    ));
+  }
+
   // ---- folders ----
   async function addFolder() {
     if (!selectedId) return;
@@ -148,7 +253,7 @@ export default function CatalogPage() {
     const { data } = await supabase.from('folders').insert({
       collection_id: selectedId, name, sort_order: folders.length, tile_shape: 'POSTER', enabled: true,
     }).select().single();
-    if (data) { setFolders((p) => [...p, data as Folder]); setFolderCounts((c) => ({ ...c, [selectedId]: (c[selectedId] ?? 0) + 1 })); }
+    if (data) { setFolders((p) => [...p, data as Folder]); setAllFolders((p) => [...p, data as Folder]); }
   }
   async function reorderFolders(to: number) {
     if (folderDrag.current === null || folderDrag.current === to) return;
@@ -175,18 +280,8 @@ export default function CatalogPage() {
     await supabase.from('folder_sources').delete().eq('folder_id', id);
     await supabase.from('folders').delete().eq('id', id);
     setFolders((p) => p.filter((f) => f.id !== id));
+    setAllFolders((p) => p.filter((f) => f.id !== id));
     if (selectedFolder?.id === id) setSelectedFolder(null);
-    if (selectedId) setFolderCounts((c) => ({ ...c, [selectedId]: Math.max(0, (c[selectedId] ?? 1) - 1) }));
-  }
-  async function moveCollectionUp(i: number) {
-    if (i === 0) return;
-    colDrag.current = i;
-    await reorderCollections(i - 1);
-  }
-  async function moveCollectionDown(i: number) {
-    if (i === collections.length - 1) return;
-    colDrag.current = i;
-    await reorderCollections(i + 1);
   }
   async function saveFolderArtwork(patch: Partial<Folder>) {
     if (!selectedFolder) return;
@@ -443,12 +538,9 @@ export default function CatalogPage() {
         </div>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-[280px_1fr]">
+      <div className="grid gap-4 lg:grid-cols-[300px_1fr]">
         {/* sidebar */}
         <aside className="h-fit rounded-2xl border border-border bg-surface p-3.5 lg:sticky lg:top-20">
-          <div className="px-2 pb-3 pt-1.5 font-mono text-[11px] uppercase tracking-wide text-muted">
-            Collections · {collections.length}
-          </div>
           {loadError && (
             <div className="mb-2 rounded-xl border border-red-400/30 bg-red-400/10 px-3 py-2 font-mono text-[11px] text-red-400">
               {loadError}
@@ -456,51 +548,26 @@ export default function CatalogPage() {
           )}
           {loading ? (
             <div className="flex flex-col gap-2">{[0, 1, 2].map((i) => <div key={i} className="h-12 animate-pulse rounded-xl bg-surface-2" />)}</div>
-          ) : collections.length === 0 ? (
-            <p className="px-2 py-4 font-mono text-[11px] text-faint">No collections found.</p>
           ) : (
-            collections.map((c, i) => (
-              <div
-                key={c.id}
-                draggable
-                onDragStart={() => { colDrag.current = i; setIsCollectionDragActive(true); }}
-                onDragEnd={() => setIsCollectionDragActive(false)}
-                onDragOver={(e) => e.preventDefault()}
-                onDrop={() => reorderCollections(i)}
-                onClick={() => setSelectedId(c.id)}
-                className={`group flex cursor-pointer items-center gap-2.5 rounded-xl border p-2.5 transition-colors ${
-                  selectedId === c.id ? 'border-accent/30 bg-accent-light' : 'border-transparent hover:bg-surface-2'
-                }`}
-              >
-                <div className="h-9 w-9 flex-none overflow-hidden rounded-lg bg-surface-2">
-                  {c.backdrop_image && <img src={c.backdrop_image} alt="" className="h-full w-full object-cover" />}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <b className="block truncate text-[13px] font-semibold">{c.name}</b>
-                  <small className="font-mono text-[10px] text-faint">{folderCounts[c.id] ?? 0} folders</small>
-                </div>
-                <div className="flex flex-col gap-0.5 opacity-0 transition-opacity group-hover:opacity-100" onClick={(e) => e.stopPropagation()}>
-                  <button
-                    onClick={() => moveCollectionUp(i)}
-                    disabled={i === 0}
-                    className="flex h-5 w-5 items-center justify-center rounded font-mono text-[10px] text-muted hover:bg-accent hover:text-[#2a1206] disabled:opacity-20"
-                    title="Move up"
-                  >↑</button>
-                  <button
-                    onClick={() => moveCollectionDown(i)}
-                    disabled={i === collections.length - 1}
-                    className="flex h-5 w-5 items-center justify-center rounded font-mono text-[10px] text-muted hover:bg-accent hover:text-[#2a1206] disabled:opacity-20"
-                    title="Move down"
-                  >↓</button>
-                </div>
-                <button
-                  onClick={(e) => { e.stopPropagation(); deleteCollection(c.id); }}
-                  className="font-mono text-[10px] text-faint opacity-0 transition-opacity hover:text-red-400 group-hover:opacity-100"
-                >
-                  del
-                </button>
-              </div>
-            ))
+            <CollectionTree
+              collections={collections}
+              allFolders={allFolders}
+              selectedId={selectedId}
+              selectedFolderId={selectedFolder?.id ?? null}
+              onSelectCollection={setSelectedId}
+              onSelectFolder={(f) => { setSelectedId(f.collection_id); setSelectedFolder(f); setTab('artwork'); }}
+              onAddCollection={addCollection}
+              onDeleteCollection={deleteCollection}
+              onToggleCollectionEnabled={toggleCollectionEnabled}
+              onToggleFolderEnabled={toggleFolderEnabledTree}
+              onNestCollectionUnderCollection={nestCollectionUnderCollection}
+              onNestCollectionUnderFolder={nestCollectionInFolder}
+              onNestFolderUnderFolder={nestFolderUnderFolder}
+              onUnnestCollection={unnestCollection}
+              onUnnestFolder={unnestFolder}
+              onReorderCollectionSiblings={reorderCollectionSiblings}
+              onReorderFolderSiblings={reorderFolderSiblings}
+            />
           )}
         </aside>
 
@@ -534,16 +601,6 @@ export default function CatalogPage() {
                 onMoveUp={moveFolderUp}
                 onMoveDown={moveFolderDown}
                 onDeleteFolder={deleteFolder}
-                isCollectionDragActive={isCollectionDragActive}
-                onDropCollectionOntoFolder={(folderId) => {
-                  const draggedId = colDrag.current !== null ? collections[colDrag.current]?.id : null;
-                  setIsCollectionDragActive(false);
-                  if (!draggedId) return;
-                  // A collection can't meaningfully nest under one of its own
-                  // folders (or itself, if colDrag somehow points at `selected`).
-                  if (draggedId === selected.id) return;
-                  nestCollectionInFolder(draggedId, folderId);
-                }}
               />
             ) : tab === 'artwork' ? (
               selectedFolder ? (
