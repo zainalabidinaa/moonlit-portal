@@ -16,6 +16,8 @@ interface FolderWithCatalogs extends Folder {
   catalogs: FolderCatalog[];
 }
 
+type DropZone = 'before' | 'after' | 'inside';
+
 // ── Toggle switch ────────────────────────────────────────────────────────────
 
 function Toggle({ on, onChange }: { on: boolean; onChange: (v: boolean) => void }) {
@@ -106,20 +108,52 @@ function FolderRow({
   onAddCatalog,
   onDeleteCatalog,
   onToggleEnabled,
+  draggable,
+  dropHighlight,
+  onDragStart,
+  onDragOver,
+  onDragLeave,
+  onDrop,
+  onUnnest,
 }: {
   folder: FolderWithCatalogs;
   onAddCatalog: (folderId: string, catalogId: string, mediaType: string, genre: string | null) => Promise<void>;
   onDeleteCatalog: (catalogId: string, folderId: string) => Promise<void>;
   onToggleEnabled: (folderId: string, enabled: boolean) => void;
+  draggable?: boolean;
+  dropHighlight?: boolean;
+  onDragStart?: () => void;
+  onDragOver?: (e: React.DragEvent<HTMLDivElement>) => void;
+  onDragLeave?: () => void;
+  onDrop?: () => void;
+  onUnnest?: () => void;
 }) {
   return (
-    <div className="rounded-xl border border-border bg-bg px-4 py-3">
+    <div
+      draggable={draggable}
+      onDragStart={onDragStart}
+      onDragOver={onDragOver}
+      onDragLeave={onDragLeave}
+      onDrop={onDrop}
+      className={`rounded-xl border px-4 py-3 transition-colors ${
+        dropHighlight ? 'border-accent bg-accent-light/40' : 'border-border bg-bg'
+      } ${draggable ? 'cursor-grab active:cursor-grabbing' : ''}`}
+    >
       <div className="mb-2.5 flex items-center gap-2">
         {folder.cover_image && (
           <img src={folder.cover_image} alt="" className="h-7 w-7 flex-none rounded-md object-cover" />
         )}
         <span className="text-[13px] font-semibold">{folder.name}</span>
         <Toggle on={folder.enabled} onChange={(v) => onToggleEnabled(folder.id, v)} />
+        {onUnnest && (
+          <button
+            onClick={onUnnest}
+            title="Remove from parent — back to top level"
+            className="rounded-md border border-border px-1.5 py-0.5 font-mono text-[9px] text-faint hover:border-border-strong hover:text-text"
+          >
+            ✕ un-nest
+          </button>
+        )}
         <span className="ml-auto font-mono text-[10px] text-faint">{folder.tile_shape?.toLowerCase()} · {folder.catalogs.length} sources</span>
       </div>
 
@@ -136,6 +170,84 @@ function FolderRow({
       <AddCatalogForm
         onAdd={(cid, mt, g) => onAddCatalog(folder.id, cid, mt, g)}
       />
+    </div>
+  );
+}
+
+// A folder with `parent_folder_id` set (e.g. "Horror Franchises" under
+// "Horror") renders nested beneath its parent instead of as its own row in
+// the list — generic, driven entirely by that column. Drag any top-level
+// folder onto another to nest it; nested folders get an explicit "un-nest"
+// button instead of a drop zone, since there's no reorder behavior to
+// preserve here (unlike the collections list).
+function FolderList({
+  folders,
+  onAddCatalog,
+  onDeleteCatalog,
+  onToggleEnabled,
+  onNest,
+  onUnnest,
+}: {
+  folders: FolderWithCatalogs[];
+  onAddCatalog: (folderId: string, catalogId: string, mediaType: string, genre: string | null) => Promise<void>;
+  onDeleteCatalog: (catalogId: string, folderId: string) => Promise<void>;
+  onToggleEnabled: (folderId: string, enabled: boolean) => void;
+  onNest: (folderId: string, parentFolderId: string) => void;
+  onUnnest: (folderId: string) => void;
+}) {
+  const dragFolderId = useRef<string | null>(null);
+  const [dropTargetId, setDropTargetId] = useState<string | null>(null);
+
+  if (folders.length === 0) {
+    return (
+      <p className="font-mono text-[11px] text-faint">
+        No folders. Add them from the Collection manager.
+      </p>
+    );
+  }
+  const topLevel = folders.filter((f) => !f.parent_folder_id);
+  return (
+    <div className="flex flex-col gap-3">
+      {topLevel.map((f) => {
+        const children = folders.filter((c) => c.parent_folder_id === f.id);
+        return (
+          <div key={f.id} className="flex flex-col gap-3">
+            <FolderRow
+              folder={f}
+              onAddCatalog={onAddCatalog}
+              onDeleteCatalog={onDeleteCatalog}
+              onToggleEnabled={onToggleEnabled}
+              draggable
+              dropHighlight={dropTargetId === f.id}
+              onDragStart={() => { dragFolderId.current = f.id; }}
+              onDragOver={(e) => { e.preventDefault(); if (dragFolderId.current !== f.id) setDropTargetId(f.id); }}
+              onDragLeave={() => setDropTargetId((cur) => (cur === f.id ? null : cur))}
+              onDrop={() => {
+                const draggedId = dragFolderId.current;
+                dragFolderId.current = null;
+                setDropTargetId(null);
+                if (draggedId && draggedId !== f.id) onNest(draggedId, f.id);
+              }}
+            />
+            {children.length > 0 && (
+              <div className="ml-6 flex flex-col gap-3 border-l border-border pl-4">
+                {children.map((child) => (
+                  <FolderRow
+                    key={child.id}
+                    folder={child}
+                    onAddCatalog={onAddCatalog}
+                    onDeleteCatalog={onDeleteCatalog}
+                    onToggleEnabled={onToggleEnabled}
+                    draggable
+                    onDragStart={() => { dragFolderId.current = child.id; }}
+                    onUnnest={() => onUnnest(child.id)}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -178,6 +290,81 @@ function TabFlagChips({ col, onToggle }: { col: Collection; onToggle: (key: TabF
   );
 }
 
+// ── Collection header row ────────────────────────────────────────────────────
+// Shared between a top-level collection and one nested under a parent via
+// `parent_collection_id` — same controls either way, just without a drag
+// handle when nested (child order follows its own sort_order, not the
+// top-level drag/drop list).
+
+function CollectionHeaderRow({
+  col,
+  draggableHandle = false,
+  expanded,
+  onRename,
+  onToggleTabFlag,
+  onToggleEnabled,
+  onToggleExpand,
+}: {
+  col: CollectionWithFolders;
+  draggableHandle?: boolean;
+  expanded: boolean;
+  onRename: () => void;
+  onToggleTabFlag: (key: TabFlagKey, value: boolean) => void;
+  onToggleEnabled: (value: boolean) => void;
+  onToggleExpand: () => void;
+}) {
+  return (
+    <div className={`flex items-center gap-3 px-5 py-3.5 transition-colors ${col.enabled ? '' : 'opacity-50'}`}>
+      {/* Drag handle (top-level only) */}
+      {draggableHandle && (
+        <span className="cursor-grab select-none text-faint opacity-0 transition-opacity group-hover:opacity-100 active:cursor-grabbing">
+          ⠿
+        </span>
+      )}
+
+      {/* Thumbnail */}
+      <div className="h-9 w-9 flex-none overflow-hidden rounded-lg bg-surface-2">
+        {col.backdrop_image && (
+          <img src={col.backdrop_image} alt="" className="h-full w-full object-cover" />
+        )}
+      </div>
+
+      {/* Name */}
+      <div className="min-w-0 flex-1">
+        <button
+          onClick={onRename}
+          className="block truncate text-left text-[14px] font-semibold hover:text-accent"
+          title="Click to rename"
+        >
+          {col.name}
+        </button>
+        <span className="font-mono text-[10px] text-faint">
+          {col.folders.length} folder{col.folders.length !== 1 ? 's' : ''} ·{' '}
+          {col.folders.reduce((n, f) => n + f.catalogs.length, 0)} sources
+        </span>
+      </div>
+
+      {/* Tab visibility */}
+      <TabFlagChips col={col} onToggle={onToggleTabFlag} />
+
+      {/* Enabled toggle */}
+      <Toggle on={col.enabled} onChange={onToggleEnabled} />
+
+      {/* Expand button */}
+      <button
+        onClick={onToggleExpand}
+        className={`rounded-lg border px-3 py-1 font-mono text-[11px] transition-colors ${
+          expanded
+            ? 'border-accent/40 bg-accent-light text-accent'
+            : 'border-border text-faint hover:border-border-strong hover:text-text'
+        }`}
+      >
+        {expanded ? '▲ Close' : '▼ Edit sources'}
+      </button>
+    </div>
+  );
+}
+
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function HomeLayoutPage() {
@@ -186,7 +373,8 @@ export default function HomeLayoutPage() {
   const [loading, setLoading] = useState(true);
   const [previewJson, setPreviewJson] = useState<string | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
-  const dragIdx = useRef<number | null>(null);
+  const dragId = useRef<string | null>(null);
+  const [dragOver, setDragOver] = useState<{ id: string; zone: DropZone } | null>(null);
 
   useEffect(() => { loadAll(); }, []);
 
@@ -278,16 +466,125 @@ export default function HomeLayoutPage() {
     }
   }
 
-  // ── Reorder ───────────────────────────────────────────────────────────────
+  // Nests a folder under a sibling folder in the same collection (e.g.
+  // "Horror Franchises" under "Horror") — same generic parent_folder_id
+  // mechanism the Browse-by-genre row already reads, not specific to any
+  // one collection or genre.
+  async function nestFolder(folderId: string, parentFolderId: string) {
+    if (folderId === parentFolderId) return;
+    setCollections((prev) =>
+      prev.map((col) => ({
+        ...col,
+        folders: col.folders.map((f) => (f.id === folderId ? { ...f, parent_folder_id: parentFolderId } : f)),
+      }))
+    );
+    const { error } = await supabase.from('folders').update({ parent_folder_id: parentFolderId }).eq('id', folderId);
+    if (error) {
+      console.error('Failed to nest folder:', error);
+      await loadAll();
+    }
+  }
 
-  async function handleDrop(toIdx: number) {
-    if (dragIdx.current === null || dragIdx.current === toIdx) return;
-    const next = [...collections];
-    const [moved] = next.splice(dragIdx.current, 1);
-    next.splice(toIdx, 0, moved);
-    dragIdx.current = null;
+  async function unnestFolder(folderId: string) {
+    setCollections((prev) =>
+      prev.map((col) => ({
+        ...col,
+        folders: col.folders.map((f) => (f.id === folderId ? { ...f, parent_folder_id: null } : f)),
+      }))
+    );
+    const { error } = await supabase.from('folders').update({ parent_folder_id: null }).eq('id', folderId);
+    if (error) {
+      console.error('Failed to un-nest folder:', error);
+      await loadAll();
+    }
+  }
+
+  // ── Reorder / nest ───────────────────────────────────────────────────────────
+  // Dropping on the top/bottom edge of a row reorders among top-level
+  // collections (and un-nests the dragged item, if it was a child). Dropping
+  // on the middle of a row nests the dragged collection under it instead —
+  // same generic parent_collection_id mechanism GenreCatalog already reads,
+  // no per-genre special-casing anywhere in this path.
+
+  function isDescendant(candidateParentId: string, ofId: string): boolean {
+    // Would setting `ofId`'s parent to `candidateParentId` create a cycle?
+    // Only one level of nesting is modeled anywhere else in the app, but this
+    // walks the full chain defensively in case of future deeper nesting.
+    let cur: string | null | undefined = candidateParentId;
+    while (cur) {
+      if (cur === ofId) return true;
+      cur = collections.find((c) => c.id === cur)?.parent_collection_id;
+    }
+    return false;
+  }
+
+  async function nestCollection(childId: string, parentId: string) {
+    if (childId === parentId) return;
+    if (isDescendant(parentId, childId)) return; // would create a cycle
+    setCollections((prev) => prev.map((c) => (c.id === childId ? { ...c, parent_collection_id: parentId } : c)));
+    const { error } = await supabase.from('collections').update({ parent_collection_id: parentId }).eq('id', childId);
+    if (error) {
+      console.error('Failed to nest collection:', error);
+      await loadAll();
+    }
+  }
+
+  // Reorders among TOP-LEVEL collections only (un-nesting the dragged item
+  // first if it was a child), then reattaches every collection's existing
+  // children directly after it so sort_order stays coherent even though
+  // children aren't currently ordered by it anywhere in the app.
+  async function reorderCollections(draggedId: string, targetId: string, zone: 'before' | 'after') {
+    const dragged = collections.find((c) => c.id === draggedId);
+    if (!dragged) return;
+    const wasNested = !!dragged.parent_collection_id;
+
+    const topLevel = collections.filter((c) => !c.parent_collection_id && c.id !== draggedId);
+    const targetIdx = topLevel.findIndex((c) => c.id === targetId);
+    if (targetIdx === -1) return;
+    const insertAt = zone === 'before' ? targetIdx : targetIdx + 1;
+    topLevel.splice(insertAt, 0, { ...dragged, parent_collection_id: null });
+
+    const childrenByParent = new Map<string, CollectionWithFolders[]>();
+    for (const c of collections) {
+      if (c.parent_collection_id) {
+        const arr = childrenByParent.get(c.parent_collection_id) ?? [];
+        arr.push(c);
+        childrenByParent.set(c.parent_collection_id, arr);
+      }
+    }
+    const next: CollectionWithFolders[] = [];
+    for (const c of topLevel) {
+      next.push(c);
+      next.push(...(childrenByParent.get(c.id) ?? []));
+    }
+
     setCollections(next);
+    if (wasNested) {
+      const { error } = await supabase.from('collections').update({ parent_collection_id: null }).eq('id', draggedId);
+      if (error) console.error('Failed to un-nest collection:', error);
+    }
     await Promise.all(next.map((c, i) => supabase.from('collections').update({ sort_order: i }).eq('id', c.id)));
+  }
+
+  async function handleCollectionDrop(targetId: string) {
+    const draggedId = dragId.current;
+    const zone = dragOver?.zone;
+    dragId.current = null;
+    setDragOver(null);
+    if (!draggedId || draggedId === targetId || !zone) return;
+    if (zone === 'inside') {
+      await nestCollection(draggedId, targetId);
+    } else {
+      await reorderCollections(draggedId, targetId, zone);
+    }
+  }
+
+  function handleRowDragOver(e: React.DragEvent<HTMLDivElement>, id: string) {
+    e.preventDefault();
+    const rect = e.currentTarget.getBoundingClientRect();
+    const y = e.clientY - rect.top;
+    const zone: DropZone = y < rect.height * 0.25 ? 'before' : y > rect.height * 0.75 ? 'after' : 'inside';
+    if (dragOver?.id !== id || dragOver?.zone !== zone) setDragOver({ id, zone });
   }
 
   // ── Rename ────────────────────────────────────────────────────────────────
@@ -413,89 +710,102 @@ export default function HomeLayoutPage() {
           </p>
         ) : (
           <div className="divide-y divide-border">
-            {collections.map((col, i) => (
-              <div
-                key={col.id}
-                draggable
-                onDragStart={() => { dragIdx.current = i; }}
-                onDragOver={(e) => e.preventDefault()}
-                onDrop={() => handleDrop(i)}
-                className="group"
-              >
-                {/* Collection header row */}
+            {collections.map((col) => {
+              // A collection with a parent renders nested under it below,
+              // not in its own top-level slot — but it keeps its real index
+              // in `collections` (this `.map` isn't filtered), so drag/drop
+              // reordering of top-level items is unaffected either way.
+              if (col.parent_collection_id) return null;
+              const children = collections.filter((c) => c.parent_collection_id === col.id);
+              const zone = dragOver?.id === col.id ? dragOver.zone : null;
+              return (
                 <div
-                  className={`flex items-center gap-3 px-5 py-3.5 transition-colors ${col.enabled ? '' : 'opacity-50'}`}
+                  key={col.id}
+                  draggable
+                  onDragStart={() => { dragId.current = col.id; }}
+                  onDragOver={(e) => handleRowDragOver(e, col.id)}
+                  onDragLeave={() => { if (dragOver?.id === col.id) setDragOver(null); }}
+                  onDrop={() => handleCollectionDrop(col.id)}
+                  className={`group relative ${
+                    zone === 'inside' ? 'bg-accent-light/40' : ''
+                  }`}
                 >
-                  {/* Drag handle */}
-                  <span className="cursor-grab select-none text-faint opacity-0 transition-opacity group-hover:opacity-100 active:cursor-grabbing">
-                    ⠿
-                  </span>
+                  {zone === 'before' && <div className="absolute inset-x-0 top-0 h-0.5 bg-accent" />}
+                  {zone === 'after' && <div className="absolute inset-x-0 bottom-0 h-0.5 bg-accent" />}
+                  <CollectionHeaderRow
+                    col={col}
+                    draggableHandle
+                    expanded={expanded.has(col.id)}
+                    onRename={() => renameCollection(col.id)}
+                    onToggleTabFlag={(key, v) => toggleTabFlag(col.id, key, v)}
+                    onToggleEnabled={(v) => toggleEnabled(col.id, v)}
+                    onToggleExpand={() => toggleExpand(col.id)}
+                  />
 
-                  {/* Thumbnail */}
-                  <div className="h-9 w-9 flex-none overflow-hidden rounded-lg bg-surface-2">
-                    {col.backdrop_image && (
-                      <img src={col.backdrop_image} alt="" className="h-full w-full object-cover" />
-                    )}
-                  </div>
+                  {/* Expanded folder editor */}
+                  {expanded.has(col.id) && (
+                    <div className="border-t border-border bg-bg px-5 py-4">
+                      <FolderList
+                        folders={col.folders}
+                        onAddCatalog={addCatalog}
+                        onDeleteCatalog={deleteCatalog}
+                        onToggleEnabled={toggleFolderEnabled}
+                        onNest={nestFolder}
+                        onUnnest={unnestFolder}
+                      />
+                    </div>
+                  )}
 
-                  {/* Name */}
-                  <div className="min-w-0 flex-1">
-                    <button
-                      onClick={() => renameCollection(col.id)}
-                      className="block truncate text-left text-[14px] font-semibold hover:text-accent"
-                      title="Click to rename"
-                    >
-                      {col.name}
-                    </button>
-                    <span className="font-mono text-[10px] text-faint">
-                      {col.folders.length} folder{col.folders.length !== 1 ? 's' : ''} ·{' '}
-                      {col.folders.reduce((n, f) => n + f.catalogs.length, 0)} sources
-                    </span>
-                  </div>
-
-                  {/* Tab visibility */}
-                  <TabFlagChips col={col} onToggle={(key, v) => toggleTabFlag(col.id, key, v)} />
-
-                  {/* Enabled toggle */}
-                  <Toggle on={col.enabled} onChange={(v) => toggleEnabled(col.id, v)} />
-
-                  {/* Expand button */}
-                  <button
-                    onClick={() => toggleExpand(col.id)}
-                    className={`rounded-lg border px-3 py-1 font-mono text-[11px] transition-colors ${
-                      expanded.has(col.id)
-                        ? 'border-accent/40 bg-accent-light text-accent'
-                        : 'border-border text-faint hover:border-border-strong hover:text-text'
-                    }`}
-                  >
-                    {expanded.has(col.id) ? '▲ Close' : '▼ Edit sources'}
-                  </button>
-                </div>
-
-                {/* Expanded folder editor */}
-                {expanded.has(col.id) && (
-                  <div className="border-t border-border bg-bg px-5 py-4">
-                    {col.folders.length === 0 ? (
-                      <p className="font-mono text-[11px] text-faint">
-                        No folders. Add them from the Collection manager.
-                      </p>
-                    ) : (
-                      <div className="flex flex-col gap-3">
-                        {col.folders.map((f) => (
-                          <FolderRow
-                            key={f.id}
-                            folder={f}
-                            onAddCatalog={addCatalog}
-                            onDeleteCatalog={deleteCatalog}
-                            onToggleEnabled={toggleFolderEnabled}
+                  {/* Nested child collections (parent_collection_id) — same
+                      row controls. Draggable too — drop on another collection
+                      to re-parent, or in the gap above/below a top-level row
+                      to send it back to top level. */}
+                  {children.length > 0 && (
+                    <div className="border-t border-border bg-bg/60 pl-8">
+                      {children.map((child) => {
+                        const childZone = dragOver?.id === child.id ? dragOver.zone : null;
+                        return (
+                        <div
+                          key={child.id}
+                          draggable
+                          onDragStart={() => { dragId.current = child.id; }}
+                          onDragOver={(e) => handleRowDragOver(e, child.id)}
+                          onDragLeave={() => { if (dragOver?.id === child.id) setDragOver(null); }}
+                          onDrop={() => handleCollectionDrop(child.id)}
+                          className={`relative border-b border-border/60 last:border-b-0 ${
+                            childZone === 'inside' ? 'bg-accent-light/40' : ''
+                          }`}
+                        >
+                          {childZone === 'before' && <div className="absolute inset-x-0 top-0 h-0.5 bg-accent" />}
+                          {childZone === 'after' && <div className="absolute inset-x-0 bottom-0 h-0.5 bg-accent" />}
+                          <CollectionHeaderRow
+                            col={child}
+                            expanded={expanded.has(child.id)}
+                            onRename={() => renameCollection(child.id)}
+                            onToggleTabFlag={(key, v) => toggleTabFlag(child.id, key, v)}
+                            onToggleEnabled={(v) => toggleEnabled(child.id, v)}
+                            onToggleExpand={() => toggleExpand(child.id)}
                           />
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            ))}
+                          {expanded.has(child.id) && (
+                            <div className="border-t border-border bg-bg px-5 py-4">
+                              <FolderList
+                                folders={child.folders}
+                                onAddCatalog={addCatalog}
+                                onDeleteCatalog={deleteCatalog}
+                                onToggleEnabled={toggleFolderEnabled}
+                                onNest={nestFolder}
+                                onUnnest={unnestFolder}
+                              />
+                            </div>
+                          )}
+                        </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
       </div>

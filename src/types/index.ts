@@ -66,6 +66,7 @@ export interface Collection {
   show_mac_movies: boolean;
   show_mac_series: boolean;
   created_at: string;
+  parent_collection_id: string | null;
 }
 
 export interface Folder {
@@ -82,6 +83,7 @@ export interface Folder {
   tile_shape: string;
   focus_gif_enabled: boolean;
   enabled: boolean;
+  parent_folder_id: string | null;
 }
 
 export interface FolderSource {
