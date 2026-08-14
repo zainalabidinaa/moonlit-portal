@@ -17,7 +17,7 @@ import { ProfileEditor } from './ProfileEditor';
  * reachable because a profile always already existed.
  */
 export function FirstProfileGate() {
-  const { user, profiles, loading, role, refreshProfiles } = useAuth();
+  const { user, profiles, loading, refreshProfiles } = useAuth();
 
   if (loading || !user || profiles.length > 0) return null;
 
@@ -28,7 +28,6 @@ export function FirstProfileGate() {
       onSaved={refreshProfiles}
       userId={user.id}
       nextIndex={0}
-      accountRole={role ?? 'free'}
       forceCreate
     />
   );

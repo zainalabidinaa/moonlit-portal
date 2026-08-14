@@ -6,7 +6,7 @@ import { ProfileCard } from '../../components/profiles/ProfileCard';
 import { ProfileEditor } from '../../components/profiles/ProfileEditor';
 
 export default function ProfilesPage() {
-  const { profiles, activeProfile, setActiveProfile, user, role, isOwner, loading } = useAuth();
+  const { profiles, activeProfile, setActiveProfile, user, isOwner, loading } = useAuth();
   const navigate = useNavigate();
   const [editMode, setEditMode] = useState(false);
   const [editingProfile, setEditingProfile] = useState<typeof profiles[0] | null>(null);
@@ -81,7 +81,6 @@ export default function ProfilesPage() {
           onSaved={handleSaved}
           userId={user.id}
           nextIndex={profiles.reduce((max, p) => Math.max(max, p.profile_index), -1) + 1}
-          accountRole={role ?? 'free'}
           // Only the owner may delete a profile, and never the owner's own —
           // losing that row would permanently strand the account with no
           // profile anyone can ever be recognized as owning.

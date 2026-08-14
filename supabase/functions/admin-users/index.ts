@@ -146,13 +146,24 @@ Deno.serve(async (req) => {
         });
       }
 
-      const updateFields: Record<string, any> = {};
-      if (role) updateFields.role = role;
-      if (role_expires_at !== undefined) {
-        updateFields.role_expires_at = role_expires_at || null;
+      // Role lives on `accounts` now, not `profiles` — the profiles sync
+      // trigger (20260812_account_level_role.sql) fans this out to every
+      // profile for the user automatically.
+      if (role || role_expires_at !== undefined) {
+        const accountFields: Record<string, any> = {};
+        if (role) accountFields.role = role;
+        if (role_expires_at !== undefined) {
+          accountFields.role_expires_at = role_expires_at || null;
+        }
+        const { error: accountErr } = await supabaseAdmin
+          .from('accounts')
+          .upsert({ user_id: userId, ...accountFields }, { onConflict: 'user_id' });
+        if (accountErr) throw accountErr;
       }
+
+      const profileFields: Record<string, any> = {};
       if (stream_addons_enabled !== undefined) {
-        updateFields.stream_addons_enabled = stream_addons_enabled;
+        profileFields.stream_addons_enabled = stream_addons_enabled;
       }
 
       // Update the first profile for this user, or insert if none exists
@@ -167,12 +178,14 @@ Deno.serve(async (req) => {
 
       if (existing && existing.length > 0) {
         profileId = existing[0].id;
-        const { error: updateErr } = await supabaseAdmin
-          .from('profiles')
-          .update(updateFields)
-          .eq('id', profileId);
+        if (Object.keys(profileFields).length > 0) {
+          const { error: updateErr } = await supabaseAdmin
+            .from('profiles')
+            .update(profileFields)
+            .eq('id', profileId);
 
-        if (updateErr) throw updateErr;
+          if (updateErr) throw updateErr;
+        }
       } else {
         const { data: inserted, error: insertErr } = await supabaseAdmin
           .from('profiles')
@@ -181,7 +194,7 @@ Deno.serve(async (req) => {
             role: role ?? 'premium',
             name: 'User',
             profile_index: 0,
-            ...updateFields,
+            ...profileFields,
           })
           .select('id')
           .single();

@@ -3,7 +3,7 @@ import { supabase } from '../../lib/supabase';
 import { Modal } from '../ui/Modal';
 import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
-import type { Profile, UserRole } from '../../types';
+import type { Profile } from '../../types';
 
 const COLORS = ['#6d28d9', '#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#ec4899', '#8b5cf6', '#06b6d4'];
 
@@ -51,13 +51,17 @@ interface ProfileEditorProps {
   onSaved: () => void;
   userId: string;
   nextIndex: number;
-  accountRole: UserRole;
   /** No X, no backdrop-close, no Cancel — used when the account genuinely has
    *  no profile yet and one must be created before anything else is usable. */
   forceCreate?: boolean;
+  /** Whether THIS render should show a Delete button. Callers decide — only
+   *  the owner may delete a profile, and never the owner's own (profile_index
+   *  0), so both the "am I allowed at all" and "is this specific profile
+   *  deletable" checks happen at the call site, not in here. */
+  canDelete?: boolean;
 }
 
-export function ProfileEditor({ profile, onClose, onSaved, userId, nextIndex, accountRole, forceCreate = false }: ProfileEditorProps) {
+export function ProfileEditor({ profile, onClose, onSaved, userId, nextIndex, forceCreate = false, canDelete = false }: ProfileEditorProps) {
   const [name, setName] = useState(profile?.name ?? '');
   const [color, setColor] = useState(profile?.avatar_color ?? COLORS[0]);
   const [avatarId, setAvatarId] = useState<number | null>(profile?.avatar_id ?? null);
@@ -84,23 +88,34 @@ export function ProfileEditor({ profile, onClose, onSaved, userId, nextIndex, ac
       }).eq('id', profile.id);
       if (err) { setError(err.message); setLoading(false); return; }
     } else {
-      const { error: err } = await supabase.from('profiles').insert({
+      const insertAt = (index: number) => supabase.from('profiles').insert({
         user_id: userId,
         name: name.trim(),
         avatar_color: color,
         avatar_id: avatarId,
         pin_enabled: pinEnabled,
-        profile_index: nextIndex,
+        profile_index: index,
         uses_primary_addons: false,
-        // New profiles share the account's role — role-gated UI (canEdit,
-        // Install curated setup, etc.) reads profiles[0]?.role for the whole
-        // account, so a mismatched per-profile role breaks it unpredictably.
-        // For the account's FIRST EVER profile, a database trigger overrides
-        // this with whatever an invite code actually granted — accountRole is
-        // just a placeholder in that case (see tg_apply_signup_grant in
-        // 20260811_signup_profile_gate.sql).
-        role: accountRole,
+        // role is no longer set here at all — it lives on `accounts` now,
+        // and a DB trigger forces every profiles.role write to match it
+        // regardless of what's sent (see 20260812_account_level_role.sql).
       });
+
+      let { error: err } = await insertAt(nextIndex);
+      if (err?.code === '23505') {
+        // profile_index collided — nextIndex was computed from this
+        // component's (possibly stale) props, and another profile was
+        // created for this account since. Refetch the real max and retry
+        // once with a fresh index instead of surfacing a confusing error.
+        const { data: latest } = await supabase
+          .from('profiles')
+          .select('profile_index')
+          .eq('user_id', userId)
+          .order('profile_index', { ascending: false })
+          .limit(1);
+        const freshIndex = (latest?.[0]?.profile_index ?? -1) + 1;
+        ({ error: err } = await insertAt(freshIndex));
+      }
       if (err) { setError(err.message); setLoading(false); return; }
     }
     setLoading(false);
@@ -108,7 +123,7 @@ export function ProfileEditor({ profile, onClose, onSaved, userId, nextIndex, ac
   }
 
   async function handleDelete() {
-    if (!profile) return;
+    if (!profile || !canDelete) return;
     if (!confirm(`Delete profile "${profile.name}"? This cannot be undone.`)) return;
     await supabase.from('profiles').delete().eq('id', profile.id);
     onSaved();
@@ -236,7 +251,7 @@ export function ProfileEditor({ profile, onClose, onSaved, userId, nextIndex, ac
 
         <div className="flex gap-3 pt-2">
           <Button onClick={handleSave} loading={loading} className="flex-1">Save</Button>
-          {profile && <Button variant="danger" onClick={handleDelete}>Delete</Button>}
+          {profile && canDelete && <Button variant="danger" onClick={handleDelete}>Delete</Button>}
         </div>
       </div>
     </Modal>

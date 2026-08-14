@@ -18,6 +18,7 @@ import TemplatesPage from './routes/admin/TemplatesPage';
 import UsersPage from './routes/admin/UsersPage';
 import InvitesPage from './routes/admin/InvitesPage';
 import SupportRequestsPage from './routes/admin/SupportRequestsPage';
+import TabVisibilityPage from './routes/admin/TabVisibilityPage';
 import CardGeneratorPage from './routes/tools/CardGeneratorPage';
 
 export default function App() {
@@ -48,6 +49,7 @@ export default function App() {
           <Route path="/admin/users" element={<AdminRoute><UsersPage /></AdminRoute>} />
           <Route path="/admin/invites" element={<AdminRoute><InvitesPage /></AdminRoute>} />
           <Route path="/admin/support" element={<AdminRoute><SupportRequestsPage /></AdminRoute>} />
+          <Route path="/admin/tab-visibility" element={<AdminRoute><TabVisibilityPage /></AdminRoute>} />
 
           <Route path="/tools/card-generator" element={<CardGeneratorPage />} />
           <Route path="*" element={<div className="min-h-screen bg-bg flex items-center justify-center"><p className="text-muted">Page not found</p></div>} />

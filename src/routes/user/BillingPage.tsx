@@ -54,7 +54,10 @@ export default function BillingPage() {
     setInviteLoading(true);
     const code = inviteCode.trim().toUpperCase();
 
-    const { data: durationDays, error: redeemError } = await supabase.rpc('redeem_invite_code', {
+    // redeem_invite_code grants the role directly onto `accounts` now (see
+    // 20260812_redeem_invite_writes_account.sql) — no separate profiles
+    // write needed; the sync trigger propagates it to every profile.
+    const { error: redeemError } = await supabase.rpc('redeem_invite_code', {
       p_code: code,
       p_user_id: user.id,
       p_email: user.email,
@@ -62,24 +65,6 @@ export default function BillingPage() {
 
     if (redeemError) {
       setInviteError(redeemError.message);
-      setInviteLoading(false);
-      return;
-    }
-
-    const roleExpiresAt = durationDays !== null && durationDays !== undefined
-      ? new Date(Date.now() + durationDays * 24 * 60 * 60 * 1000).toISOString()
-      : null;
-
-    const { error: profileErr } = await supabase
-      .from('profiles')
-      .update({
-        role: 'friends_family',
-        role_expires_at: roleExpiresAt,
-      })
-      .eq('user_id', user.id);
-
-    if (profileErr) {
-      setInviteError(profileErr.message);
       setInviteLoading(false);
       return;
     }
