@@ -6,6 +6,26 @@
     <description>Moonlit for macOS release feed</description>
     <language>en</language>
     <item>
+      <title>Version 1.0.4</title>
+      <pubDate>Tue, 18 Aug 2026 22:45:04 +0000</pubDate>
+      <sparkle:version>1.0.4</sparkle:version>
+      <sparkle:shortVersionString>1.0.4</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[
+        <h2>What's new</h2>
+        <ul>
+          <li>Episodes now resume where you left off — detail pages scroll straight to the episode you'd actually watch next</li>
+          <li>Genre and language tiles show their artwork more reliably</li>
+          <li>Removed watch progress now stays removed across devices</li>
+          <li>The update dialog no longer interrupts other apps</li>
+        </ul>
+      ]]></description>
+      <enclosure
+        url="https://trymoonlit.app/downloads/Moonlit-1.0.4.dmg"
+        sparkle:edSignature="LkW50ZHSnrqqlAIP5ZfgTaZdc5ZS3GMC8r147IncWYbgfmoKUwiv3uWcKTfzqCgR8V+P89WgDAqEF1WYEHlFAw==" length="59349346"
+        type="application/x-apple-diskimage" />
+    </item>
+    <item>
       <title>Version 1.0.3</title>
       <pubDate>Tue, 18 Aug 2026 21:30:43 +0000</pubDate>
       <sparkle:version>1.0.3</sparkle:version>
