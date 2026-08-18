@@ -6,6 +6,25 @@
     <description>Moonlit for macOS release feed</description>
     <language>en</language>
     <item>
+      <title>Version 1.0.3</title>
+      <pubDate>Tue, 18 Aug 2026 21:30:43 +0000</pubDate>
+      <sparkle:version>1.0.3</sparkle:version>
+      <sparkle:shortVersionString>1.0.3</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[
+        <h2>What's new</h2>
+        <ul>
+          <li>Sign in with Apple</li>
+          <li>Hover glow now matches across the app — genre, folder, and award hub tiles glow like posters do</li>
+          <li>Fixed occasional sign-outs on launch caused by a brief network hiccup</li>
+        </ul>
+      ]]></description>
+      <enclosure
+        url="https://trymoonlit.app/downloads/Moonlit-1.0.3.dmg"
+        sparkle:edSignature="c17AVspv1UWQQ+YHTzJT4uZ7b+06B/NLD9CquVMxunJA+hOJe4+W5BN1lAqf8LXkVVIRIPEGjC7t2fJdNH8FAA==" length="59286568"
+        type="application/x-apple-diskimage" />
+    </item>
+    <item>
       <title>Version 1.0.0</title>
       <pubDate>Thu, 06 Aug 2026 23:56:51 +0000</pubDate>
       <sparkle:version>1.0.0</sparkle:version>

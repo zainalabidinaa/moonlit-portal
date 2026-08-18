@@ -44,8 +44,8 @@ const platforms = [
     sub: 'Apple silicon & Intel',
     note: 'Native desktop app with Live TV and IPTV built in.',
     icon: <AppleIcon />,
-    downloadUrl: '/downloads/Moonlit-1.0.0.dmg',
-    version: '1.0.0',
+    downloadUrl: '/downloads/Moonlit-1.0.3.dmg',
+    version: '1.0.3',
   },
   {
     name: 'iOS',
