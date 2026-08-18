@@ -2,5 +2,13 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "framework": "vite",
-  "rewrites": [{ "source": "/((?!.*\\.(?:png|jpg|jpeg|gif|svg|ico|webp|js|css|woff2?|json|map)$).*)", "destination": "/index.html" }]
+  "rewrites": [{ "source": "/((?!\\.well-known/|.*\\.(?:png|jpg|jpeg|gif|svg|ico|webp|js|css|woff2?|json|map)$).*)", "destination": "/index.html" }],
+  "headers": [
+    {
+      "source": "/.well-known/apple-app-site-association",
+      "headers": [
+        { "key": "Content-Type", "value": "application/json" }
+      ]
+    }
+  ]
 }
