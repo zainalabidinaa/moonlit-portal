@@ -6,6 +6,25 @@
     <description>Moonlit for macOS release feed</description>
     <language>en</language>
     <item>
+      <title>Version 1.0.5</title>
+      <pubDate>Wed, 19 Aug 2026 00:29:35 +0000</pubDate>
+      <sparkle:version>1.0.5</sparkle:version>
+      <sparkle:shortVersionString>1.0.5</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[
+        <h2>What's new</h2>
+        <ul>
+          <li>Automatic subtitle sync — Moonlit quietly checks external subtitles against the audio and corrects the timing on its own</li>
+          <li>Redesigned subtitle panel — native glass panel with grouped Presets, Text, Position, and Outline & Shadow controls</li>
+          <li>Subtitles now lift out of the way automatically when playback controls are visible, for embedded and external tracks alike</li>
+        </ul>
+      ]]></description>
+      <enclosure
+        url="https://trymoonlit.app/downloads/Moonlit-1.0.5.dmg"
+        sparkle:edSignature="tcVcP/B2Ecsz5LIXTAk95QnJuqj9/Br9YJYcwynhvrQmt82BEk4mQ2HNxNssrKiF6OIcNcMAGNiHGKBUU5kLDg==" length="59439995"
+        type="application/x-apple-diskimage" />
+    </item>
+    <item>
       <title>Version 1.0.4</title>
       <pubDate>Tue, 18 Aug 2026 22:45:04 +0000</pubDate>
       <sparkle:version>1.0.4</sparkle:version>
