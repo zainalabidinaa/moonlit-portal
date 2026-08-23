@@ -9,6 +9,15 @@ import { DragHandle } from '../../components/ui/DragHandle';
 import { Badge } from '../../components/ui/Badge';
 import type { InstalledAddon } from '../../types';
 
+// Bundled on every device regardless of what's in `installed_addons` — see
+// AddonRepository.swift's `managedURLs` comment: these are merged in-memory
+// client-side and deliberately never written to the DB, so this page must
+// list them separately or they're invisible to the user entirely.
+const BUILTIN_ADDON_NAMES: Record<string, string> = {
+  'aiometadata.fortheweak.cloud': 'AIOMetadata',
+  'opensubtitlesv3-pro.dexter21767.com': 'OpenSubtitles Pro',
+};
+
 export default function AddonsPage() {
   const { activeProfile, role, refreshProfiles } = useAuth();
   const [addons, setAddons] = useState<InstalledAddon[]>([]);
@@ -159,10 +168,33 @@ export default function AddonsPage() {
           </Card>
         )}
 
+        {/* Bundled defaults are always active but never stored in `installed_addons`
+            (see BUILTIN_ADDON_NAMES above) — shown read-only so they aren't mistaken
+            for "no add-ons installed". */}
+        <div className="mb-2">
+          <p className="text-xs font-medium text-muted uppercase tracking-wide">Built-in</p>
+        </div>
+        <div className="flex flex-col gap-2 mb-6">
+          {Object.values(BUILTIN_ADDON_NAMES).map(name => (
+            <Card key={name} className="flex items-center gap-3 px-4 py-3 opacity-70">
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-text truncate">{name}</p>
+              </div>
+              <Badge variant="purple">Always on</Badge>
+            </Card>
+          ))}
+        </div>
+
+        {addons.length > 0 && (
+          <div className="mb-2">
+            <p className="text-xs font-medium text-muted uppercase tracking-wide">Your add-ons</p>
+          </div>
+        )}
+
         {loading ? (
           <p className="text-muted text-sm">Loading…</p>
         ) : addons.length === 0 ? (
-          <p className="text-muted text-sm">No add-ons installed.</p>
+          <p className="text-muted text-sm">No add-ons of your own added yet.</p>
         ) : (
           <div className="flex flex-col gap-2">
             {addons.map((addon, i) => (

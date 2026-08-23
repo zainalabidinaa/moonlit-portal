@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 export const AIO_MANIFEST_URL =
-  'https://aiometadata.fortheweak.cloud/stremio/67df96d7-9709-4759-8fee-9b516b83e576/manifest.json';
+  'https://aiometadata.fortheweak.cloud/stremio/1bf2cd94-2057-4992-9ed7-a8464f12e4a4/manifest.json';
 
 export interface ManifestCatalog {
   id: string;
