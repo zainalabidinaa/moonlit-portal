@@ -312,11 +312,11 @@ export default function CatalogPage() {
   }
 
   // ---- folder_catalogs (Stremio catalog) ----
-  async function addCatalog(catalogId: string, mediaType: string, genre: string | null) {
+  async function addCatalog(catalogId: string, mediaType: string, genre: string | null, addonId: string | null = null) {
     if (!selectedFolder) return;
     const { data } = await supabase.from('folder_catalogs').insert({
       folder_id: selectedFolder.id, catalog_id: catalogId, media_type: mediaType,
-      genre: genre ?? null,
+      genre: genre ?? null, addon_id: addonId,
     }).select().single();
     if (data) setCatalogs((p) => [...p, data as FolderCatalog]);
   }

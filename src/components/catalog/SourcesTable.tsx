@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { Folder, FolderSource, FolderCatalog } from '../../types';
+import type { Folder, FolderSource, FolderCatalog, InstalledAddon } from '../../types';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { CatalogSourceEditor } from './CatalogSourceEditor';
@@ -10,11 +10,12 @@ interface Props {
   catalogs: FolderCatalog[];
   onAddSource: (provider: string) => Promise<void>;
   onDeleteSource: (id: string) => Promise<void>;
-  onAddCatalog: (catalogId: string, mediaType: string, genre: string | null) => Promise<void>;
+  onAddCatalog: (catalogId: string, mediaType: string, genre: string | null, addonId: string | null) => Promise<void>;
   onDeleteCatalog: (id: string) => Promise<void>;
+  addons?: InstalledAddon[];
 }
 
-export function SourcesTable({ folder, sources, catalogs, onAddSource, onDeleteSource, onAddCatalog, onDeleteCatalog }: Props) {
+export function SourcesTable({ folder, sources, catalogs, onAddSource, onDeleteSource, onAddCatalog, onDeleteCatalog, addons }: Props) {
   const [provider, setProvider] = useState('');
   const [addingSource, setAddingSource] = useState(false);
 
@@ -43,6 +44,7 @@ export function SourcesTable({ folder, sources, catalogs, onAddSource, onDeleteS
           catalogs={catalogs}
           onAdd={onAddCatalog}
           onDelete={onDeleteCatalog}
+          addons={addons}
         />
       </div>
 

@@ -1,16 +1,23 @@
 import { useMemo, useState } from 'react';
-import type { FolderCatalog } from '../../types';
+import type { FolderCatalog, InstalledAddon } from '../../types';
 import { useAddonManifest, AIO_MANIFEST_URL } from '../../hooks/useAddonManifest';
 import { Button } from '../ui/Button';
 
 interface Props {
   catalogs: FolderCatalog[];
-  onAdd: (catalogId: string, mediaType: string, genre: string | null) => Promise<void>;
+  onAdd: (catalogId: string, mediaType: string, genre: string | null, addonId: string | null) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
+  /** When provided, the user picks which of their own addons to browse.
+   *  Omitted by the admin CatalogPage, which browses the shared AIOMetadata
+   *  config exactly as before. */
+  addons?: InstalledAddon[];
 }
 
-export function CatalogSourceEditor({ catalogs, onAdd, onDelete }: Props) {
-  const { manifest, loading, error, hasUpdate, refresh, catalogById } = useAddonManifest(AIO_MANIFEST_URL);
+export function CatalogSourceEditor({ catalogs, onAdd, onDelete, addons }: Props) {
+  const [selectedAddonId, setSelectedAddonId] = useState<string>(addons?.[0]?.id ?? '');
+  const activeAddon = addons?.find((a) => a.id === selectedAddonId) ?? null;
+  const manifestUrl = addons ? (activeAddon?.addon_url ?? '') : AIO_MANIFEST_URL;
+  const { manifest, loading, error, hasUpdate, refresh, catalogById } = useAddonManifest(manifestUrl);
 
   const [search, setSearch] = useState('');
   const [selectedCatalogId, setSelectedCatalogId] = useState('');
@@ -33,7 +40,7 @@ export function CatalogSourceEditor({ catalogs, onAdd, onDelete }: Props) {
     const genreRequired = selectedCatalog.genreRequired;
     if (genreRequired && !selectedGenre) return;
     setAdding(true);
-    await onAdd(selectedCatalogId, selectedCatalog.type, selectedGenre || null);
+    await onAdd(selectedCatalogId, selectedCatalog.type, selectedGenre || null, activeAddon?.id ?? null);
     setSelectedCatalogId('');
     setSelectedGenre('');
     setSearch('');
@@ -123,6 +130,24 @@ export function CatalogSourceEditor({ catalogs, onAdd, onDelete }: Props) {
       ) : (
         <div className="rounded-2xl border border-accent/20 bg-surface-2 p-4">
           <p className="mb-3 font-mono text-[11px] uppercase tracking-widest text-muted">Select catalog</p>
+
+          {addons && (
+            <div className="mb-3">
+              <label className="mb-1.5 block font-mono text-[10px] uppercase tracking-widest text-muted">
+                Addon
+              </label>
+              <select
+                value={selectedAddonId}
+                onChange={(e) => { setSelectedAddonId(e.target.value); setSelectedCatalogId(''); }}
+                className="w-full rounded-xl border border-border bg-bg px-3 py-2 font-mono text-[12px] text-text outline-none focus:border-accent"
+              >
+                {addons.length === 0 && <option value="">No add-ons installed</option>}
+                {addons.map((a) => (
+                  <option key={a.id} value={a.id}>{a.addon_name ?? a.addon_url}</option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {/* search */}
           <input
