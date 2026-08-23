@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import type { FolderCatalog, InstalledAddon } from '../../types';
 import { useAddonManifest, AIO_MANIFEST_URL } from '../../hooks/useAddonManifest';
+import { useCatalogPreview } from '../../hooks/useCatalogPreview';
 import { Button } from '../ui/Button';
 
 interface Props {
@@ -83,36 +84,21 @@ export function CatalogSourceEditor({ catalogs, onAdd, onDelete, addons }: Props
         <div className="mb-4 grid gap-2">
           {catalogs.map((c) => {
             const meta = catalogById(c.catalog_id);
+            const sourceAddon = addons?.find((a) => a.id === c.addon_id) ?? null;
+            // Only meaningful once the manifest for THIS row's addon is the one
+            // loaded; otherwise we can't tell "removed" from "not checked".
+            const checkable = !loading && !error && manifest !== null
+              && (!addons || sourceAddon?.id === activeAddon?.id);
             return (
-              <div
+              <SourceRow
                 key={c.id}
-                className="flex items-center gap-3 rounded-xl border border-border bg-surface-2 px-4 py-3"
-              >
-                <div className="flex-1 min-w-0">
-                  <p className="text-[13px] font-semibold text-text truncate">
-                    {meta?.name ?? c.catalog_id}
-                  </p>
-                  <p className="font-mono text-[10px] text-faint">{c.catalog_id}</p>
-                </div>
-                <div className="flex items-center gap-2 flex-none">
-                  <span className={`rounded px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wide ${
-                    c.media_type === 'movie' ? 'bg-cyan/10 text-cyan' :
-                    c.media_type === 'series' ? 'bg-magenta/10 text-magenta' :
-                    'bg-accent/10 text-accent'
-                  }`}>{c.media_type}</span>
-                  {c.genre && (
-                    <span className="rounded px-1.5 py-0.5 font-mono text-[9px] bg-surface border border-border text-muted">
-                      {c.genre}
-                    </span>
-                  )}
-                  <button
-                    onClick={() => onDelete(c.id)}
-                    className="ml-1 font-mono text-[11px] text-faint hover:text-red-400 transition-colors"
-                  >
-                    ✕
-                  </button>
-                </div>
-              </div>
+                catalog={c}
+                displayName={meta?.name ?? c.catalog_id}
+                addonName={sourceAddon?.addon_name ?? sourceAddon?.addon_url ?? null}
+                addonUrl={sourceAddon?.addon_url ?? (addons ? null : AIO_MANIFEST_URL)}
+                isStale={checkable ? meta === null : null}
+                onDelete={onDelete}
+              />
             );
           })}
         </div>
@@ -218,6 +204,89 @@ export function CatalogSourceEditor({ catalogs, onAdd, onDelete, addons }: Props
               Cancel
             </Button>
           </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+interface SourceRowProps {
+  catalog: FolderCatalog;
+  displayName: string;
+  addonName: string | null;
+  addonUrl: string | null;
+  /** null = the check could not run (manifest still loading or unreachable). */
+  isStale: boolean | null;
+  onDelete: (id: string) => Promise<void>;
+}
+
+export function SourceRow({ catalog, displayName, addonName, addonUrl, isStale, onDelete }: SourceRowProps) {
+  const [expanded, setExpanded] = useState(false);
+  const { items, loading, error } = useCatalogPreview(
+    addonUrl, catalog.media_type, catalog.catalog_id, expanded,
+  );
+
+  return (
+    <div className="rounded-xl border border-border bg-surface-2 px-4 py-3">
+      <div className="flex items-center gap-3">
+        <button
+          onClick={() => setExpanded((v) => !v)}
+          className="flex-none font-mono text-[11px] text-faint hover:text-accent"
+          aria-label={expanded ? 'Hide preview' : 'Show preview'}
+        >
+          {expanded ? '▾' : '▸'}
+        </button>
+        <div className="flex-1 min-w-0">
+          <p className="text-[13px] font-semibold text-text truncate">{displayName}</p>
+          <p className="font-mono text-[10px] text-faint">
+            {catalog.catalog_id}
+            <span className="ml-2 text-muted">{addonName ?? 'Unknown addon'}</span>
+          </p>
+        </div>
+        <div className="flex items-center gap-2 flex-none">
+          {isStale === true && (
+            <span className="rounded px-1.5 py-0.5 font-mono text-[9px] bg-red-400/10 text-red-400">
+              stale
+            </span>
+          )}
+          <span className={`rounded px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wide ${
+            catalog.media_type === 'movie' ? 'bg-cyan/10 text-cyan' :
+            catalog.media_type === 'series' ? 'bg-magenta/10 text-magenta' :
+            'bg-accent/10 text-accent'
+          }`}>{catalog.media_type}</span>
+          {catalog.genre && (
+            <span className="rounded px-1.5 py-0.5 font-mono text-[9px] bg-surface border border-border text-muted">
+              {catalog.genre}
+            </span>
+          )}
+          <button
+            onClick={() => onDelete(catalog.id)}
+            className="ml-1 font-mono text-[11px] text-faint hover:text-red-400 transition-colors"
+          >
+            ✕
+          </button>
+        </div>
+      </div>
+
+      {expanded && (
+        <div className="mt-3 border-t border-border pt-3">
+          {loading && <p className="font-mono text-[10px] text-faint">Loading preview…</p>}
+          {error && <p className="font-mono text-[10px] text-red-400">Preview failed: {error}</p>}
+          {items && items.length === 0 && (
+            <p className="font-mono text-[10px] text-faint">Catalog returned no items</p>
+          )}
+          {items && items.length > 0 && (
+            <div className="flex gap-2 overflow-x-auto">
+              {items.map((it) => (
+                <div key={it.id} className="w-16 flex-none">
+                  {it.poster
+                    ? <img src={it.poster} alt={it.name} className="w-16 rounded" />
+                    : <div className="h-24 w-16 rounded bg-surface" />}
+                  <p className="mt-1 truncate font-mono text-[9px] text-faint">{it.name}</p>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>
