@@ -68,6 +68,9 @@ export interface Collection {
   created_at: string;
   parent_collection_id: string | null;
   parent_folder_id: string | null;
+  /** NULL = shared/admin-curated collection. Non-null = personal collection
+   *  owned by that profile, private to them via RLS. */
+  owner_profile_id: string | null;
 }
 
 export interface Folder {
@@ -104,6 +107,9 @@ export interface FolderCatalog {
   media_type: string;
   genre: string | null;
   extras: Record<string, string> | null;
+  /** The installed_addons row this catalog was picked from. NULL for legacy
+   *  admin-curated rows, or when the addon has since been deleted. */
+  addon_id: string | null;
 }
 
 export type Plan = 'premium' | 'premium_plus';
