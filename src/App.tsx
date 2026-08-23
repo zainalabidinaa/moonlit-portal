@@ -11,6 +11,7 @@ import ActivatePage from './routes/public/ActivatePage';
 import SupportPage from './routes/public/SupportPage';
 import ProfilesPage from './routes/user/ProfilesPage';
 import AddonsPage from './routes/user/AddonsPage';
+import MyCollectionsPage from './routes/user/MyCollectionsPage';
 import BillingPage from './routes/user/BillingPage';
 import CatalogPage from './routes/admin/CatalogPage';
 import HomeLayoutPage from './routes/admin/HomeLayoutPage';
@@ -40,6 +41,7 @@ export default function App() {
           {/* User */}
           <Route path="/profiles" element={<UserRoute><ProfilesPage /></UserRoute>} />
           <Route path="/addons" element={<UserRoute><AddonsPage /></UserRoute>} />
+          <Route path="/my-collections" element={<UserRoute><MyCollectionsPage /></UserRoute>} />
           <Route path="/billing" element={<AuthRoute><BillingPage /></AuthRoute>} />
 
           {/* Admin */}
