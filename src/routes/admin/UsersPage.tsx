@@ -140,9 +140,9 @@ export default function UsersPage() {
     }
   }
 
-  // Forces install_curated_setup() to re-run for this user right now,
-  // independent of any role/streams change — for fixing a missing or stale
-  // catalog without touching an unrelated flag.
+  // Forces a full install_curated_setup() re-run for this user right now —
+  // catalogs AND streams — regardless of their current Streams flag. Also
+  // flips stream_addons_enabled server-side so the checkbox reflects it.
   async function handleRunSetup(userId: string) {
     setRunningSetup(userId);
     try {
@@ -153,6 +153,7 @@ export default function UsersPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? `HTTP ${res.status}`);
+      setUsers(prev => prev.map(u => u.user_id === userId ? { ...u, stream_addons_enabled: true } : u));
       setSetupDone(userId);
       setTimeout(() => setSetupDone(prev => prev === userId ? null : prev), 2000);
     } catch (e) {

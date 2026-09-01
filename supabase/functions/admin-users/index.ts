@@ -164,6 +164,11 @@ Deno.serve(async (req) => {
       const profileFields: Record<string, any> = {};
       if (stream_addons_enabled !== undefined) {
         profileFields.stream_addons_enabled = stream_addons_enabled;
+      } else if (runSetup) {
+        // Run setup is meant to fully provision a user — including streams —
+        // not just whatever install_curated_setup would default to. Flip the
+        // flag here too so the Streams checkbox reflects reality afterward.
+        profileFields.stream_addons_enabled = true;
       }
 
       // Update the first profile for this user, or insert if none exists
@@ -206,10 +211,13 @@ Deno.serve(async (req) => {
       // Re-provision immediately when the streams grant changed, rather than
       // waiting for the next cron sync — the admin flipping this switch
       // should be reflected the next time that user's app loads addons.
-      // `runSetup` triggers the same RPC on demand, independent of any flag
-      // change, so an admin can force a re-provision without touching state.
+      // `runSetup` triggers the same RPC on demand, but forces
+      // p_include_streams: true — it's meant to fully provision a user in
+      // one click, not just replay whatever their current flag says.
       if ((stream_addons_enabled !== undefined || runSetup) && profileId) {
-        const { error: rpcErr } = await supabaseAdmin.rpc('install_curated_setup', { p_profile_id: profileId });
+        const rpcArgs: Record<string, unknown> = { p_profile_id: profileId };
+        if (runSetup) rpcArgs.p_include_streams = true;
+        const { error: rpcErr } = await supabaseAdmin.rpc('install_curated_setup', rpcArgs);
         if (rpcErr) throw rpcErr;
       }
 
