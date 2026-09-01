@@ -81,6 +81,7 @@ export default function UsersPage() {
   const [changingStreams, setChangingStreams] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<AdminUser | null>(null);
   const [changingExpiry, setChangingExpiry] = useState<string | null>(null);
+  const [runningSetup, setRunningSetup] = useState<string | null>(null);
   const [customUsers, setCustomUsers] = useState<Set<string>>(new Set());
   const [customValues, setCustomValues] = useState<Record<string, string>>({});
 
@@ -135,6 +136,27 @@ export default function UsersPage() {
       setTimeout(() => setError(''), 4000);
     } finally {
       setChangingStreams(null);
+    }
+  }
+
+  // Forces install_curated_setup() to re-run for this user right now,
+  // independent of any role/streams change — for fixing a missing or stale
+  // catalog without touching an unrelated flag.
+  async function handleRunSetup(userId: string) {
+    setRunningSetup(userId);
+    try {
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_FUNCTIONS_URL}/admin-users`, {
+        method: 'PATCH',
+        headers: await authHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ userId, runSetup: true }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? `HTTP ${res.status}`);
+    } catch (e) {
+      setError((e as Error).message || 'Failed to run setup');
+      setTimeout(() => setError(''), 4000);
+    } finally {
+      setRunningSetup(null);
     }
   }
 
@@ -228,6 +250,7 @@ export default function UsersPage() {
                   <th className="text-left px-4 py-3 font-medium text-muted">Joined</th>
                   <th className="px-4 py-3" />
                   <th className="px-4 py-3" />
+                  <th className="px-4 py-3" />
                 </tr>
               </thead>
               <tbody>
@@ -298,6 +321,16 @@ export default function UsersPage() {
                           <option key={r} value={r}>{ROLE_LABELS[r]}</option>
                         ))}
                       </select>
+                    </td>
+                    <td className="px-4 py-3">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        loading={runningSetup === u.user_id}
+                        onClick={() => handleRunSetup(u.user_id)}
+                      >
+                        Run setup
+                      </Button>
                     </td>
                     <td className="px-4 py-3">
                       {/* Admin accounts can't be deleted from here at all — the
