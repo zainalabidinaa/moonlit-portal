@@ -130,9 +130,9 @@ Deno.serve(async (req) => {
     }
 
     if (req.method === 'PATCH') {
-      const { userId, role, role_expires_at, stream_addons_enabled } = await req.json();
-      if (!userId || (!role && stream_addons_enabled === undefined)) {
-        return new Response(JSON.stringify({ error: 'userId and (role or stream_addons_enabled) are required' }), {
+      const { userId, role, role_expires_at, stream_addons_enabled, runSetup } = await req.json();
+      if (!userId || (!role && stream_addons_enabled === undefined && !runSetup)) {
+        return new Response(JSON.stringify({ error: 'userId and (role, stream_addons_enabled, or runSetup) are required' }), {
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
@@ -206,7 +206,9 @@ Deno.serve(async (req) => {
       // Re-provision immediately when the streams grant changed, rather than
       // waiting for the next cron sync — the admin flipping this switch
       // should be reflected the next time that user's app loads addons.
-      if (stream_addons_enabled !== undefined && profileId) {
+      // `runSetup` triggers the same RPC on demand, independent of any flag
+      // change, so an admin can force a re-provision without touching state.
+      if ((stream_addons_enabled !== undefined || runSetup) && profileId) {
         const { error: rpcErr } = await supabaseAdmin.rpc('install_curated_setup', { p_profile_id: profileId });
         if (rpcErr) throw rpcErr;
       }
