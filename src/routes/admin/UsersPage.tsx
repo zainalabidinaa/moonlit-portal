@@ -82,6 +82,7 @@ export default function UsersPage() {
   const [deleteTarget, setDeleteTarget] = useState<AdminUser | null>(null);
   const [changingExpiry, setChangingExpiry] = useState<string | null>(null);
   const [runningSetup, setRunningSetup] = useState<string | null>(null);
+  const [setupDone, setSetupDone] = useState<string | null>(null);
   const [customUsers, setCustomUsers] = useState<Set<string>>(new Set());
   const [customValues, setCustomValues] = useState<Record<string, string>>({});
 
@@ -152,6 +153,8 @@ export default function UsersPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? `HTTP ${res.status}`);
+      setSetupDone(userId);
+      setTimeout(() => setSetupDone(prev => prev === userId ? null : prev), 2000);
     } catch (e) {
       setError((e as Error).message || 'Failed to run setup');
       setTimeout(() => setError(''), 4000);
@@ -239,7 +242,7 @@ export default function UsersPage() {
         {error && <p className="text-red-500 text-sm">{error}</p>}
 
         {!loading && !error && (
-          <div className="overflow-hidden rounded-xl border border-border bg-surface">
+          <div className="overflow-x-auto rounded-xl border border-border bg-surface">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border bg-bg">
@@ -328,8 +331,9 @@ export default function UsersPage() {
                         variant="ghost"
                         loading={runningSetup === u.user_id}
                         onClick={() => handleRunSetup(u.user_id)}
+                        className="whitespace-nowrap"
                       >
-                        Run setup
+                        {setupDone === u.user_id ? 'Done ✓' : 'Run setup'}
                       </Button>
                     </td>
                     <td className="px-4 py-3">
