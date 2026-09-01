@@ -84,7 +84,7 @@ export default function SignupPage() {
     // 20260811_signup_profile_gate.sql.
 
     setLoading(false);
-    navigate('/profiles');
+    navigate('/addons');
   }
 
   async function handleStripeSignup() {

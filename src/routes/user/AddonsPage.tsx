@@ -34,6 +34,7 @@ export default function AddonsPage() {
 
   const isManaged = role === 'premium';
   const canEdit = role === 'admin' || role === 'premium_plus';
+  const curatedSetupInstalled = activeProfile?.curated_setup_installed === true || curatedSyncedAt != null;
 
   useEffect(() => {
     if (!activeProfile) return;
@@ -142,10 +143,22 @@ export default function AddonsPage() {
           <Card className="p-4 mb-6">
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0">
-                <p className="text-sm font-medium text-text">Install curated setup</p>
+                <p className="text-sm font-medium text-text">One-tap setup</p>
                 <p className="text-xs text-muted">Add Moonlit's recommended add-ons to your account in one tap. They'll sync to your apps.</p>
               </div>
-              <Button onClick={handleInstallCuratedSetup} loading={installing} size="md">Install</Button>
+              <div className="flex items-center gap-2 shrink-0">
+                <Badge variant={curatedSetupInstalled ? 'success' : 'default'}>
+                  {installing ? 'Setting up…' : curatedSetupInstalled ? 'Installed' : 'Not set up'}
+                </Badge>
+                <Button
+                  variant={curatedSetupInstalled ? 'ghost' : 'primary'}
+                  onClick={handleInstallCuratedSetup}
+                  loading={installing}
+                  size="md"
+                >
+                  {installing ? 'Installing…' : curatedSetupInstalled ? 'Install again' : 'Install'}
+                </Button>
+              </div>
             </div>
             {error && <p className="text-xs text-red-500 mt-3">{error}</p>}
             {lastInstallCount !== null && (
