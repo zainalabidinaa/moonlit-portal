@@ -243,7 +243,7 @@ export default function UsersPage() {
         {error && <p className="text-red-500 text-sm">{error}</p>}
 
         {!loading && !error && (
-          <div className="overflow-x-auto rounded-xl border border-border bg-surface">
+          <div className="inline-block max-w-full overflow-x-auto rounded-xl border border-border bg-surface">
             <table className="text-sm">
               <thead>
                 <tr className="border-b border-border bg-bg">
