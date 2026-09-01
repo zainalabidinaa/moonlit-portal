@@ -236,7 +236,7 @@ export default function UsersPage() {
 
   return (
     <AppShell>
-      <div className="max-w-3xl mx-auto">
+      <div className="max-w-6xl mx-auto">
         <h1 className="text-2xl font-bold text-text mb-6">Users</h1>
 
         {loading && <p className="text-muted text-sm">Loading…</p>}
@@ -244,7 +244,7 @@ export default function UsersPage() {
 
         {!loading && !error && (
           <div className="overflow-x-auto rounded-xl border border-border bg-surface">
-            <table className="w-full text-sm">
+            <table className="text-sm">
               <thead>
                 <tr className="border-b border-border bg-bg">
                   <th className="text-left px-4 py-3 font-medium text-muted">Email</th>
