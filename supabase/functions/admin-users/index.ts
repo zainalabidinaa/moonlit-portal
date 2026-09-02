@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { mergeActivity } from './lib.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -55,6 +56,60 @@ Deno.serve(async (req) => {
 
     if (req.method === 'GET') {
       const url = new URL(req.url);
+
+      const activityUserId = url.searchParams.get('activity');
+      if (activityUserId) {
+        const { data: sessions, error: sessionsErr } = await supabaseAdmin
+          .rpc('admin_list_user_sessions', { target_user_id: activityUserId, limit_count: 10 });
+        if (sessionsErr) throw sessionsErr;
+
+        const { data: profileRows, error: profilesErr } = await supabaseAdmin
+          .from('profiles')
+          .select('id')
+          .eq('user_id', activityUserId);
+        if (profilesErr) throw profilesErr;
+        const profileIds = (profileRows ?? []).map((p: any) => p.id);
+
+        let inProgress: any[] = [];
+        let watched: any[] = [];
+        let liked: any[] = [];
+
+        if (profileIds.length > 0) {
+          const [inProgressRes, watchedRes, likedRes] = await Promise.all([
+            supabaseAdmin
+              .from('watch_progress')
+              .select('name, media_type, season, episode, updated_at, completed')
+              .in('profile_id', profileIds)
+              .order('updated_at', { ascending: false })
+              .limit(10),
+            supabaseAdmin
+              .from('watched_items')
+              .select('name, media_type, season, episode, marked_at')
+              .in('profile_id', profileIds)
+              .order('marked_at', { ascending: false })
+              .limit(10),
+            supabaseAdmin
+              .from('liked_items')
+              .select('name, media_type, liked_at')
+              .in('profile_id', profileIds)
+              .order('liked_at', { ascending: false })
+              .limit(10),
+          ]);
+          if (inProgressRes.error) throw inProgressRes.error;
+          if (watchedRes.error) throw watchedRes.error;
+          if (likedRes.error) throw likedRes.error;
+          inProgress = inProgressRes.data ?? [];
+          watched = watchedRes.data ?? [];
+          liked = likedRes.data ?? [];
+        }
+
+        const activity = mergeActivity(inProgress, watched, liked);
+
+        return new Response(JSON.stringify({ sessions: sessions ?? [], activity }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
       const idsParam = url.searchParams.get('ids');
 
       if (idsParam) {
@@ -121,6 +176,7 @@ Deno.serve(async (req) => {
           role_expires_at: p?.role_expires_at ?? null,
           stream_addons_enabled: p?.stream_addons_enabled ?? false,
           created_at: u.created_at,
+          last_sign_in_at: u.last_sign_in_at ?? null,
         };
       });
 
