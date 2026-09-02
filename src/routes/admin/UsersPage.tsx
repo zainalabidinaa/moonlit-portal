@@ -1,11 +1,12 @@
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { authHeaders } from '../../lib/auth-headers';
 import { AppShell } from '../../components/layout/AppShell';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { DeleteUserModal } from '../../components/admin/DeleteUserModal';
-import { lastActiveStatus, formatRelativeTime, type ActiveStatus } from '../../lib/userActivity';
+import { lastActiveStatus, formatRelativeTime, parseUserAgent, type ActiveStatus } from '../../lib/userActivity';
+import type { SessionInfo, ActivityEntry } from '../../lib/userActivity';
 import type { UserRole } from '../../types';
 
 type AdminUser = {
@@ -97,6 +98,69 @@ function LastActiveCell({ lastSignInAt }: { lastSignInAt: string | null }) {
   );
 }
 
+const KIND_LABEL: Record<ActivityEntry['kind'], string> = {
+  in_progress: 'Watching',
+  watched: 'Watched',
+  liked: 'Liked',
+};
+
+function activityTitle(entry: ActivityEntry): string {
+  const base = entry.name ?? 'Untitled';
+  if (entry.season != null && entry.episode != null) {
+    return `${base} — S${entry.season}E${entry.episode}`;
+  }
+  return base;
+}
+
+function ActivityDrawer({
+  loading,
+  error,
+  data,
+}: {
+  loading: boolean;
+  error?: string;
+  data?: { sessions: SessionInfo[]; activity: ActivityEntry[] };
+}) {
+  if (loading) return <p className="text-sm text-muted">Loading…</p>;
+  if (error) return <p className="text-sm text-red-500">Couldn't load activity: {error}</p>;
+  if (!data) return null;
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div>
+        <p className="text-xs uppercase tracking-wide text-muted font-medium mb-2">Sessions</p>
+        {data.sessions.length === 0 ? (
+          <p className="text-sm text-muted/60">No sessions yet</p>
+        ) : (
+          <ul className="space-y-2">
+            {data.sessions.map((s, i) => (
+              <li key={i} className="text-sm flex items-center justify-between border-b border-border pb-2 last:border-0">
+                <span className="text-text">{parseUserAgent(s.user_agent)}</span>
+                <span className="text-muted text-xs">{formatRelativeTime(s.updated_at)}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+      <div>
+        <p className="text-xs uppercase tracking-wide text-muted font-medium mb-2">Recent activity</p>
+        {data.activity.length === 0 ? (
+          <p className="text-sm text-muted/60">No activity yet</p>
+        ) : (
+          <ul className="space-y-2">
+            {data.activity.map((entry, i) => (
+              <li key={i} className="text-sm flex items-center justify-between border-b border-border pb-2 last:border-0">
+                <span className="text-text">{KIND_LABEL[entry.kind]}: {activityTitle(entry)}</span>
+                <span className="text-muted text-xs">{formatRelativeTime(entry.at)}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function UsersPage() {
   const { session } = useAuth();
   const [users, setUsers] = useState<AdminUser[]>([]);
@@ -110,6 +174,10 @@ export default function UsersPage() {
   const [setupDone, setSetupDone] = useState<string | null>(null);
   const [customUsers, setCustomUsers] = useState<Set<string>>(new Set());
   const [customValues, setCustomValues] = useState<Record<string, string>>({});
+  const [expandedUser, setExpandedUser] = useState<string | null>(null);
+  const [activityByUser, setActivityByUser] = useState<Record<string, { sessions: SessionInfo[]; activity: ActivityEntry[] }>>({});
+  const [activityLoading, setActivityLoading] = useState<string | null>(null);
+  const [activityError, setActivityError] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (!session) return;
@@ -202,6 +270,31 @@ export default function UsersPage() {
     setUsers(prev => prev.filter(u => u.user_id !== userId));
   }
 
+  async function toggleRow(userId: string) {
+    if (expandedUser === userId) {
+      setExpandedUser(null);
+      return;
+    }
+    setExpandedUser(userId);
+    if (activityByUser[userId] || activityLoading === userId) return;
+
+    setActivityLoading(userId);
+    setActivityError(prev => { const next = { ...prev }; delete next[userId]; return next; });
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_FUNCTIONS_URL}/admin-users?activity=${userId}`,
+        { headers: await authHeaders() },
+      );
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? `HTTP ${res.status}`);
+      setActivityByUser(prev => ({ ...prev, [userId]: { sessions: data.sessions ?? [], activity: data.activity ?? [] } }));
+    } catch (e) {
+      setActivityError(prev => ({ ...prev, [userId]: (e as Error).message || 'Failed to load activity' }));
+    } finally {
+      setActivityLoading(null);
+    }
+  }
+
   async function handleExpiryPreset(userId: string, preset: string) {
     const user = users.find(u => u.user_id === userId);
     if (!user) return;
@@ -285,7 +378,11 @@ export default function UsersPage() {
               </thead>
               <tbody>
                 {users.map(u => (
-                  <tr key={u.id} className="border-b border-border last:border-0">
+                  <Fragment key={u.id}>
+                  <tr
+                    className="border-b border-border last:border-0 cursor-pointer hover:bg-surface-2"
+                    onClick={() => toggleRow(u.user_id)}
+                  >
                     <td className="px-4 py-3 text-text">{u.email ?? u.user_id.slice(0, 8) + '…'}</td>
                     <td className="px-4 py-3">
                       {isRoleExpired(u) ? (
@@ -377,6 +474,18 @@ export default function UsersPage() {
                       )}
                     </td>
                   </tr>
+                  {expandedUser === u.user_id && (
+                    <tr className="border-b border-border last:border-0">
+                      <td colSpan={9} className="px-4 py-4 bg-bg" onClick={(e) => e.stopPropagation()}>
+                        <ActivityDrawer
+                          loading={activityLoading === u.user_id}
+                          error={activityError[u.user_id]}
+                          data={activityByUser[u.user_id]}
+                        />
+                      </td>
+                    </tr>
+                  )}
+                  </Fragment>
                 ))}
               </tbody>
             </table>
