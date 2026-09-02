@@ -48,7 +48,13 @@ export function FolderGrid({
 
       <div className="grid gap-3.5 [grid-template-columns:repeat(auto-fill,minmax(180px,1fr))]">
         {folders.map((f, i) => {
+          // Indices (i) stay tied to the full, unfiltered `folders` array —
+          // onDragStart/onDrop/onMoveUp/onMoveDown all key off this index
+          // into that array, so a child folder still needs its real i even
+          // though it doesn't get its own top-level grid tile below.
+          if (f.parent_folder_id) return null;
           const dimmed = f.enabled === false;
+          const children = folders.filter((c) => c.parent_folder_id === f.id);
           return (
             <div key={f.id} className={`group relative ${dimmed ? 'opacity-50' : ''}`}>
             {isCollectionDragActive && (
@@ -112,6 +118,27 @@ export function FolderGrid({
                 title="Delete folder"
               >×</button>
             </div>
+
+            {/* Nested child folders — shown as a compact list under their
+                parent tile so it's visually obvious they're "inside" it,
+                not siblings of it. Read-only here (select to edit, same as
+                a top-level tile); reordering/deleting a child still happens
+                by clicking into it, not from this compact row. */}
+            {children.length > 0 && (
+              <div className="mt-1.5 space-y-1 rounded-xl border border-dashed border-border/60 bg-bg2/40 p-1.5">
+                <p className="px-1 font-mono text-[9px] uppercase tracking-wide text-faint">{children.length} nested folder{children.length === 1 ? '' : 's'}</p>
+                {children.map((child) => (
+                  <button
+                    key={child.id}
+                    onClick={() => onSelectFolder(child)}
+                    className={`flex w-full items-center justify-between rounded-lg px-2 py-1 text-left transition-colors hover:bg-accent-light/20 ${child.enabled === false ? 'opacity-50' : ''}`}
+                  >
+                    <span className="truncate text-[11px] text-text">{child.name}</span>
+                    <span className="font-mono text-[9px] text-faint">↳</span>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         );})}
 
