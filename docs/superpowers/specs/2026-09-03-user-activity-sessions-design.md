@@ -54,7 +54,8 @@ see Open items) already has:
   remote database.
 
 This turns the feature into a read-only surface over existing data, not a new
-data pipeline.
+data pipeline. One small migration is still needed — a `SECURITY DEFINER`
+bridge function, not a table — see below.
 
 ## Design
 
@@ -67,8 +68,15 @@ the response. Add it alongside `created_at`.
 **2. New `GET ?activity=<user_id>` branch**, gated by the same admin check
 already at the top of the function. Given a `user_id`:
 
-- **Sessions**: `select user_id, created_at, updated_at, user_agent, ip from
-  auth.sessions where user_id = $1 order by updated_at desc limit 10`.
+- **Sessions**: `auth.sessions` has no grants for `anon`/`authenticated`/
+  `service_role` (checked directly — only the `postgres` role can touch it), so
+  it isn't reachable through `supabaseAdmin.from(...)` (PostgREST). This project
+  already has precedent for this exact bridge: `install_curated_setup` is a
+  `SECURITY DEFINER` function owned by `postgres`, callable by `service_role` via
+  `.rpc()`. A new migration adds `public.admin_list_user_sessions(target_user_id
+  uuid, limit_count integer default 10)` the same way — `security definer`,
+  `execute` revoked from `public` and granted only to `service_role` — returning
+  `created_at, updated_at, user_agent, ip` ordered by `updated_at desc`.
 - **Activity**: resolve `profile_id`s for the account (`select id from profiles
   where user_id = $1`), then fetch the most recent ~10 rows total across
   `watch_progress` (`completed = false`, i.e. in-progress), `watched_items`, and
@@ -118,6 +126,9 @@ response for a future support-tooling use, not displayed today.
     (device label parsed from `user_agent`, relative time, a "LIVE" chip when
     `updated_at` is within the last few minutes) and **Recent activity** (icon by
     `kind`, title, `season`/`episode` context, relative time).
+  - `user_agent` only distinguishes "Moonlit app" (native) from a browser label
+    — per Non-goals, nothing tries to tell iOS and macOS apart, since both send
+    the same `Moonlit/… Darwin/…` pattern with no reliable marker between them.
   - Empty states: "No sessions yet" / "No activity yet" rather than a blank panel.
 - A tiny `parseUserAgent(ua: string | null): string` helper maps the known
   patterns (`Moonlit/… Darwin` → "Moonlit app (Mac/iOS)", a browser UA → browser +
