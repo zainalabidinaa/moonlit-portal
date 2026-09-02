@@ -5,6 +5,9 @@ export type SessionInfo = {
   ip: string | null;
 };
 
+// ActivityKind and ActivityEntry mirror the shape returned by the
+// admin-users edge function (supabase/functions/admin-users/lib.ts) — keep
+// the two in sync if that response shape ever changes.
 export type ActivityKind = 'in_progress' | 'watched' | 'liked';
 
 export type ActivityEntry = {
