@@ -62,7 +62,12 @@ const LANGUAGES = {
     ['Japanese Live Action Shows', '10337', 'series'],
     ['New Japanese Anime', '8808', 'series'],
   ],
-  Mandarin: [
+  // Was "Mandarin" — merged with Cantonese into one "Chinese" pill (TMDBLanguageIDs
+  // now queries TMDB with the combined code "zh|cn"; Cantonese-only content was
+  // consistently thin on its own). Renamed in-place below rather than left to
+  // create a duplicate, since the "Mandarin" folder already exists from the
+  // first run of this script.
+  Chinese: [
     ['Best Chinese Movies', '2336', 'movie'],
     ['New Chinese Movies', '4570', 'movie'],
     ['Chinese Movies', '124970', 'movie'],
@@ -85,6 +90,26 @@ const LANGUAGES = {
     ['Palestinian Movies', '156972', 'movie'],
     ['Lebanese Movies', '156973', 'movie'],
   ],
+  // The remaining 14 hub languages get a folder for structural consistency
+  // (so a future curated source has somewhere to go, no code change needed)
+  // but no children — MDBList's coverage for these was too thin to be worth
+  // curating (checked live, see mdblist-language-sources.md), and unlike the
+  // 5 above, their existing rows come from live TMDB discover queries at
+  // runtime (Trending/Top Rated/New Releases/Hidden Gems) — freshness that's
+  // deliberately NOT being traded away for a static portal snapshot.
+  Spanish: [],
+  French: [],
+  Portuguese: [],
+  Russian: [],
+  German: [],
+  Turkish: [],
+  Italian: [],
+  Thai: [],
+  Polish: [],
+  Dutch: [],
+  Swedish: [],
+  Norwegian: [],
+  Danish: [],
 };
 
 async function findOrCreateCollection(name) {
@@ -150,8 +175,42 @@ async function ensureFolderCatalog(folderId, catalogId, mediaType) {
   if (error) throw error;
 }
 
+async function renameOrDeleteLeftoverChineseFolders(languagesCollectionId) {
+  const { data: folders, error } = await sb
+    .from('folders')
+    .select('*')
+    .eq('collection_id', languagesCollectionId)
+    .is('parent_folder_id', null);
+  if (error) throw error;
+
+  const mandarin = folders.find((f) => normalize(f.name) === 'mandarin');
+  const chinese = folders.find((f) => normalize(f.name) === 'chinese');
+  if (mandarin && !chinese) {
+    const { error: renameErr } = await sb.from('folders').update({ name: 'Chinese' }).eq('id', mandarin.id);
+    if (renameErr) throw renameErr;
+    console.log(`Renamed "Mandarin" -> "Chinese" (${mandarin.id})`);
+  }
+
+  const cantonese = folders.find((f) => normalize(f.name) === 'cantonese');
+  if (cantonese) {
+    const { data: cantoneseChildren, error: childErr } = await sb
+      .from('folders')
+      .select('id')
+      .eq('parent_folder_id', cantonese.id);
+    if (childErr) throw childErr;
+    if (cantoneseChildren.length === 0) {
+      const { error: delErr } = await sb.from('folders').delete().eq('id', cantonese.id);
+      if (delErr) throw delErr;
+      console.log(`Deleted standalone "Cantonese" folder (${cantonese.id}) — merged into Chinese`);
+    } else {
+      console.log(`WARNING: "Cantonese" folder (${cantonese.id}) has ${cantoneseChildren.length} child folder(s) — not deleting automatically, check manually`);
+    }
+  }
+}
+
 async function main() {
   const languagesCollectionId = await findOrCreateCollection('Languages');
+  await renameOrDeleteLeftoverChineseFolders(languagesCollectionId);
 
   let langSortOrder = 0;
   for (const [languageName, rows] of Object.entries(LANGUAGES)) {
