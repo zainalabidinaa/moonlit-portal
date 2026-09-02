@@ -79,6 +79,7 @@ Deno.serve(async (req) => {
             supabaseAdmin
               .from('watch_progress')
               .select('name, media_type, season, episode, updated_at, completed')
+              .eq('completed', false)
               .in('profile_id', profileIds)
               .order('updated_at', { ascending: false })
               .limit(10),
