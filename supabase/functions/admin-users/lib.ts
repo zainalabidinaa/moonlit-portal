@@ -47,6 +47,9 @@ export function mergeActivity(
 ): ActivityEntry[] {
   const entries: ActivityEntry[] = [
     ...inProgress
+      // index.ts also filters completed=false at the query level so the
+      // limit(10) row budget isn't spent on rows we'd discard anyway — this
+      // filter stays too as a safety net for any other caller.
       .filter((r) => !r.completed)
       .map((r) => ({
         kind: 'in_progress' as const,
