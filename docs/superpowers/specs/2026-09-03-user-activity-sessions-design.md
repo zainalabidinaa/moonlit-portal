@@ -1,7 +1,7 @@
 # User activity & sessions on the Users page — design
 
 Date: 2026-09-03
-Status: approved, not yet implemented
+Status: implemented
 
 ## Problem
 
