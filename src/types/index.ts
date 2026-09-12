@@ -163,6 +163,11 @@ export interface HomePresetItemDataSource {
   /** 'genre' | 'language' — only present when kind === 'browseHub'. Mirrors
    *  WidgetDataSource.browseHub(hub:) in WidgetModels.swift. */
   hub?: string;
+  /** TMDB `/discover` (or the builder's `trending.day|week`/`limit`
+   *  sentinels) query string — only present when kind === 'filtering'.
+   *  Mirrors WidgetDataSource.filtering(query:) in WidgetModels.swift; the
+   *  app publishes these via `Save & Publish`. */
+  query?: string;
 }
 
 export interface HomePresetItem {
@@ -173,12 +178,16 @@ export interface HomePresetItem {
    *  media_type, which narrows content *within* whichever tab this is. */
   tab: 'home' | 'movies' | 'series';
   // Mirrors WidgetDataSource's encoded shape (Packages/MoonlitCore/Sources/
-  // MoonlitCore/Models/WidgetModels.swift). Only the 'collection' kind is
-  // producible from the portal today.
+  // MoonlitCore/Models/WidgetModels.swift). The portal itself authors
+  // 'collection'/'browseHub'; 'filtering' items arrive from the app's
+  // "Save & Publish" (see 20260920_home_preset_items_title.sql).
   data_source: HomePresetItemDataSource;
   media_type: 'movie' | 'series' | null;
   style: string;
   sort_order: number;
+  /** Display name for widget-shaped items the app published (a Filtering
+   *  widget's own name). NULL for portal-authored rows. */
+  title?: string | null;
 }
 
 export type Plan = 'premium' | 'premium_plus';

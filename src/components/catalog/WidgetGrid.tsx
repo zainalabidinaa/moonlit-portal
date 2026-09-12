@@ -44,7 +44,18 @@ export type WidgetCardItem =
        *  collection itself, so "all widgets" mode has no style to show). */
       style?: string;
     }
-  | { key: string; kind: 'browseHub'; hub: 'genre' | 'language' };
+  | { key: string; kind: 'browseHub'; hub: 'genre' | 'language' }
+  | {
+      key: string;
+      kind: 'filtering';
+      /** The widget's own published name (`home_preset_items.title`),
+       *  falling back to "Filtering" for rows published before that column
+       *  existed. */
+      title: string;
+      /** The raw TMDB query the app published — shown summarized on the
+       *  card; editing the filters themselves stays on-device. */
+      query: string;
+    };
 
 const STYLE_LABELS: Record<string, string> = {
   standard: 'Row Classic',
@@ -83,7 +94,11 @@ export function WidgetGrid({ items, folders, activeTab, mode, onSelectCollection
             childFolders={item.kind === 'collection' ? folders.filter((f) => f.collection_id === item.collection.id && !f.parent_folder_id) : []}
             mode={mode}
             isHomeTab={activeTab === 'home'}
-            onClick={item.kind === 'collection' ? () => onSelectCollection(item.collection) : () => onOpenBrowseHub(item.hub)}
+            onClick={
+              item.kind === 'collection' ? () => onSelectCollection(item.collection)
+              : item.kind === 'browseHub' ? () => onOpenBrowseHub(item.hub)
+              : undefined
+            }
             onDelete={() => onDeleteCard(item)}
             onDragStart={() => setDragKey(item.key)}
             onDrop={() => { if (dragKey && dragKey !== item.key) onReorderCard(dragKey, item.key, 'before'); setDragKey(null); }}
@@ -138,6 +153,21 @@ function WidgetCard({
     return (
       <BrowseHubCard
         hub={item.hub}
+        onClick={onClick}
+        onDelete={onDelete}
+        onDragStart={onDragStart}
+        onDrop={onDrop}
+        onMoveUp={onMoveUp}
+        onMoveDown={onMoveDown}
+      />
+    );
+  }
+
+  if (item.kind === 'filtering') {
+    return (
+      <FilteringCard
+        title={item.title}
+        query={item.query}
         onClick={onClick}
         onDelete={onDelete}
         onDragStart={onDragStart}
@@ -302,6 +332,107 @@ function BrowseHubCard({
           onClick={(e) => {
             e.stopPropagation();
             if (confirm(`Remove "${BROWSE_HUB_LABELS[hub]}" from this preset's Home list?`)) onDelete();
+          }}
+          title="Remove from this preset"
+          className="flex h-7 w-7 items-center justify-center rounded-full bg-black/55 text-white transition-colors hover:bg-black/75"
+        >
+          🗑
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// A "Filtering" widget the app published into this preset via "Save &
+// Publish" — a real TMDB-query-backed row on-device. The portal can see,
+// reorder, and remove it; authoring/editing its filters stays on-device.
+const FILTER_SUMMARY_SORTS: Record<string, string> = {
+  'popularity.desc': 'Popular',
+  'vote_average.desc': 'Top Rated',
+  'primary_release_date.desc': 'Newest',
+  'primary_release_date.asc': 'Oldest',
+  'revenue.desc': 'Revenue',
+};
+
+function filteringSummary(query: string): string {
+  const params = new URLSearchParams(query);
+  const parts: string[] = [];
+  const sort = params.get('sort_by') ?? '';
+  if (sort === 'trending.day') parts.push('Trending Today');
+  else if (sort === 'trending.week') parts.push('Trending This Week');
+  else if (sort) parts.push(FILTER_SUMMARY_SORTS[sort] ?? sort);
+  const genres = params.get('with_genres');
+  if (genres) {
+    const count = genres.split(',').filter(Boolean).length;
+    parts.push(`${count} genre${count === 1 ? '' : 's'}`);
+  }
+  if (params.get('with_keywords')) parts.push('keywords');
+  if (params.get('without_keywords')) parts.push('excluded keywords');
+  if (params.get('with_watch_providers')) parts.push('providers');
+  if (params.get('with_companies')) parts.push('studios');
+  if (params.get('with_cast')) parts.push('cast');
+  if (params.get('with_crew')) parts.push('crew');
+  if (params.get('with_original_language') || params.get('with_origin_country')) parts.push('language');
+  if (params.get('with_runtime.gte') || params.get('with_runtime.lte')) parts.push('runtime');
+  if (params.get('vote_average.gte') || params.get('vote_average.lte') || params.get('vote_count.gte')) parts.push('score');
+  if (params.get('primary_release_date.gte') || params.get('first_air_date.gte') || params.get('primary_release_date.lte') || params.get('first_air_date.lte')) parts.push('period');
+  if (params.get('with_release_type')) parts.push('release');
+  const limit = params.get('limit');
+  if (limit) parts.push(`max ${limit}`);
+  return parts.length ? parts.join(' · ') : 'TMDB filter';
+}
+
+function FilteringCard({
+  title, query, onClick, onDelete, onDragStart, onDrop, onMoveUp, onMoveDown,
+}: {
+  title: string;
+  query: string;
+  onClick?: () => void;
+  onDelete: () => void;
+  onDragStart: () => void;
+  onDrop: () => void;
+  onMoveUp?: () => void;
+  onMoveDown?: () => void;
+}) {
+  return (
+    <div
+      draggable
+      onDragStart={onDragStart}
+      onDragOver={(e) => e.preventDefault()}
+      onDrop={onDrop}
+      className="group relative flex aspect-square flex-col justify-between overflow-hidden rounded-2xl border border-border bg-bg2 p-3 transition-all hover:-translate-y-1 hover:border-accent"
+    >
+      <div
+        className="pointer-events-none absolute inset-0 opacity-[0.16]"
+        style={{ background: 'radial-gradient(120% 90% at 85% 0%, #d9a94f 0%, transparent 55%)' }}
+      />
+      <button onClick={onClick} className="relative block w-full text-left" disabled={!onClick}>
+        <p className="truncate text-[15px] font-semibold text-white">{title}</p>
+        <p className="mt-0.5 truncate text-[12px] text-white/60">Filtering · {filteringSummary(query)}</p>
+      </button>
+      <div className="relative flex items-center justify-between">
+        <div className="flex gap-1.5">
+          <button
+            onClick={(e) => { e.stopPropagation(); onMoveUp?.(); }}
+            disabled={!onMoveUp}
+            title="Move earlier"
+            className="flex h-7 w-7 items-center justify-center rounded-full bg-black/55 text-white transition-colors hover:bg-black/75 disabled:cursor-not-allowed disabled:opacity-30"
+          >
+            ↑
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); onMoveDown?.(); }}
+            disabled={!onMoveDown}
+            title="Move later"
+            className="flex h-7 w-7 items-center justify-center rounded-full bg-black/55 text-white transition-colors hover:bg-black/75 disabled:cursor-not-allowed disabled:opacity-30"
+          >
+            ↓
+          </button>
+        </div>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            if (confirm(`Remove "${title}" from this preset's list? The widget itself stays on the curator's device.`)) onDelete();
           }}
           title="Remove from this preset"
           className="flex h-7 w-7 items-center justify-center rounded-full bg-black/55 text-white transition-colors hover:bg-black/75"

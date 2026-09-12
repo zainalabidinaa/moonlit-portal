@@ -145,6 +145,18 @@ export default function HomePresetsPage() {
         const hub = item.data_source.hub === 'language' ? 'language' : 'genre';
         return { key: item.id, kind: 'browseHub', hub };
       }
+      // Filtering widgets the app published with "Save & Publish" — a real
+      // preset item with a TMDB query. Rendered as its own card (name +
+      // query summary) so admins can see, reorder, and remove it; editing
+      // its filters stays on-device.
+      if (item.data_source.kind === 'filtering') {
+        return {
+          key: item.id,
+          kind: 'filtering',
+          title: item.title?.trim() || 'Filtering',
+          query: item.data_source.query ?? '',
+        };
+      }
       const collectionId = item.data_source.kind === 'collection' ? item.data_source.collectionId : undefined;
       const collection = collectionId ? collections.find((c) => c.id === collectionId) : undefined;
       return collection ? { key: item.id, kind: 'collection', collection } : null;
