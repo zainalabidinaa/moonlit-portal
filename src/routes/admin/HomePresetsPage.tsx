@@ -5,7 +5,7 @@ import { Button } from '../../components/ui/Button';
 import { WidgetGrid, TAB_FLAG, type WidgetTab, type WidgetCardItem } from '../../components/catalog/WidgetGrid';
 import { WidgetEditor } from '../../components/catalog/WidgetEditor';
 import { ImportWidgetsDialog } from '../../components/catalog/ImportWidgetsDialog';
-import { PresetItemDetailDialog } from '../../components/catalog/PresetItemDetailDialog';
+import { PresetWidgetEditorDialog } from '../../components/catalog/PresetWidgetEditorDialog';
 import { cloneCollection } from '../../lib/cloneCollection';
 import type { Collection, Folder, HomePreset, HomePresetItem } from '../../types';
 
@@ -585,11 +585,21 @@ export default function HomePresetsPage() {
       />
 
           {detailItem && (
-            <PresetItemDetailDialog
+            <PresetWidgetEditorDialog
               item={detailItem}
               onClose={() => setDetailItem(null)}
               onRemove={() => {
                 handleDeleteCard(detailItem);
+                setDetailItem(null);
+              }}
+              onSaved={(updated) => {
+                // Same merge the import uses: replace by id, keep order.
+                setPresetItems((prev) => {
+                  const byId = new Map(prev.map((i) => [i.id, i]));
+                  byId.set(updated.id, updated);
+                  return [...byId.values()].sort((a, b) => a.sort_order - b.sort_order);
+                });
+                setImportNotice(`Saved “${updated.title ?? 'widget'}”.`);
                 setDetailItem(null);
               }}
             />
