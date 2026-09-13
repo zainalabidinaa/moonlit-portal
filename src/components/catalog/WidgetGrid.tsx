@@ -55,6 +55,17 @@ export type WidgetCardItem =
       /** The raw TMDB query the app published — shown summarized on the
        *  card; editing the filters themselves stays on-device. */
       query: string;
+    }
+  | {
+      /** Preset items the app/import published that aren't collection- or
+       *  hub-shaped and have no dedicated editor here yet: external-catalog
+       *  widgets and Collections Rows. Visible + reorderable + removable,
+       *  edited on-device. */
+      key: string;
+      kind: 'generic';
+      title: string;
+      subtitle: string;
+      accent?: boolean;
     };
 
 const STYLE_LABELS: Record<string, string> = {
@@ -168,6 +179,22 @@ function WidgetCard({
       <FilteringCard
         title={item.title}
         query={item.query}
+        onClick={onClick}
+        onDelete={onDelete}
+        onDragStart={onDragStart}
+        onDrop={onDrop}
+        onMoveUp={onMoveUp}
+        onMoveDown={onMoveDown}
+      />
+    );
+  }
+
+  if (item.kind === 'generic') {
+    return (
+      <GenericPresetCard
+        title={item.title}
+        subtitle={item.subtitle}
+        accent={item.accent ?? false}
         onClick={onClick}
         onDelete={onDelete}
         onDragStart={onDragStart}
@@ -409,6 +436,72 @@ function FilteringCard({
       <button onClick={onClick} className="relative block w-full text-left" disabled={!onClick}>
         <p className="truncate text-[15px] font-semibold text-white">{title}</p>
         <p className="mt-0.5 truncate text-[12px] text-white/60">Filtering · {filteringSummary(query)}</p>
+      </button>
+      <div className="relative flex items-center justify-between">
+        <div className="flex gap-1.5">
+          <button
+            onClick={(e) => { e.stopPropagation(); onMoveUp?.(); }}
+            disabled={!onMoveUp}
+            title="Move earlier"
+            className="flex h-7 w-7 items-center justify-center rounded-full bg-black/55 text-white transition-colors hover:bg-black/75 disabled:cursor-not-allowed disabled:opacity-30"
+          >
+            ↑
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); onMoveDown?.(); }}
+            disabled={!onMoveDown}
+            title="Move later"
+            className="flex h-7 w-7 items-center justify-center rounded-full bg-black/55 text-white transition-colors hover:bg-black/75 disabled:cursor-not-allowed disabled:opacity-30"
+          >
+            ↓
+          </button>
+        </div>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            if (confirm(`Remove "${title}" from this preset's list? The widget itself stays on the curator's device.`)) onDelete();
+          }}
+          title="Remove from this preset"
+          className="flex h-7 w-7 items-center justify-center rounded-full bg-black/55 text-white transition-colors hover:bg-black/75"
+        >
+          🗑
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// A preset item the app/import published that has no dedicated portal
+// editor yet (external-catalog widgets, Collections Rows). Same chrome as the
+// Filtering card: title + subtitle, reorder/remove, edited on-device.
+function GenericPresetCard({
+  title, subtitle, accent, onClick, onDelete, onDragStart, onDrop, onMoveUp, onMoveDown,
+}: {
+  title: string;
+  subtitle: string;
+  accent: boolean;
+  onClick?: () => void;
+  onDelete: () => void;
+  onDragStart: () => void;
+  onDrop: () => void;
+  onMoveUp?: () => void;
+  onMoveDown?: () => void;
+}) {
+  return (
+    <div
+      draggable
+      onDragStart={onDragStart}
+      onDragOver={(e) => e.preventDefault()}
+      onDrop={onDrop}
+      className="group relative flex aspect-square flex-col justify-between overflow-hidden rounded-2xl border border-border bg-bg2 p-3 transition-all hover:-translate-y-1 hover:border-accent"
+    >
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{ background: accent ? 'radial-gradient(120% 90% at 85% 0%, #d9a94f 0%, transparent 55%)' : 'radial-gradient(120% 90% at 85% 0%, #6b7a8c 0%, transparent 55%)', opacity: 0.14 }}
+      />
+      <button onClick={onClick} className="relative block w-full text-left" disabled={!onClick}>
+        <p className="truncate text-[15px] font-semibold text-white">{title}</p>
+        <p className="mt-0.5 truncate text-[12px] text-white/60">{subtitle}</p>
       </button>
       <div className="relative flex items-center justify-between">
         <div className="flex gap-1.5">

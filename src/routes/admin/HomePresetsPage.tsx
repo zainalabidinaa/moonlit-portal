@@ -4,6 +4,7 @@ import { AppShell } from '../../components/layout/AppShell';
 import { Button } from '../../components/ui/Button';
 import { WidgetGrid, TAB_FLAG, type WidgetTab, type WidgetCardItem } from '../../components/catalog/WidgetGrid';
 import { WidgetEditor } from '../../components/catalog/WidgetEditor';
+import { ImportWidgetsDialog } from '../../components/catalog/ImportWidgetsDialog';
 import { cloneCollection } from '../../lib/cloneCollection';
 import type { Collection, Folder, HomePreset, HomePresetItem } from '../../types';
 
@@ -54,6 +55,8 @@ export default function HomePresetsPage() {
   const [addExistingId, setAddExistingId] = useState('');
   const [addingExisting, setAddingExisting] = useState(false);
   const [repairing, setRepairing] = useState(false);
+  const [showImportDialog, setShowImportDialog] = useState(false);
+  const [importNotice, setImportNotice] = useState<string | null>(null);
 
   const mode: 'all' | 'preset' = selectedPresetId ? 'preset' : 'all';
   const selectedPreset = presets.find((p) => p.id === selectedPresetId) ?? null;
@@ -155,6 +158,27 @@ export default function HomePresetsPage() {
           kind: 'filtering',
           title: item.title?.trim() || 'Filtering',
           query: item.data_source.query ?? '',
+        };
+      }
+      // Imported (or app-published) external-catalog widgets and Collections
+      // Rows: visible, reorderable and removable here; content edited
+      // on-device.
+      if (item.data_source.kind === 'addonCatalog') {
+        return {
+          key: item.id,
+          kind: 'generic',
+          title: item.title?.trim() || 'External Catalog',
+          subtitle: 'External catalog',
+        };
+      }
+      if (item.data_source.kind === 'collectionsRow') {
+        const entries = (item.data_source as { entries?: unknown[] }).entries ?? [];
+        return {
+          key: item.id,
+          kind: 'generic',
+          title: item.title?.trim() || 'Collections Row',
+          subtitle: `Collections Row · ${entries.length} tiles`,
+          accent: true,
         };
       }
       const collectionId = item.data_source.kind === 'collection' ? item.data_source.collectionId : undefined;
@@ -555,29 +579,56 @@ export default function HomePresetsPage() {
         onReorderCard={handleReorderCard}
       />
 
-      {mode === 'preset' && showAddPanel && (
-        <div className="mt-4 flex flex-wrap items-center gap-2 rounded-xl border border-border-strong bg-surface p-4">
-          <select
-            value={addExistingId}
-            onChange={(e) => setAddExistingId(e.target.value)}
-            className="min-w-0 flex-1 rounded-lg border border-border bg-bg px-3 py-1.5 text-sm text-text focus:border-accent focus:outline-none"
-          >
-            <option value="">Choose an existing widget…</option>
-            {availableForPreset.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-          </select>
-          <Button size="sm" onClick={addExistingToPreset} disabled={!addExistingId || addingExisting}>
-            {addingExisting ? 'Copying…' : '+ Add existing'}
-          </Button>
-          <span className="text-xs text-faint">or</span>
-          <Button size="sm" variant="ghost" onClick={createAndAddToPreset}>+ Create new</Button>
-          {widgetTab === 'home' && availableBrowseHubs.map((hub) => (
-            <Button key={hub} size="sm" variant="ghost" onClick={() => addBrowseHubToPreset(hub)}>
-              + Add "Browse by {hub === 'genre' ? 'Genre' : 'Language'}"
-            </Button>
-          ))}
-          <Button size="sm" variant="ghost" onClick={() => setShowAddPanel(false)}>Cancel</Button>
-        </div>
-      )}
-    </AppShell>
-  );
+          {mode === 'preset' && showAddPanel && (
+            <div className="mt-4 flex flex-wrap items-center gap-2 rounded-xl border border-border-strong bg-surface p-4">
+              <select
+                value={addExistingId}
+                onChange={(e) => setAddExistingId(e.target.value)}
+                className="min-w-0 flex-1 rounded-lg border border-border bg-bg px-3 py-1.5 text-sm text-text focus:border-accent focus:outline-none"
+              >
+                <option value="">Choose an existing widget…</option>
+                {availableForPreset.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+              <Button size="sm" onClick={addExistingToPreset} disabled={!addExistingId || addingExisting}>
+                {addingExisting ? 'Copying…' : '+ Add existing'}
+              </Button>
+              <span className="text-xs text-faint">or</span>
+              <Button size="sm" variant="ghost" onClick={createAndAddToPreset}>+ Create new</Button>
+              {widgetTab === 'home' && availableBrowseHubs.map((hub) => (
+                <Button key={hub} size="sm" variant="ghost" onClick={() => addBrowseHubToPreset(hub)}>
+                  + Add "Browse by {hub === 'genre' ? 'Genre' : 'Language'}"
+                </Button>
+              ))}
+              <Button size="sm" variant="ghost" onClick={() => setShowImportDialog(true)}>
+                ⇪ Import Widgets
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => setShowAddPanel(false)}>Cancel</Button>
+            </div>
+          )}
+
+          {importNotice && (
+            <div className="mt-4 flex items-start gap-3 rounded-xl border border-accent/30 bg-surface px-4 py-3 text-sm text-text">
+              <span className="min-w-0 flex-1">{importNotice}</span>
+              <button onClick={() => setImportNotice(null)} className="text-muted transition-colors hover:text-text" aria-label="Dismiss">✕</button>
+            </div>
+          )}
+
+          {showImportDialog && selectedPresetId && (
+            <ImportWidgetsDialog
+              presetId={selectedPresetId}
+              presetName={selectedPreset?.name ?? 'this preset'}
+              tab={widgetTab}
+              startSortOrder={presetItems.reduce((max, item) => Math.max(max, item.sort_order), -1) + 1}
+              onClose={() => setShowImportDialog(false)}
+              onImported={(items, summary) => {
+                // Append in place, same as `addExistingToPreset` — the rows
+                // were already written with continued sort orders.
+                setPresetItems((prev) => [...prev, ...items]);
+                setImportNotice(summary);
+                setShowImportDialog(false);
+              }}
+            />
+          )}
+        </AppShell>
+      );
 }
