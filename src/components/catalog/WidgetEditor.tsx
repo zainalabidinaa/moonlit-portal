@@ -1,13 +1,16 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useAuth } from '../../context/AuthContext';
+import { supabase } from '../../lib/supabase';
 import { useCollectionSubtree } from '../../hooks/useCollectionSubtree';
 import { useFolderPreviewPosters } from '../../hooks/useFolderPreviewPosters';
 import { useFolderSearch } from '../../hooks/useFolderSearch';
 import { useAddonCatalogSearch, type AddonCatalogEntry } from '../../hooks/useAddonCatalogSearch';
+import { useAllAddonManifests } from '../../hooks/useAddonManifest';
 import { FallbackPosterImg } from './FallbackPosterImg';
 import { ArtworkGallery } from './ArtworkGallery';
 import { TAB_FLAG, TILE_SHAPES, tileAspectClass, type WidgetTab } from './WidgetGrid';
 import { LANGUAGE_ISO_BY_FOLDER_NAME, LanguageHubRailsEditor } from './LanguageHubRailsEditor';
-import type { Folder, FolderSource, FolderCatalog } from '../../types';
+import type { Folder, FolderSource, FolderCatalog, InstalledAddon } from '../../types';
 
 const TABS: { id: WidgetTab; label: string }[] = [
   { id: 'home', label: 'Home' },
@@ -175,6 +178,7 @@ export function WidgetEditor({ collectionId, onBack }: Props) {
           onAddCatalog={(catalogId, mediaType, genre, filterParams) => addCatalog(currentFolder.id, catalogId, mediaType, genre, null, filterParams)}
           onDeleteCatalog={(id) => deleteCatalog(currentFolder.id, id)}
           onSaveShape={(shape) => saveFolderArtwork(currentFolder.id, { tile_shape: shape })}
+          onSaveSourceRows={(value) => saveFolderArtwork(currentFolder.id, { source_rows: value })}
           onEditArtwork={() => setArtworkFolderId(currentFolder.id)}
           languageIso={
             collection.name.trim().toLowerCase() === 'languages'
@@ -728,7 +732,7 @@ function TileShapePicker({ value, onChange, size = 'md' }: { value: string; onCh
 }
 
 function FolderSourceEditor({
-  folder, sources, catalogs, onAddSource, onDeleteSource, onAddCatalog, onDeleteCatalog, onSaveShape, onEditArtwork, languageIso,
+  folder, sources, catalogs, onAddSource, onDeleteSource, onAddCatalog, onDeleteCatalog, onSaveShape, onSaveSourceRows, onEditArtwork, languageIso,
 }: {
   folder: Folder;
   sources: FolderSource[];
@@ -738,9 +742,12 @@ function FolderSourceEditor({
   onAddCatalog: (catalogId: string, mediaType: string, genre: string | null, filterParams?: Record<string, string>) => void;
   onDeleteCatalog: (id: string) => void;
   onSaveShape: (shape: string) => void;
+  onSaveSourceRows: (value: boolean) => void;
   onEditArtwork: () => void;
   languageIso?: string;
 }) {
+  const { activeProfile } = useAuth();
+  const [installedAddons, setInstalledAddons] = useState<InstalledAddon[]>([]);
   const [kind, setKind] = useState<'catalog' | 'source' | 'filter'>('catalog');
   const [catalogId, setCatalogId] = useState('');
   const [mediaType, setMediaType] = useState('movie');
@@ -753,6 +760,19 @@ function FolderSourceEditor({
   const [minVoteAverage, setMinVoteAverage] = useState('');
   const [sortBy, setSortBy] = useState('popularity.desc');
   const [filterMediaType, setFilterMediaType] = useState('movie');
+
+  // Source names live in the installed addons' manifests — folder_catalogs
+  // rows only store catalog ids (imports don't even carry an addon_id), so
+  // resolve display names across every installed manifest.
+  useEffect(() => {
+    if (!activeProfile) { setInstalledAddons([]); return; }
+    let cancelled = false;
+    supabase.from('installed_addons').select('*')
+      .eq('profile_id', activeProfile.id).order('sort_order')
+      .then(({ data }) => { if (!cancelled) setInstalledAddons((data as InstalledAddon[]) ?? []); });
+    return () => { cancelled = true; };
+  }, [activeProfile]);
+  const { catalogById } = useAllAddonManifests(installedAddons);
 
   function slugifyFilterTitle(s: string) {
     return s.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
@@ -786,6 +806,22 @@ function FolderSourceEditor({
           </button>
         </div>
       </div>
+      <div className="mb-4 flex items-center justify-between gap-3 rounded-lg border border-border bg-surface px-3.5 py-2.5">
+        <div className="min-w-0">
+          <p className="text-[13px] text-text">Show each source as its own content row</p>
+          <p className="text-[11px] text-faint">
+            The folder opens as one row per source ({catalogs.length + sources.length} {catalogs.length + sources.length === 1 ? 'row' : 'rows'})
+            in the app instead of one merged grid.
+          </p>
+        </div>
+        <button
+          onClick={() => onSaveSourceRows(!folder.source_rows)}
+          title={folder.source_rows ? 'Showing one row per source' : 'Merging all sources into one grid'}
+          className={`relative h-5 w-9 flex-none rounded-full transition-colors ${folder.source_rows ? 'bg-accent' : 'border border-border bg-surface-2'}`}
+        >
+          <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${folder.source_rows ? 'translate-x-4' : 'translate-x-0.5'}`} />
+        </button>
+      </div>
       <p className="mb-2 font-mono text-[10px] uppercase tracking-widest text-faint">Content sources</p>
       <div className="mb-4 flex flex-col gap-1.5">
         {catalogs.map((c) => (
@@ -796,7 +832,9 @@ function FolderSourceEditor({
               {c.filter_params ? 'tmdb filter' : 'catalog'}
             </span>
             <span className="flex-1 truncate text-[13px] text-text">
-              {c.filter_params ? c.catalog_id.replace('tmdb.discover.custom.', '').replace(/-/g, ' ') : c.catalog_id}
+              {c.filter_params
+                ? c.catalog_id.replace('tmdb.discover.custom.', '').replace(/-/g, ' ')
+                : catalogById(c.catalog_id)?.name ?? c.catalog_id}
             </span>
             <span className="font-mono text-[10.5px] text-faint">{c.media_type}{c.genre ? ` · ${c.genre}` : ''}</span>
             <button onClick={() => onDeleteCatalog(c.id)} className="text-faint hover:text-red-400">×</button>

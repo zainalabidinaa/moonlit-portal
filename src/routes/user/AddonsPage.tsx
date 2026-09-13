@@ -76,6 +76,9 @@ export default function AddonsPage() {
     const { error: e } = await supabase.from('installed_addons').insert({
       profile_id: activeProfile.id,
       addon_url: newUrl.trim(),
+      // Explicit: the app's pull drops `enabled = false` rows, and relying on
+      // the column default once left new addons invisible in the app.
+      enabled: true,
       sort_order: addons.length,
     });
     if (e) { setError(e.message); setSaving(false); return; }

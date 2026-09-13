@@ -97,6 +97,9 @@ export interface Folder {
   focus_gif_enabled: boolean;
   enabled: boolean;
   parent_folder_id: string | null;
+  /** Show each source as its own content row on the folder screen instead of
+   *  merging them into one grid (see 20260927_folders_source_rows.sql). */
+  source_rows: boolean;
 }
 
 export interface FolderSource {
@@ -202,6 +205,12 @@ export interface HomePresetItem {
    *  hub tiles and decides which folders expand into rows. NULL/empty means
    *  every folder. */
   folder_ids?: string[] | null;
+  /** Per-widget "this is the Genre hub" (see
+   *  20260928_home_preset_items_genre_hub.sql): the app renders the widget
+   *  through its hardcoded genre UI — editorial genre tiles, a genre room
+   *  per tile — using the widget's own folder names as genres, whatever
+   *  language they're in. */
+  genre_hub?: boolean;
 }
 
 export type Plan = 'premium' | 'premium_plus';

@@ -133,5 +133,19 @@ export function useAllAddonManifests(addons: InstalledAddon[] | undefined) {
     [byAddonId],
   );
 
-  return { catalogFor, loadingIds };
+  /** First manifest declaring `catalogId`, across every loaded addon —
+   *  folder_catalogs rows don't always carry an `addon_id` (imports don't),
+   *  so name lookups must not require one. */
+  const catalogById = useCallback(
+    (catalogId: string): ManifestCatalog | null => {
+      for (const catalogs of Object.values(byAddonId)) {
+        const hit = catalogs.find((c) => c.id === catalogId);
+        if (hit) return hit;
+      }
+      return null;
+    },
+    [byAddonId],
+  );
+
+  return { catalogFor, catalogById, loadingIds };
 }

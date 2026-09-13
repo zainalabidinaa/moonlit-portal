@@ -52,6 +52,10 @@ export type WidgetCardItem =
       /** `home_preset_items.folder_ids` — the chosen root-folder subset;
        *  null/empty = every folder. */
       folderIds?: string[] | null;
+      /** `home_preset_items.genre_hub` — render through the app's hardcoded
+       *  genre UI (editorial genre tiles, genre rooms) using these folders
+       *  as genres, whatever language they're named in. */
+      genreHub?: boolean;
     }
   | { key: string; kind: 'browseHub'; hub: 'genre' | 'language' }
   | {
@@ -115,9 +119,12 @@ interface Props {
   onSetExpandFolders: (item: CollectionCardItem, expand: boolean) => void;
   /** Opens the folder picker (`home_preset_items.folder_ids`) for a widget. */
   onOpenFolderSelection: (item: CollectionCardItem) => void;
+  /** Toggles `home_preset_items.genre_hub` — the widget renders through the
+   *  app's hardcoded genre UI with its own folder names as genres. */
+  onToggleGenreHub: (item: CollectionCardItem, value: boolean) => void;
 }
 
-export function WidgetGrid({ items, folders, activeTab, mode, onSelectCollection, onOpenBrowseHub, onOpenPresetItem, onAddWidget, onDeleteCard, onReorderCard, onSetExpandFolders, onOpenFolderSelection }: Props) {
+export function WidgetGrid({ items, folders, activeTab, mode, onSelectCollection, onOpenBrowseHub, onOpenPresetItem, onAddWidget, onDeleteCard, onReorderCard, onSetExpandFolders, onOpenFolderSelection, onToggleGenreHub }: Props) {
   const [dragKey, setDragKey] = useState<string | null>(null);
 
   return (
@@ -146,6 +153,7 @@ export function WidgetGrid({ items, folders, activeTab, mode, onSelectCollection
             onMoveDown={index < items.length - 1 ? () => onReorderCard(item.key, items[index + 1].key, 'after') : undefined}
             onSetExpandFolders={item.kind === 'collection' ? onSetExpandFolders : undefined}
             onOpenFolderSelection={item.kind === 'collection' ? onOpenFolderSelection : undefined}
+            onToggleGenreHub={item.kind === 'collection' ? onToggleGenreHub : undefined}
           />
         ))}
         <button
@@ -175,7 +183,7 @@ const BROWSE_HUB_LABELS: Record<'genre' | 'language', string> = {
 
 function WidgetCard({
   item, childFolders, mode, isHomeTab, onClick, onDelete, onDragStart, onDrop, onMoveUp, onMoveDown,
-  onSetExpandFolders, onOpenFolderSelection,
+  onSetExpandFolders, onOpenFolderSelection, onToggleGenreHub,
 }: {
   item: WidgetCardItem;
   childFolders: Folder[];
@@ -189,6 +197,7 @@ function WidgetCard({
   onMoveDown?: () => void;
   onSetExpandFolders?: (item: CollectionCardItem, expand: boolean) => void;
   onOpenFolderSelection?: (item: CollectionCardItem) => void;
+  onToggleGenreHub?: (item: CollectionCardItem, value: boolean) => void;
 }) {
   if (item.kind === 'browseHub') {
     return (
@@ -248,6 +257,7 @@ function WidgetCard({
   // the collection has 2+ folders — a single-folder collection already
   // resolves straight to its content row, so there is nothing to switch.
   const canChooseFolders = mode === 'preset' && item.presetItemId != null && folderCount >= 2;
+  const genreHubOn = item.genreHub === true;
   const folderSelectionLabel = selectedFolderCount === folderCount
     ? (folderCount === 1 ? '1 folder' : `${folderCount} folders`)
     : `${selectedFolderCount} of ${folderCount} folders`;
@@ -265,7 +275,9 @@ function WidgetCard({
   // CatalogRepository.displayRows group-tile path as everything else, so it
   // gets the plain folder-count label instead of the misleading one.
   const subtitle = canChooseFolders
-    ? `${item.expandFolders ? 'Rows' : 'Hub'} · ${folderSelectionLabel}`
+    ? genreHubOn
+      ? `Genre hub · ${folderSelectionLabel}`
+      : `${item.expandFolders ? 'Rows' : 'Hub'} · ${folderSelectionLabel}`
     : item.style
     ? STYLE_LABELS[item.style] ?? item.style
     : collection.display_section === 'hub' ? (isHomeTab ? 'Hub · hardcoded UI' : `Hub · ${folderCount} folders`)
@@ -320,17 +332,28 @@ function WidgetCard({
           <p className="truncate text-[15px] font-semibold text-white">{collection.name}</p>
           <p className="mt-0.5 text-[12px] text-white/60">{subtitle}</p>
           {canChooseFolders && (
-            <button
-              onClick={(e) => { e.stopPropagation(); onOpenFolderSelection?.(collectionItem); }}
-              title="Choose which folders this widget shows"
-              className="mt-1.5 rounded-full bg-black/50 px-2 py-0.5 text-[10px] font-semibold text-white/85 transition-colors hover:bg-black/75"
-            >
-              Choose folders
-            </button>
+            <span className="mt-1.5 flex flex-wrap gap-1">
+              <button
+                onClick={(e) => { e.stopPropagation(); onOpenFolderSelection?.(collectionItem); }}
+                title="Choose which folders this widget shows"
+                className="rounded-full bg-black/50 px-2 py-0.5 text-[10px] font-semibold text-white/85 transition-colors hover:bg-black/75"
+              >
+                Choose folders
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); onToggleGenreHub?.(collectionItem, !genreHubOn); }}
+                title={genreHubOn
+                  ? 'Rendering through the app’s hardcoded genre UI — click to turn off'
+                  : 'Render through the app’s hardcoded genre UI (editorial genre tiles + genre rooms), using these folders as genres'}
+                className={`rounded-full px-2 py-0.5 text-[10px] font-semibold transition-colors ${genreHubOn ? 'bg-accent text-[#2a1206]' : 'bg-black/50 text-white/85 hover:bg-black/75'}`}
+              >
+                {genreHubOn ? 'Genre hub ✓' : 'Genre hub'}
+              </button>
+            </span>
           )}
         </div>
       </button>
-      {canChooseFolders && (
+      {canChooseFolders && !genreHubOn && (
         <div className="absolute bottom-2.5 left-1/2 z-[2] -translate-x-1/2" onClick={(e) => e.stopPropagation()}>
           <div className="flex overflow-hidden rounded-full border border-white/15 bg-black/55 text-[11px] font-semibold">
             <button

@@ -199,6 +199,7 @@ export default function HomePresetsPage() {
             presetItemId: item.id,
             expandFolders: item.expand_folders ?? false,
             folderIds: item.folder_ids ?? null,
+            genreHub: item.genre_hub ?? false,
           }
         : null;
     })
@@ -495,6 +496,21 @@ export default function HomePresetsPage() {
     }
   }
 
+  /** Turns one preset item's "this is the Genre hub" flag on/off — the app
+   *  then renders it through its hardcoded genre UI with the widget's own
+   *  folder names as genres (any language). Placement-level, like the folder
+   *  modes. */
+  async function setGenreHub(card: CollectionCardItem, value: boolean) {
+    const itemId = card.presetItemId;
+    if (!itemId) return;
+    setPresetItems((prev) => prev.map((i) => (i.id === itemId ? { ...i, genre_hub: value } : i)));
+    const { error } = await supabase.from('home_preset_items').update({ genre_hub: value }).eq('id', itemId);
+    if (error) {
+      alert(error.message);
+      if (selectedPresetId) loadPresetItems(selectedPresetId, widgetTab);
+    }
+  }
+
   const availableForPreset = collections.filter(
     (c) => !c.parent_collection_id && !c.parent_folder_id && !presetItems.some((i) => i.data_source.collectionId === c.id)
   );
@@ -625,6 +641,7 @@ export default function HomePresetsPage() {
         onReorderCard={handleReorderCard}
         onSetExpandFolders={setExpandFolders}
         onOpenFolderSelection={(item) => setFolderPickerItem(item)}
+        onToggleGenreHub={setGenreHub}
       />
 
       {folderPickerItem && (
