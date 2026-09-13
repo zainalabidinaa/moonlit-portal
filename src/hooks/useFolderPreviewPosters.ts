@@ -1,14 +1,15 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
-import type { Folder } from '../types';
+import { useAuth } from '../context/AuthContext';
+import { useAllAddonManifests, type ManifestCatalog } from './useAddonManifest';
+import type { Folder, InstalledAddon } from '../types';
 
-// The default bundled addon every profile resolves generic catalog ids
-// (trakt.list.*, mdblist.*, tmdb.discover.*, …) through — see
-// CatalogRepository.swift's own "aiometadata" preference. The portal has no
-// per-profile installed-addons context of its own to pick from, so this
-// mirrors the same default the real apps fall back to. If this addon is
-// ever rotated, update here (confirmed live via `installed_addons.addon_url`
-// on 2026-09-09).
+// Fallback only: a catalog whose declaring addon isn't installed/known is
+// still attempted against the default bundled addon (trakt.list.*,
+// mdblist.*, tmdb.discover.*, …) — see CatalogRepository.swift's own
+// "aiometadata" preference. Everything else now resolves through the
+// profile's own installed addons, so a folder sourced from e.g. Bingecat
+// gets real posters instead of falling back to collection art.
 const AIOMETADATA_BASE = 'https://aiometadata.fortheweak.cloud/stremio/1bf2cd94-2057-4992-9ed7-a8464f12e4a4';
 const FUNCTIONS_URL = import.meta.env.VITE_SUPABASE_FUNCTIONS_URL as string;
 
@@ -19,6 +20,16 @@ interface StremioMeta {
 interface StremioCatalogResponse {
   metas?: StremioMeta[];
 }
+
+/** A catalog's declaring addon install URL → the transport base the
+ *  catalog-proxy expects (everything before `/manifest.json`). */
+function addonBaseUrl(manifestUrl: string): string {
+  if (manifestUrl.endsWith('/manifest.json')) return manifestUrl.slice(0, -'/manifest.json'.length);
+  const lastSlash = manifestUrl.lastIndexOf('/');
+  return lastSlash > 0 ? manifestUrl.slice(0, lastSlash) : manifestUrl;
+}
+
+type CatalogLookup = (catalogId: string) => { catalog: ManifestCatalog; addonUrl: string } | null;
 
 // btttr (Moonlit's own poster-badge proxy, see poster URL scheme notes)
 // lags on caching brand-new/unreleased titles and 404s until it catches up.
@@ -31,8 +42,8 @@ function pickPoster(m: StremioMeta): string | null {
   return m.poster ?? null;
 }
 
-async function fetchPostersForCatalog(catalogId: string, mediaType: string): Promise<string[]> {
-  const params = new URLSearchParams({ url: AIOMETADATA_BASE, type: mediaType, id: catalogId });
+async function fetchPostersForCatalog(catalogId: string, mediaType: string, baseUrl: string): Promise<string[]> {
+  const params = new URLSearchParams({ url: baseUrl, type: mediaType, id: catalogId });
   try {
     const res = await fetch(`${FUNCTIONS_URL}/catalog-proxy?${params.toString()}`);
     if (!res.ok) return [];
@@ -76,8 +87,10 @@ function writeStoredPosters(folderId: string, posters: string[]) {
 /** A folder's own real posters, gathered across ALL its catalogs (not just
  *  the first) until there are enough to fill a preview — a single sparse
  *  catalog (e.g. a time-boxed "coming soon" list) shouldn't leave a mostly-
- *  empty mosaic when a second catalog on the same folder has more. */
-function resolveFolderPosters(folderId: string, want = 4): Promise<string[]> {
+ *  empty mosaic when a second catalog on the same folder has more. Each
+ *  catalog is queried on its *declaring* addon, so sources from any
+ *  installed addon (Bingecat, Xperience, …) preview correctly. */
+function resolveFolderPosters(folderId: string, want = 4, lookup?: CatalogLookup): Promise<string[]> {
   let promise = posterCache.get(folderId);
   if (!promise) {
     const stored = readStoredPosters(folderId);
@@ -89,12 +102,17 @@ function resolveFolderPosters(folderId: string, want = 4): Promise<string[]> {
         const results: string[] = [];
         for (const row of data ?? []) {
           if (results.length >= want) break;
-          for (const p of await fetchPostersForCatalog(row.catalog_id, row.media_type)) {
+          const declarer = lookup?.(row.catalog_id);
+          const baseUrl = declarer ? addonBaseUrl(declarer.addonUrl) : AIOMETADATA_BASE;
+          for (const p of await fetchPostersForCatalog(row.catalog_id, row.media_type, baseUrl)) {
             if (results.length >= want) break;
             if (!results.includes(p)) results.push(p);
           }
         }
         writeStoredPosters(folderId, results);
+        // An empty result must not stick for the session: the addon that
+        // declares this catalog may just not have been installed yet.
+        if (results.length === 0) posterCache.delete(folderId);
         return results;
       })();
     }
@@ -118,21 +136,48 @@ const POOL_SIZE = 12;
  * placeholder; pair with FallbackPosterImg to render it.
  */
 export function useFolderPreviewPosters(folderId: string | null): string[] {
+  const { activeProfile } = useAuth();
+  const [installedAddons, setInstalledAddons] = useState<InstalledAddon[]>([]);
+  const [addonsLoaded, setAddonsLoaded] = useState(false);
   const [posters, setPosters] = useState<string[]>([]);
 
   useEffect(() => {
-    if (!folderId) {
+    if (!activeProfile) {
+      setInstalledAddons([]);
+      setAddonsLoaded(true);
+      return;
+    }
+    let cancelled = false;
+    setAddonsLoaded(false);
+    supabase.from('installed_addons').select('*')
+      .eq('profile_id', activeProfile.id).order('sort_order')
+      .then(({ data }) => {
+        if (cancelled) return;
+        setInstalledAddons((data as InstalledAddon[]) ?? []);
+        setAddonsLoaded(true);
+      });
+    return () => { cancelled = true; };
+  }, [activeProfile]);
+
+  const { lookupById, loadingIds } = useAllAddonManifests(installedAddons);
+  // Wait for the addon list AND its manifests before resolving: a preview
+  // attempted too early would query the wrong (fallback) addon and cache
+  // nothing useful.
+  const lookupReady = addonsLoaded && loadingIds.size === 0;
+
+  useEffect(() => {
+    if (!folderId || !lookupReady) {
       setPosters([]);
       return;
     }
     let cancelled = false;
-    resolveFolderPosters(folderId, POOL_SIZE).then((result) => {
+    resolveFolderPosters(folderId, POOL_SIZE, lookupById).then((result) => {
       if (!cancelled) setPosters(result);
     });
     return () => {
       cancelled = true;
     };
-  }, [folderId]);
+  }, [folderId, lookupReady, lookupById]);
 
   return posters;
 }

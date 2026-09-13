@@ -147,5 +147,21 @@ export function useAllAddonManifests(addons: InstalledAddon[] | undefined) {
     [byAddonId],
   );
 
-  return { catalogFor, catalogById, loadingIds };
+  /** The catalog AND the addon install URL that declares it — callers that
+   *  need to *query* the catalog (folder poster previews) must use the
+   *  declaring addon's base URL, not a hardcoded default. */
+  const lookupById = useCallback(
+    (catalogId: string): { catalog: ManifestCatalog; addonUrl: string } | null => {
+      for (const [addonId, catalogs] of Object.entries(byAddonId)) {
+        const catalog = catalogs.find((c) => c.id === catalogId);
+        if (!catalog) continue;
+        const addon = (addons ?? []).find((a) => a.id === addonId);
+        if (addon) return { catalog, addonUrl: addon.addon_url };
+      }
+      return null;
+    },
+    [byAddonId, addons],
+  );
+
+  return { catalogFor, catalogById, lookupById, loadingIds };
 }
