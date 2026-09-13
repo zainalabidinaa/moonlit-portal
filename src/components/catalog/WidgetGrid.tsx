@@ -212,6 +212,18 @@ function WidgetCard({
   /** Open one folder of this collection in the editor (a card tile click). */
   onOpenFolder?: (folderId: string) => void;
 }) {
+  // Hooks run unconditionally, before any early return: `item.kind` is
+  // normally stable per card, but a re-decoded preset row can flip it, and
+  // the poster hook used to sit after the returns below — the same React
+  // #310 shape that crashed the widget editor.
+  const collectionItem = item.kind === 'collection' ? item : null;
+  const effectiveFolders = collectionItem
+    ? (collectionItem.folderIds && collectionItem.folderIds.length
+        ? childFolders.filter((f) => collectionItem.folderIds!.includes(f.id))
+        : childFolders)
+    : [];
+  const sourcePosters = useFolderPreviewPosters(effectiveFolders.length === 1 ? effectiveFolders[0].id : null);
+
   if (item.kind === 'browseHub') {
     return (
       <BrowseHubCard
@@ -258,17 +270,12 @@ function WidgetCard({
   }
 
   const { collection } = item;
-  // Capture the narrowed variant so the controls' closures keep the
-  // collection-card type (TS drops parameter narrowing inside callbacks).
-  const collectionItem = item;
+  // Non-null alias for the controls below (narrowing is lost in the hoisted
+  // version used by the hook call, which must run before the early returns).
+  const cardItem: CollectionCardItem = item;
   const totalFolderCount = childFolders.length;
-  // A widget's own folder selection defines what it *shows*: a split child
-  // (`folder_ids` = one id) is that single folder's content, not a renamed
-  // copy of the whole hub — so its art, counts and previews come from the
-  // chosen folders alone.
-  const effectiveFolders = item.folderIds && item.folderIds.length
-    ? childFolders.filter((f) => item.folderIds!.includes(f.id))
-    : childFolders;
+  // `effectiveFolders` (the widget's own folder selection) is computed above,
+  // before the early returns, so the poster hook can run unconditionally.
   const folderCount = effectiveFolders.length;
   // Per-placement folder controls: only meaningful in "preset" mode (the
   // flag lives on the preset item, not the collection itself) and only when
@@ -308,11 +315,6 @@ function WidgetCard({
     : folderCount === 1 ? 'Folder · content row' : 'Empty';
 
   const isFolderWidget = folderCount >= 2;
-  // A standard/content-row widget has one folder holding real catalog
-  // sources — its own cover_image/hero_backdrop is admin metadata, not
-  // representative of the many titles inside, so real poster art is fetched
-  // from that folder's actual source instead (see useFolderPreviewPosters).
-  const sourcePosters = useFolderPreviewPosters(!isFolderWidget ? effectiveFolders[0]?.id ?? null : null);
   const hubTiles = isFolderWidget ? effectiveFolders.slice(0, 4) : [];
   // Before (or without) source posters, a single-folder widget shows that
   // folder's own artwork — otherwise every split child would fall back to
@@ -374,14 +376,14 @@ function WidgetCard({
           {canChooseFolders && (
             <span className="mt-1.5 flex flex-wrap gap-1">
               <button
-                onClick={(e) => { e.stopPropagation(); onOpenFolderSelection?.(collectionItem); }}
+                onClick={(e) => { e.stopPropagation(); onOpenFolderSelection?.(cardItem); }}
                 title="Choose which folders this widget shows"
                 className="rounded-full bg-black/50 px-2 py-0.5 text-[10px] font-semibold text-white/85 transition-colors hover:bg-black/75"
               >
                 Choose folders
               </button>
               <button
-                onClick={(e) => { e.stopPropagation(); onToggleGenreHub?.(collectionItem, !genreHubOn); }}
+                onClick={(e) => { e.stopPropagation(); onToggleGenreHub?.(cardItem, !genreHubOn); }}
                 title={genreHubOn
                   ? 'Rendering through the app’s hardcoded genre UI — click to turn off'
                   : 'Render through the app’s hardcoded genre UI (editorial genre tiles + genre rooms), using these folders as genres'}
@@ -391,7 +393,7 @@ function WidgetCard({
               </button>
               {!genreHubOn && (
                 <button
-                  onClick={(e) => { e.stopPropagation(); onSplitFolders?.(collectionItem); }}
+                  onClick={(e) => { e.stopPropagation(); onSplitFolders?.(cardItem); }}
                   title="Replace this widget with one widget per folder"
                   className="rounded-full bg-black/50 px-2 py-0.5 text-[10px] font-semibold text-white/85 transition-colors hover:bg-black/75"
                 >
@@ -406,22 +408,22 @@ function WidgetCard({
         <div className="absolute bottom-2.5 left-1/2 z-[2] -translate-x-1/2" onClick={(e) => e.stopPropagation()}>
           <div className="flex overflow-hidden rounded-full border border-white/15 bg-black/55 text-[11px] font-semibold">
             <button
-              onClick={() => { if (collectionItem.expandFolders) onSetExpandFolders?.(collectionItem, false); }}
+              onClick={() => { if (cardItem.expandFolders) onSetExpandFolders?.(cardItem, false); }}
               title="Show the folders as one hub of tiles"
-              className={`px-2.5 py-1 transition-colors ${collectionItem.expandFolders ? 'text-white/70 hover:text-white' : 'bg-accent text-[#2a1206]'}`}
+              className={`px-2.5 py-1 transition-colors ${cardItem.expandFolders ? 'text-white/70 hover:text-white' : 'bg-accent text-[#2a1206]'}`}
             >
               Folders
             </button>
             <button
               onClick={() => {
-                if (collectionItem.expandFolders) return;
-                onSetExpandFolders?.(collectionItem, true);
+                if (cardItem.expandFolders) return;
+                onSetExpandFolders?.(cardItem, true);
                 // Switching to Rows opens the picker so "all or a few" is a
                 // deliberate choice — Apply with everything on keeps All.
-                onOpenFolderSelection?.(collectionItem);
+                onOpenFolderSelection?.(cardItem);
               }}
               title="Give every selected folder its own content row"
-              className={`px-2.5 py-1 transition-colors ${collectionItem.expandFolders ? 'bg-accent text-[#2a1206]' : 'text-white/70 hover:text-white'}`}
+              className={`px-2.5 py-1 transition-colors ${cardItem.expandFolders ? 'bg-accent text-[#2a1206]' : 'text-white/70 hover:text-white'}`}
             >
               Rows
             </button>

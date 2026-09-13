@@ -8,6 +8,8 @@ import { describe, it, expect, vi } from 'vitest';
  * "can't open any folder" reports started, and this catches a render crash
  * that would otherwise be a silent blank page in the browser.
  */
+const mockState = vi.hoisted(() => ({ loading: false }));
+
 const subtree = vi.hoisted(() => {
   const collection = {
     id: 'ebce0afb-fecd-4e5f-9cb5-e3311d2d1884',
@@ -91,7 +93,9 @@ const subtree = vi.hoisted(() => {
   };
 });
 
-vi.mock('../../hooks/useCollectionSubtree', () => ({ useCollectionSubtree: () => subtree }));
+vi.mock('../../hooks/useCollectionSubtree', () => ({
+  useCollectionSubtree: () => ({ ...subtree, loading: mockState.loading }),
+}));
 vi.mock('../../context/AuthContext', () => ({ useAuth: () => ({ activeProfile: null }) }));
 vi.mock('../../hooks/useAddonManifest', () => ({
   useAllAddonManifests: () => ({ catalogFor: () => null, catalogById: () => null, lookupById: () => null, loadingIds: new Set() }),
@@ -122,6 +126,20 @@ import { WidgetEditor } from './WidgetEditor';
 describe('WidgetEditor · imported collection', () => {
   it('renders the collection root', () => {
     render(<WidgetEditor collectionId={subtree.collection.id} onBack={() => {}} />);
+    expect(screen.getByDisplayValue("Everyone's Watching")).toBeInTheDocument();
+  });
+
+  it('survives the loading → loaded transition (React #310 regression)', () => {
+    mockState.loading = true;
+    const { rerender } = render(<WidgetEditor collectionId={subtree.collection.id} onBack={() => {}} />);
+    expect(screen.getByText(/Loading widget/)).toBeInTheDocument();
+
+    // The render that follows an early return must call the SAME hooks —
+    // a guard effect placed below the `if (loading) return` made this throw
+    // "Rendered more hooks than during the previous render" and blanked the
+    // editor for every widget.
+    mockState.loading = false;
+    rerender(<WidgetEditor collectionId={subtree.collection.id} onBack={() => {}} />);
     expect(screen.getByDisplayValue("Everyone's Watching")).toBeInTheDocument();
   });
 

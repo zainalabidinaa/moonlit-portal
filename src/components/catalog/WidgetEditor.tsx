@@ -65,6 +65,17 @@ export function WidgetEditor({ collectionId, initialFolderId, onBack }: Props) {
   // cover_image/hero_backdrop is what renders as ITS OWN tile one level up).
   const [artworkFolderId, setArtworkFolderId] = useState<string | null>(null);
 
+  // A stale/deleted `initialFolderId` (or one from another collection) must
+  // not leave the editor stranded on an empty level. This hook MUST live
+  // above the early returns below: placed after them it only ran once the
+  // collection loaded, so the first (loading) render had one hook fewer than
+  // the second — React error #310, crashing the editor for every widget.
+  useEffect(() => {
+    if (loading || !path.length) return;
+    const currentId = path[path.length - 1];
+    if (!folders.some((f) => f.id === currentId)) setPath([]);
+  }, [path, loading, folders]);
+
   if (loading || !collection) {
     return <p className="py-16 text-center text-sm text-muted">Loading widget…</p>;
   }
@@ -86,13 +97,6 @@ export function WidgetEditor({ collectionId, initialFolderId, onBack }: Props) {
   const currentFolderId = path[path.length - 1] ?? null;
   const currentFolder = currentFolderId ? folders.find((f) => f.id === currentFolderId) ?? null : null;
   const currentChildren = childrenOf(currentFolderId);
-
-  // A stale/deleted `initialFolderId` (or one from another collection) must
-  // not leave the editor stranded on an empty level.
-  useEffect(() => {
-    if (path.length && !loading && !currentFolder) setPath([]);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [path, loading, currentFolder]);
   const isRoot = path.length === 0;
 
   function crumbName(id: string): string {
