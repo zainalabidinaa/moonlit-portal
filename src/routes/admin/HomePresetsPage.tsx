@@ -8,6 +8,7 @@ import { ImportWidgetsDialog } from '../../components/catalog/ImportWidgetsDialo
 import { FolderPickerDialog } from '../../components/catalog/FolderPickerDialog';
 import { PresetWidgetEditorDialog } from '../../components/catalog/PresetWidgetEditorDialog';
 import { cloneCollection } from '../../lib/cloneCollection';
+import { splitFoldersIntoStandaloneWidgets } from '../../lib/splitFolders';
 import type { Collection, Folder, HomePreset, HomePresetItem } from '../../types';
 
 function slugify(name: string) {
@@ -522,7 +523,6 @@ export default function HomePresetsPage() {
     const original = presetItems.find((i) => i.id === itemId);
     if (!original) return;
     const collectionId = original.data_source.collectionId;
-    if (!collectionId) return;
 
     const rootFolders = folders
       .filter((f) => f.collection_id === card.collection.id && !f.parent_folder_id)
@@ -536,31 +536,61 @@ export default function HomePresetsPage() {
       alert('This widget needs at least two folders to split.');
       return;
     }
-    if (!confirm(`Split “${card.collection.name}” into ${chosen.length} widgets — one per folder? The original widget is replaced.`)) return;
+    if (!confirm(`Split “${card.collection.name}” into ${chosen.length} standalone widgets — one per folder? Each becomes its own widget (own tabs, rename, sources); the original is replaced.`)) return;
 
-    const baseSortOrder = presetItems.reduce((max, item) => Math.max(max, item.sort_order), -1) + 1;
-    const rows = chosen.map((folder, index) => ({
-      preset_id: selectedPresetId,
+    const outcome = await splitFoldersIntoStandaloneWidgets({
+      folders: chosen,
+      presetId: selectedPresetId,
       tab: widgetTab,
-      data_source: { kind: 'collection', collectionId },
-      media_type: original.media_type,
-      style: original.style,
-      sort_order: baseSortOrder + index,
-      title: folder.name,
-      // Stable identity per split slot, so a re-run of the same split (or an
-      // import) updates these rows instead of duplicating.
-      source_widget_id: `${original.source_widget_id ?? original.id}:folder:${folder.id}`,
-      folder_ids: [folder.id],
-    }));
+      template: original,
+      baseCollectionSortOrder: collections.reduce((max, c) => Math.max(max, c.sort_order), -1) + 1,
+      baseItemSortOrder: presetItems.reduce((max, item) => Math.max(max, item.sort_order), -1) + 1,
+    });
 
-    const { data, error } = await supabase.from('home_preset_items').insert(rows).select();
-    if (error) { alert(error.message); return; }
-    const { error: deleteError } = await supabase.from('home_preset_items').delete().eq('id', itemId);
-    if (deleteError) { alert(deleteError.message); return; }
+    if (outcome.collections.length) setCollections((prev) => [...prev, ...outcome.collections]);
+    if (outcome.folders.length) setFolders((prev) => [...prev, ...outcome.folders]);
 
-    const inserted = (data as HomePresetItem[]) ?? [];
-    setPresetItems((prev) => [...prev.filter((i) => i.id !== itemId), ...inserted].sort((a, b) => a.sort_order - b.sort_order));
-    setImportNotice(`Split “${card.collection.name}” into ${inserted.length} widgets: ${chosen.map((f) => f.name).join(', ')}.`);
+    if (outcome.items.length === chosen.length) {
+      // Every folder made it — replace the original.
+      const { error: deleteError } = await supabase.from('home_preset_items').delete().eq('id', itemId);
+      if (deleteError) {
+        alert(deleteError.message);
+        setPresetItems((prev) => [...prev, ...outcome.items].sort((a, b) => a.sort_order - b.sort_order));
+      } else {
+        setPresetItems((prev) => [...prev.filter((i) => i.id !== itemId), ...outcome.items].sort((a, b) => a.sort_order - b.sort_order));
+        // With every root folder split, the original collection is now
+        // unreferenced — remove it (and its folders/sources) so the split
+        // genuinely replaces the widget instead of leaving the original
+        // "hidden" in the portal. Skipped when a subset was split, or when
+        // another preset item still points at it (old scoped children).
+        if (collectionId && chosen.length === rootFolders.length) {
+          const { data: stillUsed } = await supabase
+            .from('home_preset_items')
+            .select('id')
+            .eq('data_source->>collectionId', collectionId)
+            .limit(1);
+          if (!(stillUsed ?? []).length) {
+            const originalFolderIds = folders.filter((f) => f.collection_id === collectionId).map((f) => f.id);
+            if (originalFolderIds.length) {
+              await supabase.from('folder_catalogs').delete().in('folder_id', originalFolderIds);
+              await supabase.from('folder_sources').delete().in('folder_id', originalFolderIds);
+              await supabase.from('folders').delete().in('id', originalFolderIds);
+            }
+            await supabase.from('collections').delete().eq('id', collectionId);
+            setCollections((prev) => prev.filter((c) => c.id !== collectionId));
+            setFolders((prev) => prev.filter((f) => f.collection_id !== collectionId));
+          }
+        }
+      }
+    } else if (outcome.items.length) {
+      // Partial — keep the original so nothing disappears silently.
+      setPresetItems((prev) => [...prev, ...outcome.items].sort((a, b) => a.sort_order - b.sort_order));
+    }
+
+    if (outcome.errors.length) {
+      alert(`Some folders couldn't be split:\n${outcome.errors.join('\n')}`);
+    }
+    setImportNotice(`Split “${card.collection.name}” into ${outcome.items.length} standalone widget${outcome.items.length === 1 ? '' : 's'}: ${chosen.map((f) => f.name).join(', ')}.`);
   }
 
   const availableForPreset = collections.filter(
