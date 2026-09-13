@@ -114,7 +114,10 @@ export function AddonWidgetsDialog({ manifestUrl, addonLabel, onClose, onAdded }
     if (outcome.foldersRemoved) parts.push(`${outcome.foldersRemoved} removed`);
     parts.push(`${outcome.sourcesWritten} sources`);
     if (outcome.presetItemsUpdated) parts.push(`${outcome.presetItemsUpdated} widget${outcome.presetItemsUpdated === 1 ? '' : 's'} updated`);
-    return `Synced ${widgets} widget${widgets === 1 ? '' : 's'} (${parts.join(', ')}) into “${presetName} · ${TAB_LABELS[tab]}”${outcome.errors.length ? ` — ${outcome.errors.length} failed` : ''}.`;
+    const failure = outcome.errors.length
+      ? ` — ${outcome.errors.length} failed: ${outcome.errors[0].slice(0, 220)}`
+      : '';
+    return `Synced ${widgets} widget${widgets === 1 ? '' : 's'} (${parts.join(', ')}) into “${presetName} · ${TAB_LABELS[tab]}”${failure}`;
   }
 
   async function commit() {

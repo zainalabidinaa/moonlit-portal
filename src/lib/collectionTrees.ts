@@ -11,6 +11,54 @@ const TAB_FLAGS: Record<WidgetTab, { ios: string; mac: string }> = {
   series: { ios: 'show_ios_series', mac: 'show_mac_series' },
 };
 
+/** Column sets for the source writes, widest first. A project whose schema
+ *  predates a column (`folder_catalogs.extras`, `folder_sources.
+ *  tmdb_source_type`, …) would otherwise reject every row — PostgREST fails
+ *  the whole insert for one unknown key — so each write retries with the
+ *  smaller shape the portal's older clone flow already proved. Only a
+ *  non-schema error (RLS, constraint, FK) stops the retries. */
+const CATALOG_COLUMN_SETS: string[][] = [
+  ['folder_id', 'catalog_id', 'media_type', 'genre', 'extras', 'filter_params'],
+  ['folder_id', 'catalog_id', 'media_type', 'genre', 'filter_params'],
+  ['folder_id', 'catalog_id', 'media_type', 'genre'],
+];
+
+const SOURCE_COLUMN_SETS: string[][] = [
+  ['folder_id', 'provider', 'title', 'tmdb_id', 'media_type', 'tmdb_source_type', 'sort_by', 'filters_json', 'raw_json', 'sort_order'],
+  ['folder_id', 'provider', 'title', 'tmdb_id', 'media_type', 'sort_order'],
+  ['folder_id', 'provider', 'title', 'tmdb_id', 'media_type'],
+];
+
+function isMissingColumnError(message: string): boolean {
+  return /schema cache|does not exist|could not find the '?[\w]+'? column/i.test(message);
+}
+
+/** Inserts `rows` against `columnSets`, retrying with each narrower set while
+ *  the failure is a missing column. Returns `null` on success (with a console
+ *  warning naming what the schema lacks), or the first real error message. */
+async function insertRowsWithColumnFallbacks(
+  table: 'folder_catalogs' | 'folder_sources',
+  rows: Record<string, unknown>[],
+  columnSets: string[][],
+): Promise<string | null> {
+  let lastError = 'insert failed';
+  for (let i = 0; i < columnSets.length; i++) {
+    const columns = columnSets[i];
+    const shaped = rows.map((row) => Object.fromEntries(columns.map((column) => [column, row[column] ?? null])));
+    const { error } = await supabase.from(table).insert(shaped);
+    if (!error) {
+      if (i > 0) {
+        const dropped = columnSets[i - 1].filter((column) => !columns.includes(column));
+        console.warn(`[collectionTrees] ${table}: this project's schema is missing ${dropped.join(', ')} — inserted with the available columns.`);
+      }
+      return null;
+    }
+    lastError = error.message;
+    if (!isMissingColumnError(error.message)) return error.message;
+  }
+  return lastError;
+}
+
 /** A folder source expressed the way the portal stores it: either an
  *  addon-served catalog (`folder_catalogs`) or a raw provider row
  *  (`folder_sources`, used when a source can't be resolved to one catalog
@@ -224,7 +272,7 @@ export async function syncCollectionTrees(opts: {
           }));
         const rawRows = folder.sources
           .filter((s): s is Extract<TreeSource, { kind: 'raw' }> => s.kind === 'raw')
-          .map((s) => ({
+          .map((s, index) => ({
             folder_id: folderId,
             provider: s.provider,
             title: s.title ?? null,
@@ -234,16 +282,17 @@ export async function syncCollectionTrees(opts: {
             sort_by: s.sortBy ?? null,
             filters_json: s.filtersJson ?? null,
             raw_json: s.rawJson ?? null,
+            sort_order: index,
           }));
 
         if (catalogRows.length) {
-          const { error } = await supabase.from('folder_catalogs').insert(catalogRows);
-          if (error) throw new Error(error.message);
+          const error = await insertRowsWithColumnFallbacks('folder_catalogs', catalogRows, CATALOG_COLUMN_SETS);
+          if (error) throw new Error(error);
           result.sourcesWritten += catalogRows.length;
         }
         if (rawRows.length) {
-          const { error } = await supabase.from('folder_sources').insert(rawRows);
-          if (error) throw new Error(error.message);
+          const error = await insertRowsWithColumnFallbacks('folder_sources', rawRows, SOURCE_COLUMN_SETS);
+          if (error) throw new Error(error);
           result.sourcesWritten += rawRows.length;
         }
       }
@@ -282,6 +331,7 @@ export async function syncCollectionTrees(opts: {
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);
       result.errors.push(`${tree.name}: ${message}`);
+      console.error('[collectionTrees]', tree.name, e);
       opts.onProgress?.(`  → error: ${message}`);
     }
   }

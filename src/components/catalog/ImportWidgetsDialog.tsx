@@ -169,7 +169,9 @@ export function ImportWidgetsDialog({ presetId, presetName, tab, startSortOrder,
       const widgets = outcome.presetItemsCreated + outcome.presetItemsUpdated;
       const updatedNote = outcome.presetItemsUpdated ? `, ${outcome.presetItemsUpdated} updated` : '';
       const removedNote = outcome.foldersRemoved ? `, ${outcome.foldersRemoved} folders removed` : '';
-      const errorNote = outcome.errors.length ? ` — ${outcome.errors.length} failed` : '';
+      const errorNote = outcome.errors.length
+        ? ` — ${outcome.errors.length} failed: ${outcome.errors[0].slice(0, 220)}`
+        : '';
       onImported(
         [],
         `Synced ${widgets} widget${widgets === 1 ? '' : 's'} (${outcome.collectionsCreated + outcome.collectionsUpdated} collections, ${outcome.foldersCreated + outcome.foldersUpdated} folders, ${outcome.sourcesWritten} sources${removedNote}${updatedNote}) into “${presetName} · ${tab}”${errorNote}.`,
