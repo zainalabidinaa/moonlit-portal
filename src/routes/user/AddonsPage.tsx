@@ -36,6 +36,12 @@ export default function AddonsPage() {
   // set right after a successful add, or from a row's own Widgets button.
   const [widgetsTarget, setWidgetsTarget] = useState<{ url: string; label: string } | null>(null);
   const [widgetsNotice, setWidgetsNotice] = useState<string | null>(null);
+  // The profile whose `installed_addons` this page is actually showing —
+  // the active profile, or the admin it mirrors from (`uses_primary_addons`).
+  // Writes MUST target the same profile as the display, or an addon added
+  // here lands on a profile the app never pulls (and then vanishes from the
+  // list on the next reload).
+  const [addonsProfileId, setAddonsProfileId] = useState<string | null>(null);
 
   function openWidgetsFor(url: string, label: string) {
     setWidgetsNotice(null);
@@ -62,6 +68,7 @@ export default function AddonsPage() {
           .from('profiles').select('id').eq('role', 'admin').order('created_at').limit(1).single();
         if (data) profileId = data.id;
       }
+      setAddonsProfileId(profileId);
       const { data } = await supabase.from('installed_addons').select('*').eq('profile_id', profileId).order('sort_order');
       setAddons(data ?? []);
       setLoading(false);
@@ -72,9 +79,10 @@ export default function AddonsPage() {
   async function handleAdd() {
     if (!newUrl.trim() || !activeProfile) return;
     if (!newUrl.startsWith('https://')) { setError('URL must start with https://'); return; }
+    const targetProfileId = addonsProfileId ?? activeProfile.id;
     setSaving(true);
     const { error: e } = await supabase.from('installed_addons').insert({
-      profile_id: activeProfile.id,
+      profile_id: targetProfileId,
       addon_url: newUrl.trim(),
       // Explicit: the app's pull drops `enabled = false` rows, and relying on
       // the column default once left new addons invisible in the app.
@@ -84,7 +92,7 @@ export default function AddonsPage() {
     if (e) { setError(e.message); setSaving(false); return; }
     setNewUrl('');
     setError('');
-    const { data } = await supabase.from('installed_addons').select('*').eq('profile_id', activeProfile.id).order('sort_order');
+    const { data } = await supabase.from('installed_addons').select('*').eq('profile_id', targetProfileId).order('sort_order');
     setAddons(data ?? []);
     setSaving(false);
     // The add-on is saved; the popup (if the manifest declares catalogs) is

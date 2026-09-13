@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { useAllAddonManifests, type ManifestCatalog } from './useAddonManifest';
@@ -42,8 +42,14 @@ function pickPoster(m: StremioMeta): string | null {
   return m.poster ?? null;
 }
 
-async function fetchPostersForCatalog(catalogId: string, mediaType: string, baseUrl: string): Promise<string[]> {
+async function fetchPostersForCatalog(
+  catalogId: string,
+  mediaType: string,
+  baseUrl: string,
+  extras?: Record<string, string>,
+): Promise<string[]> {
   const params = new URLSearchParams({ url: baseUrl, type: mediaType, id: catalogId });
+  if (extras && Object.keys(extras).length) params.set('extras', JSON.stringify(extras));
   try {
     const res = await fetch(`${FUNCTIONS_URL}/catalog-proxy?${params.toString()}`);
     if (!res.ok) return [];
@@ -87,10 +93,18 @@ function writeStoredPosters(folderId: string, posters: string[]) {
 /** A folder's own real posters, gathered across ALL its catalogs (not just
  *  the first) until there are enough to fill a preview — a single sparse
  *  catalog (e.g. a time-boxed "coming soon" list) shouldn't leave a mostly-
- *  empty mosaic when a second catalog on the same folder has more. Each
- *  catalog is queried on its *declaring* addon, so sources from any
- *  installed addon (Bingecat, Xperience, …) preview correctly. */
-function resolveFolderPosters(folderId: string, want = 4, lookup?: CatalogLookup): Promise<string[]> {
+ *  empty mosaic when a second catalog on the same folder has more.
+ *
+ *  Each catalog is queried on its declaring addon when that is known, then
+ *  on every other installed addon in turn — the catalog-proxy fetches
+ *  server-side, so this works even for an addon whose manifest the browser
+ *  cannot read (CORS), which previously left its folders preview-less. */
+function resolveFolderPosters(
+  folderId: string,
+  want = 4,
+  addonBases: string[] = [],
+  lookup?: CatalogLookup,
+): Promise<string[]> {
   let promise = posterCache.get(folderId);
   if (!promise) {
     const stored = readStoredPosters(folderId);
@@ -98,15 +112,30 @@ function resolveFolderPosters(folderId: string, want = 4, lookup?: CatalogLookup
       promise = Promise.resolve(stored);
     } else {
       promise = (async () => {
-        const { data } = await supabase.from('folder_catalogs').select('catalog_id,media_type').eq('folder_id', folderId);
+        const { data } = await supabase
+          .from('folder_catalogs')
+          .select('catalog_id,media_type,genre,extras')
+          .eq('folder_id', folderId);
         const results: string[] = [];
         for (const row of data ?? []) {
           if (results.length >= want) break;
           const declarer = lookup?.(row.catalog_id);
-          const baseUrl = declarer ? addonBaseUrl(declarer.addonUrl) : AIOMETADATA_BASE;
-          for (const p of await fetchPostersForCatalog(row.catalog_id, row.media_type, baseUrl)) {
-            if (results.length >= want) break;
-            if (!results.includes(p)) results.push(p);
+          const candidates = declarer
+            ? [addonBaseUrl(declarer.addonUrl), ...addonBases]
+            : addonBases;
+          const bases = candidates.length ? [...new Set(candidates)] : [AIOMETADATA_BASE];
+          // A catalog row can be parameterized (elcinema-*-year needs its
+          // `genre`; filtering here too keeps previews faithful).
+          const extras: Record<string, string> = { ...(row.extras ?? {}) };
+          if (row.genre && row.genre.toLowerCase() !== 'none') extras.genre = row.genre;
+          for (const baseUrl of bases) {
+            const found = await fetchPostersForCatalog(row.catalog_id, row.media_type, baseUrl, extras);
+            if (!found.length) continue;
+            for (const p of found) {
+              if (results.length >= want) break;
+              if (!results.includes(p)) results.push(p);
+            }
+            break;
           }
         }
         writeStoredPosters(folderId, results);
@@ -159,25 +188,30 @@ export function useFolderPreviewPosters(folderId: string | null): string[] {
     return () => { cancelled = true; };
   }, [activeProfile]);
 
-  const { lookupById, loadingIds } = useAllAddonManifests(installedAddons);
-  // Wait for the addon list AND its manifests before resolving: a preview
-  // attempted too early would query the wrong (fallback) addon and cache
-  // nothing useful.
-  const lookupReady = addonsLoaded && loadingIds.size === 0;
+  const { lookupById } = useAllAddonManifests(installedAddons);
+  // Every installed addon's transport base, from the DB rows alone — no
+  // manifest fetch needed, so an addon the browser can't read still gets
+  // queried (server-side, via the proxy). AIOMetadata is the last resort.
+  const addonBases = useMemo(() => {
+    const bases = installedAddons.map((addon) => addonBaseUrl(addon.addon_url));
+    const unique = [...new Set(bases)];
+    if (!unique.includes(AIOMETADATA_BASE)) unique.push(AIOMETADATA_BASE);
+    return unique;
+  }, [installedAddons]);
 
   useEffect(() => {
-    if (!folderId || !lookupReady) {
+    if (!folderId || !addonsLoaded) {
       setPosters([]);
       return;
     }
     let cancelled = false;
-    resolveFolderPosters(folderId, POOL_SIZE, lookupById).then((result) => {
+    resolveFolderPosters(folderId, POOL_SIZE, addonBases, lookupById).then((result) => {
       if (!cancelled) setPosters(result);
     });
     return () => {
       cancelled = true;
     };
-  }, [folderId, lookupReady, lookupById]);
+  }, [folderId, addonsLoaded, addonBases, lookupById]);
 
   return posters;
 }
