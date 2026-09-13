@@ -1,10 +1,13 @@
-import type { ImportedWidget } from './importWidgets';
+import type { CollectionTree, TreeFolder } from './collectionTrees';
 
 /** The subset of a Stremio/Fusion addon manifest this feature reads. */
 export interface AddonManifestCatalog {
   id: string;
   type: string;
   name: string;
+  /** A catalog that can't render without a search term ("Movie Search")
+   *  can't back a row widget — the group builder skips it. */
+  searchRequired: boolean;
 }
 
 export interface AddonManifestInfo {
@@ -16,6 +19,14 @@ export interface AddonManifestInfo {
   name: string;
   catalogs: AddonManifestCatalog[];
 }
+
+/** How a manifest structures its catalog names: `<Provider> · <Section>`
+ *  (e.g. arabcinemeta's "elCinema · Now Playing", "WATCH IT · Shows"). */
+const GROUP_SEPARATOR = ' · ';
+
+/** Addon catalog rows are section tiles inside their provider widget —
+ *  wide/landscape reads better than a poster for a whole section. */
+const GROUP_TILE_SHAPE = 'landscape';
 
 /** Fetches an addon manifest — same direct browser fetch the portal's own
  *  addon pages already use (Xperience-style hosts send
@@ -39,7 +50,12 @@ export async function fetchAddonManifest(url: string): Promise<AddonManifestInfo
   const manifest = json as {
     id?: string;
     name?: string;
-    catalogs?: Array<{ id?: string; type?: string; name?: string }>;
+    catalogs?: Array<{
+      id?: string;
+      type?: string;
+      name?: string;
+      extra?: Array<{ name?: string; isRequired?: boolean }>;
+    }>;
   };
   const id = typeof manifest.id === 'string' && manifest.id.trim() ? manifest.id.trim() : url;
   const seen = new Set<string>();
@@ -52,26 +68,54 @@ export async function fetchAddonManifest(url: string): Promise<AddonManifestInfo
     const key = `${type}:${catalogId}`;
     if (seen.has(key)) continue;
     seen.add(key);
-    catalogs.push({ id: catalogId, type, name: (raw.name ?? '').trim() || catalogId });
+    catalogs.push({
+      id: catalogId,
+      type,
+      name: (raw.name ?? '').trim() || catalogId,
+      searchRequired: (raw.extra ?? []).some((e) => e?.name === 'search' && e?.isRequired === true),
+    });
   }
   return { id, name: (manifest.name ?? '').trim() || 'Add-on', catalogs };
 }
 
-/** One external-catalog widget per declared catalog — the same preset shape
- *  the app's own add-widget flow produces
- *  (`WidgetDataSource.addonCatalog(addonId:catalogId:mediaType:)`), with a
- *  stable `sourceId` so re-running this for the same add-on updates those
- *  rows in place instead of inserting duplicates. */
-export function catalogsToWidgets(manifest: AddonManifestInfo): ImportedWidget[] {
-  return manifest.catalogs.map((catalog) => ({
-    title: catalog.name,
-    style: 'standard' as const,
-    dataSource: {
-      kind: 'addonCatalog' as const,
-      addonId: manifest.id,
-      catalogId: catalog.id,
-      mediaType: catalog.type,
-    },
-    sourceId: `addon:${manifest.id}:${catalog.type}:${catalog.id}`,
+/**
+ * Groups a manifest's catalogs the way the manifest itself structures them:
+ * one collection tree per name prefix (`<Provider> · <Section>` → a
+ * "Provider" widget whose folders are its sections), with catalogs that
+ * have no prefix grouped under the add-on's own name. Each tree syncs into
+ * a real collection + folders + sources and one preset widget, so the app
+ * shows the provider as a hub of section tiles — or, with the widget's
+ * Rows toggle, one content row per section.
+ */
+export function manifestToCollectionTrees(
+  manifest: AddonManifestInfo
+): { trees: CollectionTree[]; skipped: string[] } {
+  const groups = new Map<string, TreeFolder[]>();
+  const skipped: string[] = [];
+
+  for (const catalog of manifest.catalogs) {
+    if (catalog.searchRequired) {
+      skipped.push(catalog.name);
+      continue;
+    }
+    const parts = catalog.name.split(GROUP_SEPARATOR);
+    const groupName = (parts.length > 1 ? parts[0] : manifest.name).trim();
+    const sectionName = (parts.length > 1 ? parts.slice(1).join(GROUP_SEPARATOR) : catalog.name).trim();
+    const folders = groups.get(groupName) ?? [];
+    folders.push({
+      externalId: `addon:${manifest.id}:group:${groupName}:${catalog.type}:${catalog.id}`,
+      name: sectionName || catalog.name,
+      tileShape: GROUP_TILE_SHAPE,
+      sources: [{ kind: 'catalog', catalogId: catalog.id, mediaType: catalog.type, genre: null }],
+    });
+    groups.set(groupName, folders);
+  }
+
+  const trees: CollectionTree[] = [...groups.entries()].map(([groupName, folders]) => ({
+    externalId: `addon:${manifest.id}:group:${groupName}`,
+    presetSourceId: `addon:${manifest.id}:group:${groupName}`,
+    name: groupName,
+    folders,
   }));
+  return { trees, skipped };
 }

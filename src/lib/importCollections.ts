@@ -1,6 +1,6 @@
 import { supabase } from './supabase';
 
-function normalizeMediaType(v?: string): string {
+export function normalizeMediaType(v?: string): string {
   switch (v?.toUpperCase()) {
     case 'TV': case 'SERIES': return 'series';
     case 'MOVIE': return 'movie';
@@ -9,7 +9,7 @@ function normalizeMediaType(v?: string): string {
   }
 }
 
-function normalizeShape(v?: string): string {
+export function normalizeShape(v?: string): string {
   switch (v?.toUpperCase()) {
     case 'LANDSCAPE': return 'landscape';
     case 'SQUARE': return 'square';
@@ -17,7 +17,7 @@ function normalizeShape(v?: string): string {
   }
 }
 
-function resolveMoonlitCatalogId(
+export function resolveMoonlitCatalogId(
   src: Record<string, unknown>,
   discoverMap: Record<string, string>
 ): string | null {
@@ -55,6 +55,56 @@ function resolveMoonlitCatalogId(
     return `tmdb.collection.${tmdbId}`;
   }
 
+  return null;
+}
+
+/** One source's storage shape after mapping: an addon/TMDB catalog row
+ *  (`folder_catalogs`) when a catalog id resolves, otherwise a raw provider
+ *  row (`folder_sources`). `null` = the source has no addressable identity. */
+export interface MappedSource {
+  catalog?: { catalogId: string; mediaType: string; genre: string | null };
+  raw?: {
+    provider: string;
+    title: string | null;
+    tmdbId: string | null;
+    mediaType: string | null;
+    tmdbSourceType: string | null;
+  };
+}
+
+export function mapSource(
+  src: Record<string, unknown>,
+  discoverMap: Record<string, string>
+): MappedSource | null {
+  const catalogId = resolveMoonlitCatalogId(src, discoverMap);
+  if (catalogId) {
+    const genre = src.genre && (src.genre as string).toLowerCase() !== 'none' ? (src.genre as string) : null;
+    const rawType = normalizeMediaType((src.type ?? src.mediaType) as string | undefined);
+    const mediaType = catalogId.startsWith('letterboxd.') ? 'all' : rawType;
+    return { catalog: { catalogId, mediaType, genre } };
+  }
+  if (src.provider || src.title) {
+    const tmdbSourceType = ((src.tmdbSourceType as string) ?? '').toUpperCase() || null;
+    let tmdbId: string | null = null;
+    if (src.tmdbId && Number(src.tmdbId) > 0) {
+      tmdbId = `discover_${normalizeMediaType((src.type ?? src.mediaType) as string | undefined)}_${src.tmdbId}`;
+    } else if (tmdbSourceType === 'DISCOVER') {
+      const mt = normalizeMediaType((src.type ?? src.mediaType) as string | undefined);
+      const titleSlug = ((src.title as string) ?? 'source').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/(^_|_$)/g, '');
+      tmdbId = `discover_${mt}_in_${titleSlug}`;
+    } else {
+      tmdbId = (src.tmdbId as string) ?? null;
+    }
+    return {
+      raw: {
+        provider: (src.provider as string) ?? 'tmdb',
+        title: (src.title as string) ?? null,
+        tmdbId,
+        mediaType: normalizeMediaType((src.type ?? src.mediaType) as string | undefined),
+        tmdbSourceType,
+      },
+    };
+  }
   return null;
 }
 

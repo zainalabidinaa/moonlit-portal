@@ -703,14 +703,21 @@ export default function HomePresetsPage() {
               startSortOrder={presetItems.reduce((max, item) => Math.max(max, item.sort_order), -1) + 1}
               onClose={() => setShowImportDialog(false)}
               onImported={(items, summary) => {
-                // Merge by id: rows updated in place (same `source_widget_id`
-                // re-imported) replace their old copy, new rows append — then
-                // re-sort so ordering matches what was written.
-                setPresetItems((prev) => {
-                  const byId = new Map(prev.map((item) => [item.id, item]));
-                  for (const item of items) byId.set(item.id, item);
-                  return [...byId.values()].sort((a, b) => a.sort_order - b.sort_order);
-                });
+                if (items.length === 0) {
+                  // Collections-profile import created its rows server-side —
+                  // reload this tab to pick up the new widgets. (Widget
+                  // imports return their rows for the merge below.)
+                  if (selectedPresetId) loadPresetItems(selectedPresetId, widgetTab);
+                } else {
+                  // Merge by id: rows updated in place (same `source_widget_id`
+                  // re-imported) replace their old copy, new rows append — then
+                  // re-sort so ordering matches what was written.
+                  setPresetItems((prev) => {
+                    const byId = new Map(prev.map((item) => [item.id, item]));
+                    for (const item of items) byId.set(item.id, item);
+                    return [...byId.values()].sort((a, b) => a.sort_order - b.sort_order);
+                  });
+                }
                 setImportNotice(summary);
                 setShowImportDialog(false);
               }}

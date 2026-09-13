@@ -3,8 +3,8 @@ import { supabase } from '../../lib/supabase';
 import { Button } from '../ui/Button';
 import type { HomePreset } from '../../types';
 import type { WidgetTab } from './WidgetGrid';
-import { importWidgetsIntoPreset } from '../../lib/importWidgets';
-import { catalogsToWidgets, fetchAddonManifest, type AddonManifestInfo } from '../../lib/addonCatalogWidgets';
+import { syncCollectionTrees, type TreeSyncResult } from '../../lib/collectionTrees';
+import { fetchAddonManifest, manifestToCollectionTrees, type AddonManifestInfo } from '../../lib/addonCatalogWidgets';
 
 interface Props {
   /** The installed add-on's manifest URL. */
@@ -20,10 +20,11 @@ const TAB_LABELS: Record<WidgetTab, string> = { home: 'Home', movies: 'Movies', 
 
 /**
  * Opens after adding an add-on (or from a row's "Widgets" button): reads the
- * add-on's manifest and turns its declared catalogs into preset widgets.
- * Append-only — the chosen widgets are added after that tab's current last
- * item, and re-running for the same add-on updates those same rows in place
- * (stable source ids), never replacing or reshuffling existing widgets.
+ * add-on's manifest and builds **one widget per catalog group** — the
+ * manifest's own `<Provider> · <Section>` structure, where each provider
+ * (elCinema, WATCH IT, …) becomes a collection whose folders are its
+ * sections. Added to the chosen preset + tab, append-only and keyed by
+ * stable ids, so re-running syncs the same widgets instead of duplicating.
  */
 export function AddonWidgetsDialog({ manifestUrl, addonLabel, onClose, onAdded }: Props) {
   const [manifest, setManifest] = useState<AddonManifestInfo | null>(null);
@@ -37,6 +38,7 @@ export function AddonWidgetsDialog({ manifestUrl, addonLabel, onClose, onAdded }
   const [tab, setTab] = useState<WidgetTab>('home');
   const [startSortOrder, setStartSortOrder] = useState(0);
   const [busy, setBusy] = useState(false);
+  const [progress, setProgress] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -47,7 +49,7 @@ export function AddonWidgetsDialog({ manifestUrl, addonLabel, onClose, onAdded }
         const info = await fetchAddonManifest(manifestUrl);
         if (cancelled) return;
         setManifest(info);
-        setSelected(new Set(info.catalogs.map((_, index) => index)));
+        setSelected(new Set(manifestToCollectionTrees(info).trees.map((_, index) => index)));
       } catch (e) {
         if (!cancelled) setError(e instanceof Error ? e.message : String(e));
       } finally {
@@ -85,14 +87,15 @@ export function AddonWidgetsDialog({ manifestUrl, addonLabel, onClose, onAdded }
     return () => { cancelled = true; };
   }, [presetId, tab]);
 
-  const catalogs = useMemo(() => manifest?.catalogs ?? [], [manifest]);
+  const groups = useMemo(() => (manifest ? manifestToCollectionTrees(manifest) : { trees: [], skipped: [] }), [manifest]);
   const visible = useMemo(() => {
     const query = search.trim().toLowerCase();
-    const indexed = catalogs.map((catalog, index) => ({ catalog, index }));
+    const indexed = groups.trees.map((tree, index) => ({ tree, index }));
     if (!query) return indexed;
-    return indexed.filter(({ catalog }) =>
-      catalog.name.toLowerCase().includes(query) || catalog.id.toLowerCase().includes(query));
-  }, [catalogs, search]);
+    return indexed.filter(({ tree }) =>
+      tree.name.toLowerCase().includes(query) ||
+      tree.folders.some((f) => f.name.toLowerCase().includes(query)));
+  }, [groups]);
 
   const selectedCount = selected.size;
 
@@ -105,22 +108,37 @@ export function AddonWidgetsDialog({ manifestUrl, addonLabel, onClose, onAdded }
     });
   }
 
+  function summarize(outcome: TreeSyncResult, presetName: string): string {
+    const widgets = outcome.presetItemsCreated + outcome.presetItemsUpdated;
+    const parts = [`${outcome.foldersCreated + outcome.foldersUpdated} sections`];
+    if (outcome.foldersRemoved) parts.push(`${outcome.foldersRemoved} removed`);
+    parts.push(`${outcome.sourcesWritten} sources`);
+    if (outcome.presetItemsUpdated) parts.push(`${outcome.presetItemsUpdated} widget${outcome.presetItemsUpdated === 1 ? '' : 's'} updated`);
+    return `Synced ${widgets} widget${widgets === 1 ? '' : 's'} (${parts.join(', ')}) into “${presetName} · ${TAB_LABELS[tab]}”${outcome.errors.length ? ` — ${outcome.errors.length} failed` : ''}.`;
+  }
+
   async function commit() {
     if (!manifest || !presetId) return;
-    const widgets = catalogsToWidgets(manifest).filter((_, index) => selected.has(index));
-    if (!widgets.length) return;
+    const chosen = groups.trees.filter((_, index) => selected.has(index));
+    if (!chosen.length) return;
     setBusy(true);
     setError(null);
+    setProgress('Starting sync…');
     try {
-      const outcome = await importWidgetsIntoPreset({ presetId, tab, widgets, startSortOrder });
+      const outcome = await syncCollectionTrees({
+        presetId,
+        tab,
+        trees: chosen,
+        startSortOrder,
+        onProgress: (message) => setProgress(message),
+      });
       const presetName = presets.find((p) => p.id === presetId)?.name ?? 'preset';
-      const updatedNote = outcome.updated ? `, ${outcome.updated} updated` : '';
-      const total = outcome.inserted + outcome.updated;
-      onAdded(`Added ${total} widget${total === 1 ? '' : 's'} to “${presetName} · ${TAB_LABELS[tab]}” (${outcome.inserted} new${updatedNote}).`);
+      onAdded(summarize(outcome, presetName));
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
       setBusy(false);
+      setProgress(null);
     }
   }
 
@@ -133,7 +151,7 @@ export function AddonWidgetsDialog({ manifestUrl, addonLabel, onClose, onAdded }
           <h2 className="text-base font-semibold text-text">Addon Widgets — {title}</h2>
           {manifest && (
             <span className="ml-3 rounded-full bg-surface-2 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted">
-              {manifest.catalogs.length} catalogs
+              {groups.trees.length} widget{groups.trees.length === 1 ? '' : 's'}
             </span>
           )}
           <button onClick={onClose} className="ml-auto text-muted transition-colors hover:text-text" aria-label="Close">✕</button>
@@ -144,35 +162,37 @@ export function AddonWidgetsDialog({ manifestUrl, addonLabel, onClose, onAdded }
 
           {error && <p className="text-sm text-red-400">{error}</p>}
 
-          {manifest && catalogs.length === 0 && (
-            <p className="text-sm text-muted">This add-on declares no catalogs, so there are no widgets to add.</p>
+          {manifest && groups.trees.length === 0 && (
+            <p className="text-sm text-muted">This add-on declares no catalogs that can stand alone as widgets.</p>
           )}
 
-          {manifest && catalogs.length > 0 && (
+          {manifest && groups.trees.length > 0 && (
             <>
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search catalogs…"
+                placeholder="Search providers and sections…"
                 className="w-full rounded-lg border border-border bg-bg px-3 py-2 text-sm text-text placeholder:text-faint focus:border-accent focus:outline-none"
               />
 
               <div className="overflow-hidden rounded-xl border border-border">
                 <div className="flex items-center justify-between bg-surface-2 px-3.5 py-2.5 text-sm text-muted">
                   <span>
-                    <b className="text-text">{selectedCount}</b> of <b className="text-text">{catalogs.length}</b> selected
+                    <b className="text-text">{selectedCount}</b> of <b className="text-text">{groups.trees.length}</b> widgets selected
                   </span>
                   <span className="flex gap-3 text-xs font-semibold text-accent">
-                    <button className="hover:underline" onClick={() => setSelected(new Set(catalogs.map((_, i) => i)))}>Select all</button>
+                    <button className="hover:underline" onClick={() => setSelected(new Set(groups.trees.map((_, i) => i)))}>Select all</button>
                     <button className="hover:underline" onClick={() => setSelected(new Set())}>Select none</button>
                   </span>
                 </div>
                 <div className="max-h-56 overflow-auto">
-                  {visible.map(({ catalog, index }) => {
+                  {visible.map(({ tree, index }) => {
                     const on = selected.has(index);
+                    const firstSource = tree.folders[0]?.sources[0];
+                    const kindLabel = firstSource?.kind === 'catalog' ? firstSource.mediaType : 'mixed';
                     return (
                       <button
-                        key={`${catalog.type}:${catalog.id}`}
+                        key={tree.externalId}
                         type="button"
                         onClick={() => toggle(index)}
                         className={`flex w-full items-center gap-3 border-t border-border px-3.5 py-2 text-left text-sm transition-opacity ${on ? '' : 'opacity-50'}`}
@@ -180,18 +200,29 @@ export function AddonWidgetsDialog({ manifestUrl, addonLabel, onClose, onAdded }
                         <span className={`relative h-5 w-9 flex-none rounded-full transition-colors ${on ? 'bg-accent' : 'border border-border bg-surface-2'}`}>
                           <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition-all ${on ? 'left-[18px]' : 'left-0.5'}`} />
                         </span>
-                        <span className="min-w-0 flex-1 truncate text-text">{catalog.name}</span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-text">{tree.name}</span>
+                          <span className="block truncate text-xs text-muted">
+                            {tree.folders.length} section{tree.folders.length === 1 ? '' : 's'} · {tree.folders.map((f) => f.name).join(', ')}
+                          </span>
+                        </span>
                         <span className="flex-none rounded-full bg-surface-2 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted">
-                          {catalog.type}
+                          {kindLabel}
                         </span>
                       </button>
                     );
                   })}
                   {visible.length === 0 && (
-                    <div className="border-t border-border px-3.5 py-3 text-sm text-faint">No catalogs match that search.</div>
+                    <div className="border-t border-border px-3.5 py-3 text-sm text-faint">Nothing matches that search.</div>
                   )}
                 </div>
               </div>
+
+              {groups.skipped.length > 0 && (
+                <p className="text-xs text-faint">
+                  Skipped {groups.skipped.length} search-only catalog{groups.skipped.length === 1 ? '' : 's'} (e.g. “{groups.skipped[0]}”).
+                </p>
+              )}
 
               <div className="flex flex-wrap items-center gap-2">
                 <select
@@ -217,6 +248,8 @@ export function AddonWidgetsDialog({ manifestUrl, addonLabel, onClose, onAdded }
               </div>
             </>
           )}
+
+          {progress && <p className="text-xs text-muted">{progress}</p>}
         </div>
 
         <div className="flex items-center justify-end gap-2 border-t border-border px-5 py-3.5">

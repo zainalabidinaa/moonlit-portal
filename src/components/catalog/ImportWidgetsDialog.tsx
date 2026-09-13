@@ -9,6 +9,8 @@ import {
   type ImportedWidget,
   type ParsedWidgetsExport,
 } from '../../lib/importWidgets';
+import { syncCollectionTrees, type CollectionTree } from '../../lib/collectionTrees';
+import { collectionsToTrees, parseCollectionsProfile } from '../../lib/nuvioCollections';
 
 const STYLE_LABELS: Record<string, string> = {
   standard: 'Row Classic',
@@ -32,10 +34,16 @@ interface Props {
 
 /**
  * "Import Widgets" — the portal counterpart of the app's Paste JSON / Import
- * from URL flow. Parses either a native Moonlit `[HomeWidget]` export or a
- * real Fusion export, previews every found widget with an on/off toggle
- * (import only what you want), then appends the toggled-on widgets to the
- * selected preset + tab as `home_preset_items` rows.
+ * from URL flow. Accepts:
+ *
+ * - a native Moonlit `[HomeWidget]` export or a real Fusion export —
+ *   previewed with an on/off toggle per widget, then appended to the
+ *   selected preset + tab as `home_preset_items` rows; and
+ * - a Nuvio/Moonlit **collections profile**
+ *   (`[{title, folders:[{sources:[…]}]}]`) — previewed per collection, then
+ *   synced as real collections + folders + sources with one widget per
+ *   collection. Nothing is wiped; re-importing an updated profile updates
+ *   the same rows (see `syncCollectionTrees`).
  */
 export function ImportWidgetsDialog({ presetId, presetName, tab, startSortOrder, onClose, onImported }: Props) {
   const [mode, setMode] = useState<'paste' | 'url'>('paste');
@@ -44,10 +52,15 @@ export function ImportWidgetsDialog({ presetId, presetName, tab, startSortOrder,
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [parsed, setParsed] = useState<ParsedWidgetsExport | null>(null);
+  const [parsedTrees, setParsedTrees] = useState<CollectionTree[] | null>(null);
+  const [skippedSources, setSkippedSources] = useState(0);
   const [selected, setSelected] = useState<Set<number>>(new Set());
+  const [progress, setProgress] = useState<string | null>(null);
 
   function resetPreview() {
     setParsed(null);
+    setParsedTrees(null);
+    setSkippedSources(0);
     setError(null);
     setSelected(new Set());
   }
@@ -65,6 +78,31 @@ export function ImportWidgetsDialog({ presetId, presetName, tab, startSortOrder,
         ? await fetchWidgetsExport(url.trim())
         : text.trim();
       if (!raw) throw new Error(mode === 'url' ? 'Enter a URL.' : 'Paste some JSON first.');
+
+      let json: unknown;
+      try {
+        json = JSON.parse(raw);
+      } catch {
+        throw new Error('That is not valid JSON.');
+      }
+
+      // A collections profile is a top-level array whose items carry
+      // `folders`; a widget export's items carry `dataSource`.
+      const items = Array.isArray(json) ? (json as Record<string, unknown>[]) : [];
+      const isCollectionsProfile = items.length > 0 && items.every(
+        (item) => item && typeof item === 'object' && Array.isArray((item as { folders?: unknown }).folders),
+      );
+
+      if (isCollectionsProfile) {
+        const profile = parseCollectionsProfile(raw);
+        const { trees, skippedSources: skipped } = collectionsToTrees(profile);
+        if (!trees.length) throw new Error('No collection in that profile has usable sources.');
+        setParsedTrees(trees);
+        setSkippedSources(skipped);
+        setSelected(new Set(trees.map((_, index) => index)));
+        return;
+      }
+
       const result = parseWidgetsExport(raw);
       if (!result.widgets.length && !result.skipped.length) throw new Error('No widgets found in that JSON.');
       setParsed(result);
@@ -96,6 +134,36 @@ export function ImportWidgetsDialog({ presetId, presetName, tab, startSortOrder,
       setError(e instanceof Error ? e.message : String(e));
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function commitCollections() {
+    if (!parsedTrees) return;
+    const chosen = parsedTrees.filter((_, index) => selected.has(index));
+    if (!chosen.length) return;
+    setBusy(true);
+    setProgress('Starting sync…');
+    try {
+      const outcome = await syncCollectionTrees({
+        presetId,
+        tab,
+        trees: chosen,
+        startSortOrder,
+        onProgress: (message) => setProgress(message),
+      });
+      const widgets = outcome.presetItemsCreated + outcome.presetItemsUpdated;
+      const updatedNote = outcome.presetItemsUpdated ? `, ${outcome.presetItemsUpdated} updated` : '';
+      const removedNote = outcome.foldersRemoved ? `, ${outcome.foldersRemoved} folders removed` : '';
+      const errorNote = outcome.errors.length ? ` — ${outcome.errors.length} failed` : '';
+      onImported(
+        [],
+        `Synced ${widgets} widget${widgets === 1 ? '' : 's'} (${outcome.collectionsCreated + outcome.collectionsUpdated} collections, ${outcome.foldersCreated + outcome.foldersUpdated} folders, ${outcome.sourcesWritten} sources${removedNote}${updatedNote}) into “${presetName} · ${tab}”${errorNote}.`,
+      );
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+      setProgress(null);
     }
   }
 
@@ -152,9 +220,56 @@ export function ImportWidgetsDialog({ presetId, presetName, tab, startSortOrder,
             />
           )}
 
-          <p className="text-xs text-faint">Accepts a Moonlit widgets export or a Fusion widgets export.</p>
+          <p className="text-xs text-faint">
+            Accepts a Moonlit widgets export, a Fusion widgets export, or a Nuvio/Moonlit collections profile.
+          </p>
 
           {error && <p className="text-sm text-red-400">{error}</p>}
+
+          {parsedTrees && (
+            <div className="overflow-hidden rounded-xl border border-border">
+              <div className="bg-surface-2 px-3.5 py-2.5 text-sm text-muted">
+                Found <b className="text-text">{parsedTrees.length}</b> collection{parsedTrees.length === 1 ? '' : 's'} —{' '}
+                <b className="text-text">{selectedCount}</b> of <b className="text-text">{parsedTrees.length}</b> selected
+                {skippedSources ? <>, <b className="text-text">{skippedSources}</b> sources skipped</> : null}.
+              </div>
+              <div className="flex gap-3 border-t border-border px-3.5 py-1.5 text-xs">
+                <button className="font-semibold text-accent hover:underline" onClick={() => setSelected(new Set(parsedTrees.map((_, i) => i)))}>
+                  Select all
+                </button>
+                <button className="font-semibold text-accent hover:underline" onClick={() => setSelected(new Set())}>
+                  Select none
+                </button>
+              </div>
+              <div className="max-h-56 overflow-auto">
+                {parsedTrees.map((tree, index) => {
+                  const on = selected.has(index);
+                  const sourceCount = tree.folders.reduce((sum, folder) => sum + folder.sources.length, 0);
+                  return (
+                    <button
+                      key={tree.externalId}
+                      type="button"
+                      onClick={() => toggle(index)}
+                      className={`flex w-full items-center gap-3 border-t border-border px-3.5 py-2 text-left text-sm transition-opacity ${on ? '' : 'opacity-50'}`}
+                    >
+                      <span className={`relative h-5 w-9 flex-none rounded-full transition-colors ${on ? 'bg-accent' : 'border border-border bg-surface-2'}`}>
+                        <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition-all ${on ? 'left-[18px]' : 'left-0.5'}`} />
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-text">{tree.name}</span>
+                        <span className="block truncate text-xs text-muted">
+                          {tree.folders.length} folder{tree.folders.length === 1 ? '' : 's'} · {sourceCount} source{sourceCount === 1 ? '' : 's'}
+                        </span>
+                      </span>
+                      <span className="ml-auto flex-none rounded-full bg-surface-2 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted">
+                        Collection
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {parsed && (
             <div className="overflow-hidden rounded-xl border border-border">
@@ -210,8 +325,13 @@ export function ImportWidgetsDialog({ presetId, presetName, tab, startSortOrder,
         </div>
 
         <div className="flex items-center justify-end gap-2 border-t border-border px-5 py-3.5">
+          {progress && <span className="mr-auto text-xs text-muted">{progress}</span>}
           <Button variant="ghost" size="sm" onClick={onClose} disabled={busy}>Cancel</Button>
-          {parsed ? (
+          {parsedTrees ? (
+            <Button size="sm" onClick={commitCollections} loading={busy} disabled={selectedCount === 0}>
+              Import {selectedCount} collection{selectedCount === 1 ? '' : 's'}
+            </Button>
+          ) : parsed ? (
             <Button size="sm" onClick={commit} loading={busy} disabled={selectedCount === 0}>
               Import {selectedCount} widget{selectedCount === 1 ? '' : 's'}
             </Button>
