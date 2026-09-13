@@ -20,6 +20,9 @@ interface StremioMeta {
 interface StremioCatalogResponse {
   metas?: StremioMeta[];
 }
+interface TmdbDiscoverResponse {
+  results?: Array<{ poster_path?: string }>;
+}
 
 /** A catalog's declaring addon install URL → the transport base the
  *  catalog-proxy expects (everything before `/manifest.json`). */
@@ -40,6 +43,28 @@ type CatalogLookup = (catalogId: string) => { catalog: ManifestCatalog; addonUrl
 function pickPoster(m: StremioMeta): string | null {
   if (m._rawPosterUrl && !m._rawPosterUrl.includes('missing_poster')) return m._rawPosterUrl;
   return m.poster ?? null;
+}
+
+/** A `filter_params` catalog row is TMDB-direct (the app fetches `/discover`
+ *  itself, no addon involved) — previews go through the same `tmdb-discover`
+ *  proxy the portal already uses for genre tiles, so those folders preview
+ *  correctly without any addon serving the catalog id. */
+async function fetchPostersForFilterParams(
+  mediaType: string,
+  params: Record<string, string>,
+): Promise<string[]> {
+  const kind = mediaType === 'series' ? 'tv' : 'movie';
+  const search = new URLSearchParams({ kind, ...params });
+  try {
+    const res = await fetch(`${FUNCTIONS_URL}/tmdb-discover?${search.toString()}`);
+    if (!res.ok) return [];
+    const data = (await res.json()) as TmdbDiscoverResponse;
+    return (data.results ?? [])
+      .map((r) => (r.poster_path ? `https://image.tmdb.org/t/p/w342${r.poster_path}` : null))
+      .filter((p): p is string => Boolean(p));
+  } catch {
+    return [];
+  }
 }
 
 async function fetchPostersForCatalog(
@@ -114,11 +139,21 @@ function resolveFolderPosters(
       promise = (async () => {
         const { data } = await supabase
           .from('folder_catalogs')
-          .select('catalog_id,media_type,genre,extras')
+          .select('catalog_id,media_type,genre,extras,filter_params')
           .eq('folder_id', folderId);
         const results: string[] = [];
         for (const row of data ?? []) {
           if (results.length >= want) break;
+          // TMDB-direct rows (`filter_params`, e.g. a decade folder) belong
+          // to no addon — resolve them through the TMDB proxy instead.
+          if (row.filter_params && Object.keys(row.filter_params).length) {
+            const found = await fetchPostersForFilterParams(row.media_type, row.filter_params);
+            for (const p of found) {
+              if (results.length >= want) break;
+              if (!results.includes(p)) results.push(p);
+            }
+            continue;
+          }
           const declarer = lookup?.(row.catalog_id);
           const candidates = declarer
             ? [addonBaseUrl(declarer.addonUrl), ...addonBases]
