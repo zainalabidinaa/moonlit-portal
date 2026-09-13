@@ -5,6 +5,7 @@ import { Button } from '../../components/ui/Button';
 import { WidgetGrid, TAB_FLAG, type WidgetTab, type WidgetCardItem } from '../../components/catalog/WidgetGrid';
 import { WidgetEditor } from '../../components/catalog/WidgetEditor';
 import { ImportWidgetsDialog } from '../../components/catalog/ImportWidgetsDialog';
+import { PresetItemDetailDialog } from '../../components/catalog/PresetItemDetailDialog';
 import { cloneCollection } from '../../lib/cloneCollection';
 import type { Collection, Folder, HomePreset, HomePresetItem } from '../../types';
 
@@ -57,6 +58,7 @@ export default function HomePresetsPage() {
   const [repairing, setRepairing] = useState(false);
   const [showImportDialog, setShowImportDialog] = useState(false);
   const [importNotice, setImportNotice] = useState<string | null>(null);
+  const [detailItem, setDetailItem] = useState<WidgetCardItem | null>(null);
 
   const mode: 'all' | 'preset' = selectedPresetId ? 'preset' : 'all';
   const selectedPreset = presets.find((p) => p.id === selectedPresetId) ?? null;
@@ -169,6 +171,7 @@ export default function HomePresetsPage() {
           kind: 'generic',
           title: item.title?.trim() || 'External Catalog',
           subtitle: 'External catalog',
+          presetItem: item,
         };
       }
       if (item.data_source.kind === 'collectionsRow') {
@@ -179,6 +182,7 @@ export default function HomePresetsPage() {
           title: item.title?.trim() || 'Collections Row',
           subtitle: `Collections Row · ${entries.length} tiles`,
           accent: true,
+          presetItem: item,
         };
       }
       const collectionId = item.data_source.kind === 'collection' ? item.data_source.collectionId : undefined;
@@ -574,10 +578,22 @@ export default function HomePresetsPage() {
           }
           setScreen({ kind: 'editor', collectionId: collection.id });
         }}
+        onOpenPresetItem={(item) => setDetailItem(item)}
         onAddWidget={handleAddWidget}
         onDeleteCard={handleDeleteCard}
         onReorderCard={handleReorderCard}
       />
+
+          {detailItem && (
+            <PresetItemDetailDialog
+              item={detailItem}
+              onClose={() => setDetailItem(null)}
+              onRemove={() => {
+                handleDeleteCard(detailItem);
+                setDetailItem(null);
+              }}
+            />
+          )}
 
           {mode === 'preset' && showAddPanel && (
             <div className="mt-4 flex flex-wrap items-center gap-2 rounded-xl border border-border-strong bg-surface p-4">

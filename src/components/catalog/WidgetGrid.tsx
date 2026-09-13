@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useFolderPreviewPosters, useFolderTileImage } from '../../hooks/useFolderPreviewPosters';
 import { FallbackPosterImg } from './FallbackPosterImg';
-import type { Collection, Folder } from '../../types';
+import type { Collection, Folder, HomePresetItem } from '../../types';
 
 export type WidgetTab = 'home' | 'movies' | 'series';
 export const TAB_FLAG: Record<WidgetTab, { ios: keyof Collection; mac: keyof Collection }> = {
@@ -60,12 +60,16 @@ export type WidgetCardItem =
       /** Preset items the app/import published that aren't collection- or
        *  hub-shaped and have no dedicated editor here yet: external-catalog
        *  widgets and Collections Rows. Visible + reorderable + removable,
-       *  edited on-device. */
+       *  and clickable for a read-only detail view; content is edited
+       *  on-device. */
       key: string;
       kind: 'generic';
       title: string;
       subtitle: string;
       accent?: boolean;
+      /** The raw preset row, so the detail sheet can show the tiles / source
+       *  ids without a re-fetch. */
+      presetItem: HomePresetItem;
     };
 
 const STYLE_LABELS: Record<string, string> = {
@@ -87,12 +91,16 @@ interface Props {
    *  drag-and-drop like everything else; this is only for editing its
    *  actual content (folders/sources/artwork). */
   onOpenBrowseHub: (hub: 'genre' | 'language') => void;
+  /** Opens the read-only detail sheet for a preset item with no collection
+   *  editor on the portal (Filtering / external-catalog / Collections Row
+   *  widgets) — their content is authored on-device. */
+  onOpenPresetItem: (item: WidgetCardItem) => void;
   onAddWidget: () => void;
   onDeleteCard: (item: WidgetCardItem) => void;
   onReorderCard: (draggedKey: string, targetKey: string, zone: 'before' | 'after') => void;
 }
 
-export function WidgetGrid({ items, folders, activeTab, mode, onSelectCollection, onOpenBrowseHub, onAddWidget, onDeleteCard, onReorderCard }: Props) {
+export function WidgetGrid({ items, folders, activeTab, mode, onSelectCollection, onOpenBrowseHub, onOpenPresetItem, onAddWidget, onDeleteCard, onReorderCard }: Props) {
   const [dragKey, setDragKey] = useState<string | null>(null);
 
   return (
@@ -108,7 +116,7 @@ export function WidgetGrid({ items, folders, activeTab, mode, onSelectCollection
             onClick={
               item.kind === 'collection' ? () => onSelectCollection(item.collection)
               : item.kind === 'browseHub' ? () => onOpenBrowseHub(item.hub)
-              : undefined
+              : () => onOpenPresetItem(item)
             }
             onDelete={() => onDeleteCard(item)}
             onDragStart={() => setDragKey(item.key)}
