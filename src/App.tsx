@@ -21,12 +21,14 @@ import InvitesPage from './routes/admin/InvitesPage';
 import SupportRequestsPage from './routes/admin/SupportRequestsPage';
 import TabVisibilityPage from './routes/admin/TabVisibilityPage';
 import CardGeneratorPage from './routes/tools/CardGeneratorPage';
+import { ErrorBoundary } from './components/layout/ErrorBoundary';
 
 export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <Routes>
+        <ErrorBoundary>
+          <Routes>
           {/* Public */}
           <Route path="/" element={<LandingPage />} />
           <Route path="/pricing" element={<PublicRoute><PricingPage /></PublicRoute>} />
@@ -59,6 +61,7 @@ export default function App() {
           <Route path="/tools/card-generator" element={<CardGeneratorPage />} />
           <Route path="*" element={<div className="min-h-screen bg-bg flex items-center justify-center"><p className="text-muted">Page not found</p></div>} />
         </Routes>
+        </ErrorBoundary>
       </AuthProvider>
     </BrowserRouter>
   );

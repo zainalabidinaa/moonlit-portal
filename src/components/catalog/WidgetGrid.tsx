@@ -163,6 +163,7 @@ export function WidgetGrid({ items, folders, activeTab, mode, onSelectCollection
             onOpenFolderSelection={item.kind === 'collection' ? onOpenFolderSelection : undefined}
             onToggleGenreHub={item.kind === 'collection' ? onToggleGenreHub : undefined}
             onSplitFolders={item.kind === 'collection' ? onSplitFolders : undefined}
+            onOpenFolder={item.kind === 'collection' ? (folderId) => onSelectCollection(item.collection, folderId) : undefined}
           />
         ))}
         <button
@@ -192,7 +193,7 @@ const BROWSE_HUB_LABELS: Record<'genre' | 'language', string> = {
 
 function WidgetCard({
   item, childFolders, mode, isHomeTab, onClick, onDelete, onDragStart, onDrop, onMoveUp, onMoveDown,
-  onSetExpandFolders, onOpenFolderSelection, onToggleGenreHub, onSplitFolders,
+  onSetExpandFolders, onOpenFolderSelection, onToggleGenreHub, onSplitFolders, onOpenFolder,
 }: {
   item: WidgetCardItem;
   childFolders: Folder[];
@@ -208,6 +209,8 @@ function WidgetCard({
   onOpenFolderSelection?: (item: CollectionCardItem) => void;
   onToggleGenreHub?: (item: CollectionCardItem, value: boolean) => void;
   onSplitFolders?: (item: CollectionCardItem) => void;
+  /** Open one folder of this collection in the editor (a card tile click). */
+  onOpenFolder?: (folderId: string) => void;
 }) {
   if (item.kind === 'browseHub') {
     return (
@@ -330,7 +333,17 @@ function WidgetCard({
         {isFolderWidget ? (
           <div className="grid grid-cols-2 gap-0.5 bg-border">
             {hubTiles.map((f) => (
-              <HubTile key={f.id} folder={f} />
+              // Each tile opens ITS folder in the editor — clicking the card
+              // as a whole only ever reached the collection root, so a
+              // specific folder could not be opened from here at all.
+              <button
+                key={f.id}
+                onClick={(e) => { e.stopPropagation(); onOpenFolder?.(f.id); }}
+                title={`Open ${f.name}`}
+                className="block w-full p-0"
+              >
+                <HubTile folder={f} />
+              </button>
             ))}
             {Array.from({ length: Math.max(0, 4 - hubTiles.length) }).map((_, i) => (
               <div key={`pad-${i}`} className={`${tileAspectClass(hubTiles[0]?.tile_shape)} w-full bg-surface-2`} />
