@@ -511,6 +511,57 @@ export default function HomePresetsPage() {
     }
   }
 
+  /** Replaces one widget with one widget per (selected) folder — each child
+   *  is a single-folder preset item (`folder_ids: [folder.id]`), titled after
+   *  its folder and appended in folder order. The original is removed only
+   *  after the new rows are written. */
+  async function splitFoldersIntoWidgets(card: CollectionCardItem) {
+    const itemId = card.presetItemId;
+    if (!itemId || !selectedPresetId) return;
+    const original = presetItems.find((i) => i.id === itemId);
+    if (!original) return;
+    const collectionId = original.data_source.collectionId;
+    if (!collectionId) return;
+
+    const rootFolders = folders
+      .filter((f) => f.collection_id === card.collection.id && !f.parent_folder_id)
+      .sort((a, b) => a.sort_order - b.sort_order);
+    // Respect a chosen subset — splitting a 3-of-16 widget should make 3
+    // widgets, not 16.
+    const chosen = card.folderIds && card.folderIds.length
+      ? rootFolders.filter((f) => card.folderIds!.includes(f.id))
+      : rootFolders;
+    if (chosen.length < 2) {
+      alert('This widget needs at least two folders to split.');
+      return;
+    }
+    if (!confirm(`Split “${card.collection.name}” into ${chosen.length} widgets — one per folder? The original widget is replaced.`)) return;
+
+    const baseSortOrder = presetItems.reduce((max, item) => Math.max(max, item.sort_order), -1) + 1;
+    const rows = chosen.map((folder, index) => ({
+      preset_id: selectedPresetId,
+      tab: widgetTab,
+      data_source: { kind: 'collection', collectionId },
+      media_type: original.media_type,
+      style: original.style,
+      sort_order: baseSortOrder + index,
+      title: folder.name,
+      // Stable identity per split slot, so a re-run of the same split (or an
+      // import) updates these rows instead of duplicating.
+      source_widget_id: `${original.source_widget_id ?? original.id}:folder:${folder.id}`,
+      folder_ids: [folder.id],
+    }));
+
+    const { data, error } = await supabase.from('home_preset_items').insert(rows).select();
+    if (error) { alert(error.message); return; }
+    const { error: deleteError } = await supabase.from('home_preset_items').delete().eq('id', itemId);
+    if (deleteError) { alert(deleteError.message); return; }
+
+    const inserted = (data as HomePresetItem[]) ?? [];
+    setPresetItems((prev) => [...prev.filter((i) => i.id !== itemId), ...inserted].sort((a, b) => a.sort_order - b.sort_order));
+    setImportNotice(`Split “${card.collection.name}” into ${inserted.length} widgets: ${chosen.map((f) => f.name).join(', ')}.`);
+  }
+
   const availableForPreset = collections.filter(
     (c) => !c.parent_collection_id && !c.parent_folder_id && !presetItems.some((i) => i.data_source.collectionId === c.id)
   );
@@ -642,6 +693,7 @@ export default function HomePresetsPage() {
         onSetExpandFolders={setExpandFolders}
         onOpenFolderSelection={(item) => setFolderPickerItem(item)}
         onToggleGenreHub={setGenreHub}
+        onSplitFolders={splitFoldersIntoWidgets}
       />
 
       {folderPickerItem && (

@@ -122,9 +122,12 @@ interface Props {
   /** Toggles `home_preset_items.genre_hub` — the widget renders through the
    *  app's hardcoded genre UI with its own folder names as genres. */
   onToggleGenreHub: (item: CollectionCardItem, value: boolean) => void;
+  /** Replaces this widget with one widget per (selected) folder — each a
+   *  single-folder preset item via `folder_ids`. */
+  onSplitFolders: (item: CollectionCardItem) => void;
 }
 
-export function WidgetGrid({ items, folders, activeTab, mode, onSelectCollection, onOpenBrowseHub, onOpenPresetItem, onAddWidget, onDeleteCard, onReorderCard, onSetExpandFolders, onOpenFolderSelection, onToggleGenreHub }: Props) {
+export function WidgetGrid({ items, folders, activeTab, mode, onSelectCollection, onOpenBrowseHub, onOpenPresetItem, onAddWidget, onDeleteCard, onReorderCard, onSetExpandFolders, onOpenFolderSelection, onToggleGenreHub, onSplitFolders }: Props) {
   const [dragKey, setDragKey] = useState<string | null>(null);
 
   return (
@@ -154,6 +157,7 @@ export function WidgetGrid({ items, folders, activeTab, mode, onSelectCollection
             onSetExpandFolders={item.kind === 'collection' ? onSetExpandFolders : undefined}
             onOpenFolderSelection={item.kind === 'collection' ? onOpenFolderSelection : undefined}
             onToggleGenreHub={item.kind === 'collection' ? onToggleGenreHub : undefined}
+            onSplitFolders={item.kind === 'collection' ? onSplitFolders : undefined}
           />
         ))}
         <button
@@ -183,7 +187,7 @@ const BROWSE_HUB_LABELS: Record<'genre' | 'language', string> = {
 
 function WidgetCard({
   item, childFolders, mode, isHomeTab, onClick, onDelete, onDragStart, onDrop, onMoveUp, onMoveDown,
-  onSetExpandFolders, onOpenFolderSelection, onToggleGenreHub,
+  onSetExpandFolders, onOpenFolderSelection, onToggleGenreHub, onSplitFolders,
 }: {
   item: WidgetCardItem;
   childFolders: Folder[];
@@ -198,6 +202,7 @@ function WidgetCard({
   onSetExpandFolders?: (item: CollectionCardItem, expand: boolean) => void;
   onOpenFolderSelection?: (item: CollectionCardItem) => void;
   onToggleGenreHub?: (item: CollectionCardItem, value: boolean) => void;
+  onSplitFolders?: (item: CollectionCardItem) => void;
 }) {
   if (item.kind === 'browseHub') {
     return (
@@ -349,6 +354,15 @@ function WidgetCard({
               >
                 {genreHubOn ? 'Genre hub ✓' : 'Genre hub'}
               </button>
+              {!genreHubOn && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); onSplitFolders?.(collectionItem); }}
+                  title="Replace this widget with one widget per folder"
+                  className="rounded-full bg-black/50 px-2 py-0.5 text-[10px] font-semibold text-white/85 transition-colors hover:bg-black/75"
+                >
+                  Split folders
+                </button>
+              )}
             </span>
           )}
         </div>
