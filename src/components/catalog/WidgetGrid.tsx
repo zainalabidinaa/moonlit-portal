@@ -269,9 +269,11 @@ function WidgetCard({
   const folderCount = effectiveFolders.length;
   // Per-placement folder controls: only meaningful in "preset" mode (the
   // flag lives on the preset item, not the collection itself) and only when
-  // the collection has 2+ folders — a single-folder collection already
-  // resolves straight to its content row, so there is nothing to switch.
-  const canChooseFolders = mode === 'preset' && item.presetItemId != null && totalFolderCount >= 2;
+  // the widget actually spans 2+ folders — a single-folder widget (a split
+  // child) has nothing to choose, switch or split, and showing the controls
+  // made it read as if it still contained the whole collection.
+  const canChooseFolders = mode === 'preset' && item.presetItemId != null
+    && totalFolderCount >= 2 && folderCount > 1;
   const genreHubOn = item.genreHub === true;
   const folderSelectionLabel = folderCount === totalFolderCount
     ? (totalFolderCount === 1 ? '1 folder' : `${totalFolderCount} folders`)
