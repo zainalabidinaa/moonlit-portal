@@ -2,9 +2,10 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { AppShell } from '../../components/layout/AppShell';
 import { Button } from '../../components/ui/Button';
-import { WidgetGrid, TAB_FLAG, type WidgetTab, type WidgetCardItem } from '../../components/catalog/WidgetGrid';
+import { WidgetGrid, TAB_FLAG, type WidgetTab, type WidgetCardItem, type CollectionCardItem } from '../../components/catalog/WidgetGrid';
 import { WidgetEditor } from '../../components/catalog/WidgetEditor';
 import { ImportWidgetsDialog } from '../../components/catalog/ImportWidgetsDialog';
+import { FolderPickerDialog } from '../../components/catalog/FolderPickerDialog';
 import { PresetWidgetEditorDialog } from '../../components/catalog/PresetWidgetEditorDialog';
 import { cloneCollection } from '../../lib/cloneCollection';
 import type { Collection, Folder, HomePreset, HomePresetItem } from '../../types';
@@ -59,6 +60,9 @@ export default function HomePresetsPage() {
   const [showImportDialog, setShowImportDialog] = useState(false);
   const [importNotice, setImportNotice] = useState<string | null>(null);
   const [detailItem, setDetailItem] = useState<WidgetCardItem | null>(null);
+  // The collection card whose folder picker is open (`folder_ids`/
+  // `expand_folders` on that one preset item).
+  const [folderPickerItem, setFolderPickerItem] = useState<CollectionCardItem | null>(null);
 
   const mode: 'all' | 'preset' = selectedPresetId ? 'preset' : 'all';
   const selectedPreset = presets.find((p) => p.id === selectedPresetId) ?? null;
@@ -187,7 +191,16 @@ export default function HomePresetsPage() {
       }
       const collectionId = item.data_source.kind === 'collection' ? item.data_source.collectionId : undefined;
       const collection = collectionId ? collections.find((c) => c.id === collectionId) : undefined;
-      return collection ? { key: item.id, kind: 'collection', collection } : null;
+      return collection
+        ? {
+            key: item.id,
+            kind: 'collection',
+            collection,
+            presetItemId: item.id,
+            expandFolders: item.expand_folders ?? false,
+            folderIds: item.folder_ids ?? null,
+          }
+        : null;
     })
     .filter((x): x is WidgetCardItem => x !== null);
 
@@ -454,6 +467,34 @@ export default function HomePresetsPage() {
     }
   }
 
+  /** Switches one preset item between the folder-tile hub and per-folder
+   *  content rows. Placement-level — never touches the collection itself, so
+   *  the same widget in another preset keeps its own mode. */
+  async function setExpandFolders(card: CollectionCardItem, expand: boolean) {
+    const itemId = card.presetItemId;
+    if (!itemId) return;
+    setPresetItems((prev) => prev.map((i) => (i.id === itemId ? { ...i, expand_folders: expand } : i)));
+    const { error } = await supabase.from('home_preset_items').update({ expand_folders: expand }).eq('id', itemId);
+    if (error) {
+      alert(error.message);
+      if (selectedPresetId) loadPresetItems(selectedPresetId, widgetTab);
+    }
+  }
+
+  /** Persists the folder picker's selection for one preset item. `null` means
+   *  all folders — stored as NULL so a folder added to the collection later
+   *  is included by default. */
+  async function applyFolderSelection(card: CollectionCardItem, ids: string[] | null) {
+    const itemId = card.presetItemId;
+    if (!itemId) return;
+    setPresetItems((prev) => prev.map((i) => (i.id === itemId ? { ...i, folder_ids: ids } : i)));
+    const { error } = await supabase.from('home_preset_items').update({ folder_ids: ids }).eq('id', itemId);
+    if (error) {
+      alert(error.message);
+      if (selectedPresetId) loadPresetItems(selectedPresetId, widgetTab);
+    }
+  }
+
   const availableForPreset = collections.filter(
     (c) => !c.parent_collection_id && !c.parent_folder_id && !presetItems.some((i) => i.data_source.collectionId === c.id)
   );
@@ -582,7 +623,22 @@ export default function HomePresetsPage() {
         onAddWidget={handleAddWidget}
         onDeleteCard={handleDeleteCard}
         onReorderCard={handleReorderCard}
+        onSetExpandFolders={setExpandFolders}
+        onOpenFolderSelection={(item) => setFolderPickerItem(item)}
       />
+
+      {folderPickerItem && (
+        <FolderPickerDialog
+          title={folderPickerItem.collection.name}
+          folders={folders.filter((f) => f.collection_id === folderPickerItem.collection.id && !f.parent_folder_id)}
+          selectedIds={folderPickerItem.folderIds ?? null}
+          onClose={() => setFolderPickerItem(null)}
+          onApply={(ids) => {
+            applyFolderSelection(folderPickerItem, ids);
+            setFolderPickerItem(null);
+          }}
+        />
+      )}
 
           {detailItem && (
             <PresetWidgetEditorDialog

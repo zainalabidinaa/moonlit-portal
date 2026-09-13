@@ -7,6 +7,7 @@ import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { DragHandle } from '../../components/ui/DragHandle';
 import { Badge } from '../../components/ui/Badge';
+import { AddonWidgetsDialog } from '../../components/catalog/AddonWidgetsDialog';
 import type { InstalledAddon } from '../../types';
 
 // Bundled on every device regardless of what's in `installed_addons` — see
@@ -31,6 +32,15 @@ export default function AddonsPage() {
     activeProfile?.curated_setup_synced_at ?? null,
   );
   const dragIndex = useRef<number | null>(null);
+  // The add-on whose "Addon Widgets" popup is open (manifestUrl + label) —
+  // set right after a successful add, or from a row's own Widgets button.
+  const [widgetsTarget, setWidgetsTarget] = useState<{ url: string; label: string } | null>(null);
+  const [widgetsNotice, setWidgetsNotice] = useState<string | null>(null);
+
+  function openWidgetsFor(url: string, label: string) {
+    setWidgetsNotice(null);
+    setWidgetsTarget({ url, label });
+  }
 
   const isManaged = role === 'premium';
   const canEdit = role === 'admin' || role === 'premium_plus';
@@ -74,6 +84,10 @@ export default function AddonsPage() {
     const { data } = await supabase.from('installed_addons').select('*').eq('profile_id', activeProfile.id).order('sort_order');
     setAddons(data ?? []);
     setSaving(false);
+    // The add-on is saved; the popup (if the manifest declares catalogs) is
+    // how its rows can also become preset widgets — append-only, and it can
+    // be skipped with "Not now" without affecting the add-on itself.
+    openWidgetsFor(newUrl.trim(), newUrl.trim());
   }
 
   async function handleToggle(addon: InstalledAddon) {
@@ -188,6 +202,13 @@ export default function AddonsPage() {
           </Card>
         )}
 
+        {widgetsNotice && (
+          <div className="mb-6 flex items-start gap-3 rounded-xl border border-accent/30 bg-surface px-4 py-3 text-sm text-text">
+            <span className="min-w-0 flex-1">{widgetsNotice}</span>
+            <button onClick={() => setWidgetsNotice(null)} className="text-muted transition-colors hover:text-text" aria-label="Dismiss">✕</button>
+          </div>
+        )}
+
         {/* Bundled defaults are always active but never stored in `installed_addons`
             (see BUILTIN_ADDON_NAMES above) — shown read-only so they aren't mistaken
             for "no add-ons installed". */}
@@ -231,6 +252,15 @@ export default function AddonsPage() {
                   <p className="text-sm font-medium text-text truncate">{addon.addon_name ?? addon.addon_url}</p>
                   {addon.addon_name && <p className="text-xs text-muted truncate">{addon.addon_url}</p>}
                 </div>
+                {canEdit && (
+                  <button
+                    onClick={() => openWidgetsFor(addon.addon_url, addon.addon_name ?? addon.addon_url)}
+                    title="Add this add-on's catalogs to a preset"
+                    className="shrink-0 rounded-full border border-border px-2.5 py-1 text-[11px] font-semibold text-muted transition-colors hover:border-accent hover:text-accent"
+                  >
+                    Widgets
+                  </button>
+                )}
                 {/* Admin only: classifying an addon as a stream source is what
                     lets invite codes withhold it. An unmarked stream addon goes
                     out to EVERY user regardless of their code. */}
@@ -262,6 +292,18 @@ export default function AddonsPage() {
           </div>
         )}
       </div>
+
+      {widgetsTarget && (
+        <AddonWidgetsDialog
+          manifestUrl={widgetsTarget.url}
+          addonLabel={widgetsTarget.label}
+          onClose={() => setWidgetsTarget(null)}
+          onAdded={(summary) => {
+            setWidgetsNotice(summary);
+            setWidgetsTarget(null);
+          }}
+        />
+      )}
     </AppShell>
   );
 }

@@ -43,6 +43,15 @@ export type WidgetCardItem =
        *  mode — style is a property of a widget's *placement*, not of the
        *  collection itself, so "all widgets" mode has no style to show). */
       style?: string;
+      /** Present in "preset" mode: this card's `home_preset_items` row id,
+       *  so the folder-mode controls persist to exactly this placement. */
+      presetItemId?: string;
+      /** `home_preset_items.expand_folders` — one content row per selected
+       *  folder instead of a single hub row of folder tiles. */
+      expandFolders?: boolean;
+      /** `home_preset_items.folder_ids` — the chosen root-folder subset;
+       *  null/empty = every folder. */
+      folderIds?: string[] | null;
     }
   | { key: string; kind: 'browseHub'; hub: 'genre' | 'language' }
   | {
@@ -72,6 +81,9 @@ export type WidgetCardItem =
       presetItem: HomePresetItem;
     };
 
+/** The folder-mode controls only ever apply to collection-backed cards. */
+export type CollectionCardItem = Extract<WidgetCardItem, { kind: 'collection' }>;
+
 const STYLE_LABELS: Record<string, string> = {
   standard: 'Row Classic',
   heroBanner: 'Hero',
@@ -98,9 +110,14 @@ interface Props {
   onAddWidget: () => void;
   onDeleteCard: (item: WidgetCardItem) => void;
   onReorderCard: (draggedKey: string, targetKey: string, zone: 'before' | 'after') => void;
+  /** Switches a widget between the folder-tile hub and per-folder content
+   *  rows (`home_preset_items.expand_folders`). */
+  onSetExpandFolders: (item: CollectionCardItem, expand: boolean) => void;
+  /** Opens the folder picker (`home_preset_items.folder_ids`) for a widget. */
+  onOpenFolderSelection: (item: CollectionCardItem) => void;
 }
 
-export function WidgetGrid({ items, folders, activeTab, mode, onSelectCollection, onOpenBrowseHub, onOpenPresetItem, onAddWidget, onDeleteCard, onReorderCard }: Props) {
+export function WidgetGrid({ items, folders, activeTab, mode, onSelectCollection, onOpenBrowseHub, onOpenPresetItem, onAddWidget, onDeleteCard, onReorderCard, onSetExpandFolders, onOpenFolderSelection }: Props) {
   const [dragKey, setDragKey] = useState<string | null>(null);
 
   return (
@@ -127,6 +144,8 @@ export function WidgetGrid({ items, folders, activeTab, mode, onSelectCollection
             // more reliable for "move this one thing up/down".
             onMoveUp={index > 0 ? () => onReorderCard(item.key, items[index - 1].key, 'before') : undefined}
             onMoveDown={index < items.length - 1 ? () => onReorderCard(item.key, items[index + 1].key, 'after') : undefined}
+            onSetExpandFolders={item.kind === 'collection' ? onSetExpandFolders : undefined}
+            onOpenFolderSelection={item.kind === 'collection' ? onOpenFolderSelection : undefined}
           />
         ))}
         <button
@@ -156,6 +175,7 @@ const BROWSE_HUB_LABELS: Record<'genre' | 'language', string> = {
 
 function WidgetCard({
   item, childFolders, mode, isHomeTab, onClick, onDelete, onDragStart, onDrop, onMoveUp, onMoveDown,
+  onSetExpandFolders, onOpenFolderSelection,
 }: {
   item: WidgetCardItem;
   childFolders: Folder[];
@@ -167,6 +187,8 @@ function WidgetCard({
   onDrop: () => void;
   onMoveUp?: () => void;
   onMoveDown?: () => void;
+  onSetExpandFolders?: (item: CollectionCardItem, expand: boolean) => void;
+  onOpenFolderSelection?: (item: CollectionCardItem) => void;
 }) {
   if (item.kind === 'browseHub') {
     return (
@@ -214,12 +236,27 @@ function WidgetCard({
   }
 
   const { collection } = item;
+  // Capture the narrowed variant so the controls' closures keep the
+  // collection-card type (TS drops parameter narrowing inside callbacks).
+  const collectionItem = item;
   const folderCount = childFolders.length;
+  const selectedFolderCount = item.folderIds && item.folderIds.length
+    ? childFolders.filter((f) => item.folderIds!.includes(f.id)).length
+    : folderCount;
+  // Per-placement folder controls: only meaningful in "preset" mode (the
+  // flag lives on the preset item, not the collection itself) and only when
+  // the collection has 2+ folders — a single-folder collection already
+  // resolves straight to its content row, so there is nothing to switch.
+  const canChooseFolders = mode === 'preset' && item.presetItemId != null && folderCount >= 2;
+  const folderSelectionLabel = selectedFolderCount === folderCount
+    ? (folderCount === 1 ? '1 folder' : `${folderCount} folders`)
+    : `${selectedFolderCount} of ${folderCount} folders`;
   // In "preset" mode the item's own placement style is the more useful
   // label (it's what the real on-device "Your Widgets" screen shows —
   // Row Classic / Hero / Card Stack / Row Numbered). "All widgets" mode has
   // no style (it's not a property of the collection itself), so it falls
-  // back to the structural description instead.
+  // back to the structural description instead. A folder widget the admin
+  // has given folder controls shows its mode + selection instead.
   //
   // "Hardcoded UI" is only true of Home's genre/language tile strip
   // (MacHomeView's homeGenres/homeLanguages, a one-off SwiftUI view with no
@@ -227,7 +264,9 @@ function WidgetCard({
   // display_section === 'hub' renders through the same generic
   // CatalogRepository.displayRows group-tile path as everything else, so it
   // gets the plain folder-count label instead of the misleading one.
-  const subtitle = item.style
+  const subtitle = canChooseFolders
+    ? `${item.expandFolders ? 'Rows' : 'Hub'} · ${folderSelectionLabel}`
+    : item.style
     ? STYLE_LABELS[item.style] ?? item.style
     : collection.display_section === 'hub' ? (isHomeTab ? 'Hub · hardcoded UI' : `Hub · ${folderCount} folders`)
     : collection.display_section === 'rows' ? 'Rows'
@@ -280,8 +319,43 @@ function WidgetCard({
         <div className="absolute inset-x-0 top-0 p-3">
           <p className="truncate text-[15px] font-semibold text-white">{collection.name}</p>
           <p className="mt-0.5 text-[12px] text-white/60">{subtitle}</p>
+          {canChooseFolders && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onOpenFolderSelection?.(collectionItem); }}
+              title="Choose which folders this widget shows"
+              className="mt-1.5 rounded-full bg-black/50 px-2 py-0.5 text-[10px] font-semibold text-white/85 transition-colors hover:bg-black/75"
+            >
+              Choose folders
+            </button>
+          )}
         </div>
       </button>
+      {canChooseFolders && (
+        <div className="absolute bottom-2.5 left-1/2 z-[2] -translate-x-1/2" onClick={(e) => e.stopPropagation()}>
+          <div className="flex overflow-hidden rounded-full border border-white/15 bg-black/55 text-[11px] font-semibold">
+            <button
+              onClick={() => { if (collectionItem.expandFolders) onSetExpandFolders?.(collectionItem, false); }}
+              title="Show the folders as one hub of tiles"
+              className={`px-2.5 py-1 transition-colors ${collectionItem.expandFolders ? 'text-white/70 hover:text-white' : 'bg-accent text-[#2a1206]'}`}
+            >
+              Folders
+            </button>
+            <button
+              onClick={() => {
+                if (collectionItem.expandFolders) return;
+                onSetExpandFolders?.(collectionItem, true);
+                // Switching to Rows opens the picker so "all or a few" is a
+                // deliberate choice — Apply with everything on keeps All.
+                onOpenFolderSelection?.(collectionItem);
+              }}
+              title="Give every selected folder its own content row"
+              className={`px-2.5 py-1 transition-colors ${collectionItem.expandFolders ? 'bg-accent text-[#2a1206]' : 'text-white/70 hover:text-white'}`}
+            >
+              Rows
+            </button>
+          </div>
+        </div>
+      )}
       <div className="absolute bottom-2.5 left-2.5 z-[2] flex gap-1.5">
         <button
           onClick={(e) => { e.stopPropagation(); onMoveUp?.(); }}

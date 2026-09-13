@@ -193,6 +193,15 @@ export interface HomePresetItem {
    *  / re-publish with the same id updates this row in place instead of
    *  inserting a duplicate. NULL for portal-authored rows. */
   source_widget_id?: string | null;
+  /** Per-widget folder expansion (see
+   *  20260925_home_preset_items_expand_folders.sql): a `.collection` item
+   *  with this set renders one content row per *selected* folder in the app
+   *  instead of a single hub row of folder tiles. */
+  expand_folders?: boolean;
+  /** The root folder ids this item shows — the same selection limits the
+   *  hub tiles and decides which folders expand into rows. NULL/empty means
+   *  every folder. */
+  folder_ids?: string[] | null;
 }
 
 export type Plan = 'premium' | 'premium_plus';
