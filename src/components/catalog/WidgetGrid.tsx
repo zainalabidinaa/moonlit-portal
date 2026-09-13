@@ -56,6 +56,10 @@ export type WidgetCardItem =
        *  genre UI (editorial genre tiles, genre rooms) using these folders
        *  as genres, whatever language they're named in. */
       genreHub?: boolean;
+      /** The preset item's own display name (`home_preset_items.title`) —
+       *  shown instead of the collection name when set (a split child is
+       *  named after its single folder, for instance). */
+      presetTitle?: string;
     }
   | { key: string; kind: 'browseHub'; hub: 'genre' | 'language' }
   | {
@@ -253,19 +257,24 @@ function WidgetCard({
   // Capture the narrowed variant so the controls' closures keep the
   // collection-card type (TS drops parameter narrowing inside callbacks).
   const collectionItem = item;
-  const folderCount = childFolders.length;
-  const selectedFolderCount = item.folderIds && item.folderIds.length
-    ? childFolders.filter((f) => item.folderIds!.includes(f.id)).length
-    : folderCount;
+  const totalFolderCount = childFolders.length;
+  // A widget's own folder selection defines what it *shows*: a split child
+  // (`folder_ids` = one id) is that single folder's content, not a renamed
+  // copy of the whole hub — so its art, counts and previews come from the
+  // chosen folders alone.
+  const effectiveFolders = item.folderIds && item.folderIds.length
+    ? childFolders.filter((f) => item.folderIds!.includes(f.id))
+    : childFolders;
+  const folderCount = effectiveFolders.length;
   // Per-placement folder controls: only meaningful in "preset" mode (the
   // flag lives on the preset item, not the collection itself) and only when
   // the collection has 2+ folders — a single-folder collection already
   // resolves straight to its content row, so there is nothing to switch.
-  const canChooseFolders = mode === 'preset' && item.presetItemId != null && folderCount >= 2;
+  const canChooseFolders = mode === 'preset' && item.presetItemId != null && totalFolderCount >= 2;
   const genreHubOn = item.genreHub === true;
-  const folderSelectionLabel = selectedFolderCount === folderCount
-    ? (folderCount === 1 ? '1 folder' : `${folderCount} folders`)
-    : `${selectedFolderCount} of ${folderCount} folders`;
+  const folderSelectionLabel = folderCount === totalFolderCount
+    ? (totalFolderCount === 1 ? '1 folder' : `${totalFolderCount} folders`)
+    : `${folderCount} of ${totalFolderCount} folders`;
   // In "preset" mode the item's own placement style is the more useful
   // label (it's what the real on-device "Your Widgets" screen shows —
   // Row Classic / Hero / Card Stack / Row Numbered). "All widgets" mode has
@@ -282,7 +291,9 @@ function WidgetCard({
   const subtitle = canChooseFolders
     ? genreHubOn
       ? `Genre hub · ${folderSelectionLabel}`
-      : `${item.expandFolders ? 'Rows' : 'Hub'} · ${folderSelectionLabel}`
+      : folderCount === 1
+        ? `Folder · content row · ${folderSelectionLabel}`
+        : `${item.expandFolders ? 'Rows' : 'Hub'} · ${folderSelectionLabel}`
     : item.style
     ? STYLE_LABELS[item.style] ?? item.style
     : collection.display_section === 'hub' ? (isHomeTab ? 'Hub · hardcoded UI' : `Hub · ${folderCount} folders`)
@@ -295,8 +306,8 @@ function WidgetCard({
   // sources — its own cover_image/hero_backdrop is admin metadata, not
   // representative of the many titles inside, so real poster art is fetched
   // from that folder's actual source instead (see useFolderPreviewPosters).
-  const sourcePosters = useFolderPreviewPosters(!isFolderWidget ? childFolders[0]?.id ?? null : null);
-  const hubTiles = isFolderWidget ? childFolders.slice(0, 4) : [];
+  const sourcePosters = useFolderPreviewPosters(!isFolderWidget ? effectiveFolders[0]?.id ?? null : null);
+  const hubTiles = isFolderWidget ? effectiveFolders.slice(0, 4) : [];
 
   return (
     <div
@@ -334,7 +345,7 @@ function WidgetCard({
           </span>
         )}
         <div className="absolute inset-x-0 top-0 p-3">
-          <p className="truncate text-[15px] font-semibold text-white">{collection.name}</p>
+          <p className="truncate text-[15px] font-semibold text-white">{item.presetTitle || collection.name}</p>
           <p className="mt-0.5 text-[12px] text-white/60">{subtitle}</p>
           {canChooseFolders && (
             <span className="mt-1.5 flex flex-wrap gap-1">

@@ -200,6 +200,7 @@ export default function HomePresetsPage() {
             expandFolders: item.expand_folders ?? false,
             folderIds: item.folder_ids ?? null,
             genreHub: item.genre_hub ?? false,
+            presetTitle: item.title?.trim() || undefined,
           }
         : null;
     })
