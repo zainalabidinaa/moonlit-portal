@@ -308,6 +308,12 @@ function WidgetCard({
   // from that folder's actual source instead (see useFolderPreviewPosters).
   const sourcePosters = useFolderPreviewPosters(!isFolderWidget ? effectiveFolders[0]?.id ?? null : null);
   const hubTiles = isFolderWidget ? effectiveFolders.slice(0, 4) : [];
+  // Before (or without) source posters, a single-folder widget shows that
+  // folder's own artwork — otherwise every split child would fall back to
+  // the same collection backdrop and read as a duplicate.
+  const singleFolderArt = !isFolderWidget && effectiveFolders.length === 1
+    ? effectiveFolders[0].cover_image ?? effectiveFolders[0].hero_backdrop
+    : null;
 
   return (
     <div
@@ -333,6 +339,8 @@ function WidgetCard({
               <FallbackPosterImg key={i} pool={sourcePosters} slot={i} totalSlots={4} className="aspect-[2/3] w-full object-cover" />
             ))}
           </div>
+        ) : singleFolderArt ? (
+          <img src={singleFolderArt} alt="" className="aspect-square w-full object-cover" />
         ) : collection.backdrop_image ? (
           <img src={collection.backdrop_image} alt="" className="aspect-square w-full object-cover" />
         ) : (
