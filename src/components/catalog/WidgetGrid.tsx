@@ -105,7 +105,7 @@ interface Props {
   folders: Folder[];
   activeTab: WidgetTab;
   mode: 'all' | 'preset';
-  onSelectCollection: (c: Collection) => void;
+  onSelectCollection: (c: Collection, folderId?: string) => void;
   /** Opens the real "Genres"/"Languages" collection in `WidgetEditor` for a
    *  `browseHub` card — its own position in this grid is just
    *  drag-and-drop like everything else; this is only for editing its
@@ -145,9 +145,10 @@ export function WidgetGrid({ items, folders, activeTab, mode, onSelectCollection
             mode={mode}
             isHomeTab={activeTab === 'home'}
             onClick={
-              item.kind === 'collection' ? () => onSelectCollection(item.collection)
-              : item.kind === 'browseHub' ? () => onOpenBrowseHub(item.hub)
-              : () => onOpenPresetItem(item)
+              item.kind === 'collection'
+                ? () => onSelectCollection(item.collection, item.folderIds?.length === 1 ? item.folderIds[0] : undefined)
+                : item.kind === 'browseHub' ? () => onOpenBrowseHub(item.hub)
+                : () => onOpenPresetItem(item)
             }
             onDelete={() => onDeleteCard(item)}
             onDragStart={() => setDragKey(item.key)}

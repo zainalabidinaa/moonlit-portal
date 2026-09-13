@@ -41,17 +41,21 @@ function gradientFor(id: string): string {
 
 interface Props {
   collectionId: string;
+  /** Open the editor drilled into this folder — a folder-scoped widget (a
+   *  split child) shows that folder and its sources rather than the whole
+   *  collection. */
+  initialFolderId?: string;
   onBack: () => void;
 }
 
-export function WidgetEditor({ collectionId, onBack }: Props) {
+export function WidgetEditor({ collectionId, initialFolderId, onBack }: Props) {
   const {
     collection, folders, sourcesByFolder, catalogsByFolder, loading,
     saveCollectionSettings, addFolder, deleteFolder, reorderFolderSiblings, saveFolderArtwork,
     addSource, deleteSource, addCatalog, deleteCatalog, importFolder,
   } = useCollectionSubtree(collectionId);
 
-  const [path, setPath] = useState<string[]>([]);
+  const [path, setPath] = useState<string[]>(initialFolderId ? [initialFolderId] : []);
   const [bodyView, setBodyView] = useState<'rows' | 'list'>('rows');
   const [composerParentId, setComposerParentId] = useState<string | null | undefined>(undefined); // undefined = closed
   const [importParentId, setImportParentId] = useState<string | null | undefined>(undefined); // undefined = closed
@@ -82,6 +86,13 @@ export function WidgetEditor({ collectionId, onBack }: Props) {
   const currentFolderId = path[path.length - 1] ?? null;
   const currentFolder = currentFolderId ? folders.find((f) => f.id === currentFolderId) ?? null : null;
   const currentChildren = childrenOf(currentFolderId);
+
+  // A stale/deleted `initialFolderId` (or one from another collection) must
+  // not leave the editor stranded on an empty level.
+  useEffect(() => {
+    if (path.length && !loading && !currentFolder) setPath([]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [path, loading, currentFolder]);
   const isRoot = path.length === 0;
 
   function crumbName(id: string): string {

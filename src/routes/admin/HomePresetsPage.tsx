@@ -38,7 +38,7 @@ function Toggle({ on, onChange }: { on: boolean; onChange: (v: boolean) => void 
   );
 }
 
-type Screen = { kind: 'grid' } | { kind: 'editor'; collectionId: string };
+type Screen = { kind: 'grid' } | { kind: 'editor'; collectionId: string; folderId?: string };
 
 export default function HomePresetsPage() {
   const [presets, setPresets] = useState<HomePreset[]>([]);
@@ -578,7 +578,11 @@ export default function HomePresetsPage() {
   if (screen.kind === 'editor') {
     return (
       <AppShell>
-        <WidgetEditor collectionId={screen.collectionId} onBack={() => setScreen({ kind: 'grid' })} />
+        <WidgetEditor
+          collectionId={screen.collectionId}
+          initialFolderId={screen.folderId}
+          onBack={() => setScreen({ kind: 'grid' })}
+        />
       </AppShell>
     );
   }
@@ -678,7 +682,7 @@ export default function HomePresetsPage() {
         folders={folders}
         activeTab={widgetTab}
         mode={mode}
-        onSelectCollection={(c) => setScreen({ kind: 'editor', collectionId: c.id })}
+        onSelectCollection={(c, folderId) => setScreen({ kind: 'editor', collectionId: c.id, folderId })}
         onOpenBrowseHub={(hub) => {
           const collection = hub === 'genre' ? genresCollection : languagesCollection;
           if (!collection) {
