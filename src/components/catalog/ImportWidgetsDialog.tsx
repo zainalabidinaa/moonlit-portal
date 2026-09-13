@@ -11,6 +11,7 @@ import {
 } from '../../lib/importWidgets';
 import { syncCollectionTrees, type CollectionTree } from '../../lib/collectionTrees';
 import { collectionsToTrees, parseCollectionsProfile } from '../../lib/nuvioCollections';
+import { manifestToCollectionTrees, parseAddonManifest } from '../../lib/addonCatalogWidgets';
 
 const STYLE_LABELS: Record<string, string> = {
   standard: 'Row Classic',
@@ -53,14 +54,14 @@ export function ImportWidgetsDialog({ presetId, presetName, tab, startSortOrder,
   const [error, setError] = useState<string | null>(null);
   const [parsed, setParsed] = useState<ParsedWidgetsExport | null>(null);
   const [parsedTrees, setParsedTrees] = useState<CollectionTree[] | null>(null);
-  const [skippedSources, setSkippedSources] = useState(0);
+  const [skippedNote, setSkippedNote] = useState<string | null>(null);
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [progress, setProgress] = useState<string | null>(null);
 
   function resetPreview() {
     setParsed(null);
     setParsedTrees(null);
-    setSkippedSources(0);
+    setSkippedNote(null);
     setError(null);
     setSelected(new Set());
   }
@@ -98,7 +99,21 @@ export function ImportWidgetsDialog({ presetId, presetName, tab, startSortOrder,
         const { trees, skippedSources: skipped } = collectionsToTrees(profile);
         if (!trees.length) throw new Error('No collection in that profile has usable sources.');
         setParsedTrees(trees);
-        setSkippedSources(skipped);
+        setSkippedNote(skipped ? `${skipped} source${skipped === 1 ? '' : 's'} skipped (no addressable identity)` : null);
+        setSelected(new Set(trees.map((_, index) => index)));
+        return;
+      }
+
+      // A raw add-on `manifest.json` — grouped the same way the Addon Widgets
+      // popup does: one widget per catalog group (`<Provider> · <Section>`).
+      const looksLikeManifest = !Array.isArray(json) && Boolean(json) && typeof json === 'object'
+        && Array.isArray((json as { catalogs?: unknown }).catalogs);
+      if (looksLikeManifest) {
+        const manifest = parseAddonManifest(json, mode === 'url' ? url.trim() : 'addon');
+        const { trees, skipped } = manifestToCollectionTrees(manifest);
+        if (!trees.length) throw new Error('No catalog in that manifest can stand alone as a widget.');
+        setParsedTrees(trees);
+        setSkippedNote(skipped.length ? `${skipped.length} search-only catalog${skipped.length === 1 ? '' : 's'} skipped` : null);
         setSelected(new Set(trees.map((_, index) => index)));
         return;
       }
@@ -221,7 +236,8 @@ export function ImportWidgetsDialog({ presetId, presetName, tab, startSortOrder,
           )}
 
           <p className="text-xs text-faint">
-            Accepts a Moonlit widgets export, a Fusion widgets export, or a Nuvio/Moonlit collections profile.
+            Accepts a Moonlit widgets export, a Fusion widgets export, a Nuvio/Moonlit collections profile,
+            or an add-on <span className="font-mono">manifest.json</span> URL.
           </p>
 
           {error && <p className="text-sm text-red-400">{error}</p>}
@@ -229,9 +245,9 @@ export function ImportWidgetsDialog({ presetId, presetName, tab, startSortOrder,
           {parsedTrees && (
             <div className="overflow-hidden rounded-xl border border-border">
               <div className="bg-surface-2 px-3.5 py-2.5 text-sm text-muted">
-                Found <b className="text-text">{parsedTrees.length}</b> collection{parsedTrees.length === 1 ? '' : 's'} —{' '}
+                Found <b className="text-text">{parsedTrees.length}</b> widget{parsedTrees.length === 1 ? '' : 's'} —{' '}
                 <b className="text-text">{selectedCount}</b> of <b className="text-text">{parsedTrees.length}</b> selected
-                {skippedSources ? <>, <b className="text-text">{skippedSources}</b> sources skipped</> : null}.
+                {skippedNote ? <>, <b className="text-text">{skippedNote}</b></> : null}.
               </div>
               <div className="flex gap-3 border-t border-border px-3.5 py-1.5 text-xs">
                 <button className="font-semibold text-accent hover:underline" onClick={() => setSelected(new Set(parsedTrees.map((_, i) => i)))}>
@@ -329,7 +345,7 @@ export function ImportWidgetsDialog({ presetId, presetName, tab, startSortOrder,
           <Button variant="ghost" size="sm" onClick={onClose} disabled={busy}>Cancel</Button>
           {parsedTrees ? (
             <Button size="sm" onClick={commitCollections} loading={busy} disabled={selectedCount === 0}>
-              Import {selectedCount} collection{selectedCount === 1 ? '' : 's'}
+              Import {selectedCount}
             </Button>
           ) : parsed ? (
             <Button size="sm" onClick={commit} loading={busy} disabled={selectedCount === 0}>

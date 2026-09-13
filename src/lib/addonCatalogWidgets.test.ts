@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { fetchAddonManifest, manifestToCollectionTrees } from './addonCatalogWidgets';
+import { fetchAddonManifest, manifestToCollectionTrees, parseAddonManifest } from './addonCatalogWidgets';
 
 const MANIFEST = {
   id: 'community.elcinema.metadata',
@@ -40,6 +40,18 @@ describe('fetchAddonManifest', () => {
 
     mockFetch(() => { throw new Error('blocked'); });
     await expect(fetchAddonManifest('https://example.com/manifest.json')).rejects.toThrow(/block browser fetches/);
+  });
+
+  it('parses an already-fetched manifest, falling back to the URL as its id', () => {
+    const info = parseAddonManifest(
+      { name: 'ArabCinemeta', catalogs: [{ type: 'movie', id: 'elcinema-now', name: 'elCinema · Now Playing' }] },
+      'https://example.com/manifest.json',
+    );
+    expect(info.id).toBe('https://example.com/manifest.json');
+    expect(info.name).toBe('ArabCinemeta');
+    expect(info.catalogs).toEqual([
+      { id: 'elcinema-now', type: 'movie', name: 'elCinema · Now Playing', searchRequired: false },
+    ]);
   });
 });
 

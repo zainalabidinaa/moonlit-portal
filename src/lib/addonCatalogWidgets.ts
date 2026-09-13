@@ -28,26 +28,11 @@ const GROUP_SEPARATOR = ' · ';
  *  wide/landscape reads better than a poster for a whole section. */
 const GROUP_TILE_SHAPE = 'landscape';
 
-/** Fetches an addon manifest — same direct browser fetch the portal's own
- *  addon pages already use (Xperience-style hosts send
- *  `access-control-allow-origin: *`), with the realistic failures named. */
-export async function fetchAddonManifest(url: string): Promise<AddonManifestInfo> {
-  let response: Response;
-  try {
-    response = await fetch(url);
-  } catch {
-    throw new Error("Couldn't reach that add-on's manifest — check the URL, or that host may block browser fetches.");
-  }
-  if (!response.ok) throw new Error(`That manifest returned HTTP ${response.status}.`);
-
-  let json: unknown;
-  try {
-    json = await response.json();
-  } catch {
-    throw new Error('That manifest is not valid JSON.');
-  }
-
-  const manifest = json as {
+/** Parses an already-fetched manifest JSON into `AddonManifestInfo`.
+ *  `fallbackId` (the URL it came from) stands in when the manifest omits its
+ *  own `id` — the app matches installed addons by that id. */
+export function parseAddonManifest(json: unknown, fallbackId: string): AddonManifestInfo {
+  const manifest = (json ?? {}) as {
     id?: string;
     name?: string;
     catalogs?: Array<{
@@ -57,7 +42,7 @@ export async function fetchAddonManifest(url: string): Promise<AddonManifestInfo
       extra?: Array<{ name?: string; isRequired?: boolean }>;
     }>;
   };
-  const id = typeof manifest.id === 'string' && manifest.id.trim() ? manifest.id.trim() : url;
+  const id = typeof manifest.id === 'string' && manifest.id.trim() ? manifest.id.trim() : fallbackId;
   const seen = new Set<string>();
   const catalogs: AddonManifestCatalog[] = [];
   for (const raw of manifest.catalogs ?? []) {
@@ -76,6 +61,27 @@ export async function fetchAddonManifest(url: string): Promise<AddonManifestInfo
     });
   }
   return { id, name: (manifest.name ?? '').trim() || 'Add-on', catalogs };
+}
+
+/** Fetches an addon manifest — same direct browser fetch the portal's own
+ *  addon pages already use (Xperience-style hosts send
+ *  `access-control-allow-origin: *`), with the realistic failures named. */
+export async function fetchAddonManifest(url: string): Promise<AddonManifestInfo> {
+  let response: Response;
+  try {
+    response = await fetch(url);
+  } catch {
+    throw new Error("Couldn't reach that add-on's manifest — check the URL, or that host may block browser fetches.");
+  }
+  if (!response.ok) throw new Error(`That manifest returned HTTP ${response.status}.`);
+
+  let json: unknown;
+  try {
+    json = await response.json();
+  } catch {
+    throw new Error('That manifest is not valid JSON.');
+  }
+  return parseAddonManifest(json, url);
 }
 
 /**
