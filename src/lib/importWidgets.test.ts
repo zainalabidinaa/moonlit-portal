@@ -63,6 +63,7 @@ describe('parseWidgetsExport — Fusion export', () => {
     const forYou = widgets[0];
     expect(forYou.title).toBe('For You');
     expect(forYou.style).toBe('standard');
+    expect(forYou.sourceId).toBe('catalog.recs_movies_for_you');
     expect(forYou.dataSource).toEqual({
       kind: 'addonCatalog',
       addonId: 'https://xperience-app.com/manifest/abc/manifest.json',
@@ -76,6 +77,7 @@ describe('parseWidgetsExport — Fusion export', () => {
     const streaming = widgets[1];
     expect(streaming.title).toBe('Streaming');
     expect(streaming.style).toBe('collectionsRow');
+    expect(streaming.sourceId).toBe('collection.0f5de1c5');
 
     const entries = (streaming.dataSource as { kind: string; entries: unknown[] }).entries;
     expect(entries).toHaveLength(2);
@@ -111,6 +113,29 @@ describe('parseWidgetsExport — Fusion export', () => {
     expect(widgets).toEqual([]);
     expect(skipped).toEqual(['My Watchlist']);
   });
+
+  it('keeps same-named widgets distinct — identity is the source id', () => {
+    const sameNameExport = {
+      exportType: 'fusionWidgets',
+      widgets: [
+        {
+          id: 'collection.aaa',
+          title: 'Directors',
+          type: 'collection.row',
+          dataSource: { kind: 'collection', payload: { items: [{ id: 't1', title: 'A', imageAspect: 'wide' }] } },
+        },
+        {
+          id: 'collection.bbb',
+          title: 'Directors',
+          type: 'collection.row',
+          dataSource: { kind: 'collection', payload: { items: [{ id: 't2', title: 'B', imageAspect: 'wide' }] } },
+        },
+      ],
+    };
+    const { widgets } = parseWidgetsExport(JSON.stringify(sameNameExport));
+    expect(widgets).toHaveLength(2);
+    expect(widgets.map((w) => w.sourceId)).toEqual(['collection.aaa', 'collection.bbb']);
+  });
 });
 
 describe('parseWidgetsExport — native Moonlit export', () => {
@@ -125,6 +150,7 @@ describe('parseWidgetsExport — native Moonlit export', () => {
         title: 'Popular Movies',
         style: 'standard',
         dataSource: { kind: 'filtering', query: 'sort_by=popularity.desc' },
+        sourceId: 'w1',
       },
     ]);
   });

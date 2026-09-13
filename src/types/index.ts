@@ -188,6 +188,11 @@ export interface HomePresetItem {
   /** Display name for widget-shaped items the app published (a Filtering
    *  widget's own name). NULL for portal-authored rows. */
   title?: string | null;
+  /** The origin widget's own id — the exporter's widget id for Import
+   *  Widgets, the local HomeWidget id for the app's Save & Publish. Re-import
+   *  / re-publish with the same id updates this row in place instead of
+   *  inserting a duplicate. NULL for portal-authored rows. */
+  source_widget_id?: string | null;
 }
 
 export type Plan = 'premium' | 'premium_plus';

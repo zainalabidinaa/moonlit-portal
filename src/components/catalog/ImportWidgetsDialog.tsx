@@ -82,13 +82,15 @@ export function ImportWidgetsDialog({ presetId, presetName, tab, startSortOrder,
     if (!chosen.length) return;
     setBusy(true);
     try {
-      const items = await importWidgetsIntoPreset({ presetId, tab, widgets: chosen, startSortOrder });
+      const outcome = await importWidgetsIntoPreset({ presetId, tab, widgets: chosen, startSortOrder });
+      const newNote = `${outcome.inserted} new`;
+      const updatedNote = outcome.updated ? `, ${outcome.updated} updated` : '';
       const skippedNote = parsed.skipped.length ? `, ${parsed.skipped.length} skipped` : '';
       const held = parsed.widgets.length - chosen.length;
       const heldNote = held > 0 ? `, ${held} left untoggled` : '';
       onImported(
-        items,
-        `Imported ${chosen.length} widget${chosen.length === 1 ? '' : 's'} into “${presetName} · ${tab}”${skippedNote}${heldNote}.`,
+        outcome.items,
+        `Imported ${outcome.inserted + outcome.updated} widget${outcome.inserted + outcome.updated === 1 ? '' : 's'} (${newNote}${updatedNote}) into “${presetName} · ${tab}”${skippedNote}${heldNote}.`,
       );
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));

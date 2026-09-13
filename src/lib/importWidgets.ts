@@ -44,6 +44,11 @@ export interface ImportedWidget {
   title: string;
   style: ImportedStyle;
   dataSource: ImportedDataSource;
+  /** The origin widget's own id (Fusion's `id` like
+   *  `collection.0f5de1c5-…`, or a native export's HomeWidget id). Stored on
+   *  the preset item as `source_widget_id`, so re-importing an updated
+   *  export updates that row instead of inserting a duplicate. */
+  sourceId?: string;
 }
 
 export interface ParsedWidgetsExport {
@@ -115,12 +120,13 @@ export function parseWidgetsExport(text: string): ParsedWidgetsExport {
   if (Array.isArray(json)) {
     const widgets: ImportedWidget[] = [];
     for (const raw of json) {
-      const w = raw as { title?: string; style?: string; dataSource?: ImportedDataSource };
+      const w = raw as { id?: string; title?: string; style?: string; dataSource?: ImportedDataSource };
       if (!w || typeof w !== 'object' || !w.dataSource) continue;
       widgets.push({
         title: w.title?.trim() || 'Widget',
         style: (w.style as ImportedStyle) ?? 'standard',
         dataSource: w.dataSource,
+        ...(w.id ? { sourceId: w.id } : {}),
       });
     }
     if (!widgets.length) throw new Error('No widgets found in that JSON.');
@@ -133,12 +139,14 @@ export function parseWidgetsExport(text: string): ParsedWidgetsExport {
     const skipped: string[] = [];
     for (const raw of exportObj.widgets) {
       const w = raw as {
+        id?: string;
         title?: string;
         type?: string;
         dataSource?: { kind?: string; payload?: Record<string, unknown> };
       };
       const ds = w?.dataSource ?? {};
       const payload = ds.payload ?? {};
+      const sourceId = typeof w.id === 'string' && w.id ? w.id : undefined;
 
       if (ds.kind === 'addonCatalog') {
         const addonId = payload.addonId;
@@ -149,6 +157,7 @@ export function parseWidgetsExport(text: string): ParsedWidgetsExport {
             title: w.title?.trim() || 'Widget',
             style: styleForFusionType(w.type),
             dataSource: { kind: 'addonCatalog', addonId, catalogId, mediaType },
+            ...(sourceId ? { sourceId } : {}),
           });
           continue;
         }
@@ -175,6 +184,7 @@ export function parseWidgetsExport(text: string): ParsedWidgetsExport {
           title: w.title?.trim() || 'Collections',
           style: 'collectionsRow',
           dataSource: { kind: 'collectionsRow', entries },
+          ...(sourceId ? { sourceId } : {}),
         });
         continue;
       }
@@ -203,25 +213,77 @@ export async function fetchWidgetsExport(url: string): Promise<string> {
   return response.text();
 }
 
+export interface ImportOutcome {
+  /** Every affected row — newly inserted and updated-in-place alike. */
+  items: HomePresetItem[];
+  inserted: number;
+  updated: number;
+}
+
 /** Appends imported widgets to one preset + tab as `home_preset_items` rows.
- *  `startSortOrder` continues after the tab's current last item, so the
- *  import lands at the end of the list rather than reshuffling it. */
+ *
+ *  Widgets that carry a `sourceId` (the exporter's own widget id) are matched
+ *  against `source_widget_id` first: an import of an updated export updates
+ *  that same row in place instead of duplicating it, keeping its position.
+ *  Everything else is appended after the tab's current last item
+ *  (`startSortOrder`). */
 export async function importWidgetsIntoPreset(opts: {
   presetId: string;
   tab: WidgetTab;
   widgets: ImportedWidget[];
   startSortOrder: number;
-}): Promise<HomePresetItem[]> {
-  const rows = opts.widgets.map((widget, index) => ({
-    preset_id: opts.presetId,
-    tab: opts.tab,
-    data_source: widget.dataSource,
-    media_type: null,
-    style: widget.style,
-    sort_order: opts.startSortOrder + index,
-    title: widget.title || null,
-  }));
-  const { data, error } = await supabase.from('home_preset_items').insert(rows).select();
-  if (error) throw new Error(error.message);
-  return (data ?? []) as HomePresetItem[];
+}): Promise<ImportOutcome> {
+  const sourceIds = opts.widgets
+    .map((widget) => widget.sourceId)
+    .filter((id): id is string => typeof id === 'string' && id.length > 0);
+
+  let existing: HomePresetItem[] = [];
+  if (sourceIds.length) {
+    const { data, error } = await supabase
+      .from('home_preset_items')
+      .select('*')
+      .eq('preset_id', opts.presetId)
+      .eq('tab', opts.tab)
+      .in('source_widget_id', sourceIds);
+    if (error) throw new Error(error.message);
+    existing = (data ?? []) as HomePresetItem[];
+  }
+  const bySourceId = new Map(existing.map((item) => [item.source_widget_id ?? '', item]));
+
+  const toUpdate = opts.widgets.filter((widget) => widget.sourceId && bySourceId.has(widget.sourceId));
+  const toInsert = opts.widgets.filter((widget) => !(widget.sourceId && bySourceId.has(widget.sourceId)));
+
+  const updatedItems: HomePresetItem[] = [];
+  for (const widget of toUpdate) {
+    const match = bySourceId.get(widget.sourceId!);
+    if (!match) continue;
+    const { data, error } = await supabase
+      .from('home_preset_items')
+      .update({ data_source: widget.dataSource, style: widget.style, title: widget.title || null })
+      .eq('id', match.id)
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    updatedItems.push(data as HomePresetItem);
+  }
+
+  let insertedItems: HomePresetItem[] = [];
+  if (toInsert.length) {
+    let nextOrder = opts.startSortOrder;
+    const rows = toInsert.map((widget) => ({
+      preset_id: opts.presetId,
+      tab: opts.tab,
+      data_source: widget.dataSource,
+      media_type: null,
+      style: widget.style,
+      sort_order: nextOrder++,
+      title: widget.title || null,
+      source_widget_id: widget.sourceId ?? null,
+    }));
+    const { data, error } = await supabase.from('home_preset_items').insert(rows).select();
+    if (error) throw new Error(error.message);
+    insertedItems = (data ?? []) as HomePresetItem[];
+  }
+
+  return { items: [...insertedItems, ...updatedItems], inserted: insertedItems.length, updated: updatedItems.length };
 }
