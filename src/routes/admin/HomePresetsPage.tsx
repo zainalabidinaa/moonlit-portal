@@ -8,6 +8,7 @@ import { ImportWidgetsDialog } from '../../components/catalog/ImportWidgetsDialo
 import { FolderPickerDialog } from '../../components/catalog/FolderPickerDialog';
 import { PresetWidgetEditorDialog } from '../../components/catalog/PresetWidgetEditorDialog';
 import { cloneCollection } from '../../lib/cloneCollection';
+import { fetchAllRows } from '../../lib/fetchAllRows';
 import { splitFoldersIntoStandaloneWidgets } from '../../lib/splitFolders';
 import type { Collection, Folder, HomePreset, HomePresetItem } from '../../types';
 
@@ -92,12 +93,15 @@ export default function HomePresetsPage() {
   useEffect(() => {
     (async () => {
       setLoading(true);
-      await Promise.all([
-        loadPresets(),
-        supabase.from('collections').select('*').order('sort_order').then(({ data }) => setCollections((data as Collection[]) ?? [])),
-        supabase.from('folders').select('*').order('sort_order').then(({ data }) => setFolders((data as Folder[]) ?? [])),
-      ]);
-      setLoading(false);
+      try {
+        await Promise.all([
+          loadPresets(),
+          supabase.from('collections').select('*').order('sort_order').then(({ data }) => setCollections((data as Collection[]) ?? [])),
+          fetchAllRows<Folder>('folders').then(setFolders),
+        ]);
+      } finally {
+        setLoading(false);
+      }
     })();
   }, []);
 

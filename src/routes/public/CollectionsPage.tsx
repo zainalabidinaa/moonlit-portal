@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
+import { fetchAllRows } from '../../lib/fetchAllRows';
 import { Navbar } from '../../components/layout/Navbar';
 import type { Collection, Folder, FolderCatalog } from '../../types';
 
@@ -193,16 +194,16 @@ export default function CollectionsPage() {
   useEffect(() => {
     async function load() {
       try {
-        const [{ data: cols }, { data: folders }, { data: catalogs }] = await Promise.all([
+        const [{ data: cols }, folders, catalogs] = await Promise.all([
           supabase.from('collections').select('*').order('sort_order'),
-          supabase.from('folders').select('*').order('sort_order'),
-          supabase.from('folder_catalogs').select('*'),
+          fetchAllRows<Folder>('folders'),
+          fetchAllRows<FolderCatalog>('folder_catalogs', 'id'),
         ]);
 
         if (!cols) { setError('Could not load collections.'); return; }
 
-        const folderList = (folders ?? []) as Folder[];
-        const catalogList = (catalogs ?? []) as FolderCatalog[];
+        const folderList: Folder[] = folders;
+        const catalogList: FolderCatalog[] = catalogs;
 
         const enriched: CollectionWithFolders[] = (cols as Collection[]).map((col) => {
           const colFolders = folderList

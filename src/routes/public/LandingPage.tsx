@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
+import { fetchAllRows } from '../../lib/fetchAllRows';
 import { Navbar } from '../../components/layout/Navbar';
 import { Button } from '../../components/ui/Button';
 import { FeatureShowcase } from '../../components/landing/FeatureShowcase';
@@ -22,12 +23,12 @@ function useCollectionPreviews() {
   useEffect(() => {
     async function load() {
       try {
-        const [{ data: cols }, { data: folders }] = await Promise.all([
+        const [{ data: cols }, folders] = await Promise.all([
           supabase.from('collections').select('*').order('sort_order').limit(6),
-          supabase.from('folders').select('*').order('sort_order'),
+          fetchAllRows<Folder>('folders'),
         ]);
         if (!cols) return;
-        const folderList = (folders ?? []) as Folder[];
+        const folderList: Folder[] = folders;
         setItems(
           (cols as Collection[]).map((c) => ({
             ...c,
