@@ -205,6 +205,7 @@ export default function HomePresetsPage() {
             expandFolders: item.expand_folders ?? false,
             folderIds: item.folder_ids ?? null,
             genreHub: item.genre_hub ?? false,
+            sourceArt: item.source_art ?? false,
             presetTitle: item.title?.trim() || undefined,
           }
         : null;
@@ -517,6 +518,21 @@ export default function HomePresetsPage() {
     }
   }
 
+  /** Turns one genre-hub item's "tiles preview each folder's own sources"
+   *  flag on/off — the tiles then show artwork resolved from the folder's
+   *  catalogs instead of the default TMDB genre art (which non-English
+   *  genre names can't resolve). */
+  async function setSourceArt(card: CollectionCardItem, value: boolean) {
+    const itemId = card.presetItemId;
+    if (!itemId) return;
+    setPresetItems((prev) => prev.map((i) => (i.id === itemId ? { ...i, source_art: value } : i)));
+    const { error } = await supabase.from('home_preset_items').update({ source_art: value }).eq('id', itemId);
+    if (error) {
+      alert(error.message);
+      if (selectedPresetId) loadPresetItems(selectedPresetId, widgetTab);
+    }
+  }
+
   /** Replaces one widget with one widget per (selected) folder — each child
    *  is a single-folder preset item (`folder_ids: [folder.id]`), titled after
    *  its folder and appended in folder order. The original is removed only
@@ -732,6 +748,7 @@ export default function HomePresetsPage() {
         onSetExpandFolders={setExpandFolders}
         onOpenFolderSelection={(item) => setFolderPickerItem(item)}
         onToggleGenreHub={setGenreHub}
+        onToggleSourceArt={setSourceArt}
         onSplitFolders={splitFoldersIntoWidgets}
       />
 

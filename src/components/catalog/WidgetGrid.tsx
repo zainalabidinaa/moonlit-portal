@@ -56,6 +56,10 @@ export type WidgetCardItem =
        *  genre UI (editorial genre tiles, genre rooms) using these folders
        *  as genres, whatever language they're named in. */
       genreHub?: boolean;
+      /** `home_preset_items.source_art` — on a genre hub, render the tiles
+       *  from each folder's own catalog sources instead of the default TMDB
+       *  genre art. */
+      sourceArt?: boolean;
       /** The preset item's own display name (`home_preset_items.title`) —
        *  shown instead of the collection name when set (a split child is
        *  named after its single folder, for instance). */
@@ -126,12 +130,15 @@ interface Props {
   /** Toggles `home_preset_items.genre_hub` — the widget renders through the
    *  app's hardcoded genre UI with its own folder names as genres. */
   onToggleGenreHub: (item: CollectionCardItem, value: boolean) => void;
+  /** Toggles `home_preset_items.source_art` — on a genre hub, the tiles
+   *  preview each folder's own catalog sources instead of TMDB genre art. */
+  onToggleSourceArt: (item: CollectionCardItem, value: boolean) => void;
   /** Replaces this widget with one widget per (selected) folder — each a
    *  single-folder preset item via `folder_ids`. */
   onSplitFolders: (item: CollectionCardItem) => void;
 }
 
-export function WidgetGrid({ items, folders, activeTab, mode, onSelectCollection, onOpenBrowseHub, onOpenPresetItem, onAddWidget, onDeleteCard, onReorderCard, onSetExpandFolders, onOpenFolderSelection, onToggleGenreHub, onSplitFolders }: Props) {
+export function WidgetGrid({ items, folders, activeTab, mode, onSelectCollection, onOpenBrowseHub, onOpenPresetItem, onAddWidget, onDeleteCard, onReorderCard, onSetExpandFolders, onOpenFolderSelection, onToggleGenreHub, onToggleSourceArt, onSplitFolders }: Props) {
   const [dragKey, setDragKey] = useState<string | null>(null);
 
   return (
@@ -162,6 +169,7 @@ export function WidgetGrid({ items, folders, activeTab, mode, onSelectCollection
             onSetExpandFolders={item.kind === 'collection' ? onSetExpandFolders : undefined}
             onOpenFolderSelection={item.kind === 'collection' ? onOpenFolderSelection : undefined}
             onToggleGenreHub={item.kind === 'collection' ? onToggleGenreHub : undefined}
+            onToggleSourceArt={item.kind === 'collection' ? onToggleSourceArt : undefined}
             onSplitFolders={item.kind === 'collection' ? onSplitFolders : undefined}
             onOpenFolder={item.kind === 'collection' ? (folderId) => onSelectCollection(item.collection, folderId) : undefined}
           />
@@ -193,7 +201,7 @@ const BROWSE_HUB_LABELS: Record<'genre' | 'language', string> = {
 
 function WidgetCard({
   item, childFolders, mode, isHomeTab, onClick, onDelete, onDragStart, onDrop, onMoveUp, onMoveDown,
-  onSetExpandFolders, onOpenFolderSelection, onToggleGenreHub, onSplitFolders, onOpenFolder,
+  onSetExpandFolders, onOpenFolderSelection, onToggleGenreHub, onToggleSourceArt, onSplitFolders, onOpenFolder,
 }: {
   item: WidgetCardItem;
   childFolders: Folder[];
@@ -208,6 +216,7 @@ function WidgetCard({
   onSetExpandFolders?: (item: CollectionCardItem, expand: boolean) => void;
   onOpenFolderSelection?: (item: CollectionCardItem) => void;
   onToggleGenreHub?: (item: CollectionCardItem, value: boolean) => void;
+  onToggleSourceArt?: (item: CollectionCardItem, value: boolean) => void;
   onSplitFolders?: (item: CollectionCardItem) => void;
   /** Open one folder of this collection in the editor (a card tile click). */
   onOpenFolder?: (folderId: string) => void;
@@ -285,6 +294,7 @@ function WidgetCard({
   const canChooseFolders = mode === 'preset' && item.presetItemId != null
     && totalFolderCount >= 2 && folderCount > 1;
   const genreHubOn = item.genreHub === true;
+  const sourceArtOn = item.sourceArt === true;
   const folderSelectionLabel = folderCount === totalFolderCount
     ? (totalFolderCount === 1 ? '1 folder' : `${totalFolderCount} folders`)
     : `${folderCount} of ${totalFolderCount} folders`;
@@ -303,7 +313,7 @@ function WidgetCard({
   // gets the plain folder-count label instead of the misleading one.
   const subtitle = canChooseFolders
     ? genreHubOn
-      ? `Genre hub · ${folderSelectionLabel}`
+      ? `Genre hub · ${sourceArtOn ? 'Source art · ' : ''}${folderSelectionLabel}`
       : folderCount === 1
         ? `Folder · content row · ${folderSelectionLabel}`
         : `${item.expandFolders ? 'Rows' : 'Hub'} · ${folderSelectionLabel}`
@@ -391,6 +401,17 @@ function WidgetCard({
               >
                 {genreHubOn ? 'Genre hub ✓' : 'Genre hub'}
               </button>
+              {genreHubOn && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); onToggleSourceArt?.(cardItem, !sourceArtOn); }}
+                  title={sourceArtOn
+                    ? 'Tiles preview each folder’s own sources — click for the default TMDB genre art'
+                    : 'Show each folder’s own source artwork on the genre tiles (needed for genres TMDB art can’t resolve, e.g. Arabic names) instead of the default TMDB genre art'}
+                  className={`rounded-full px-2 py-0.5 text-[10px] font-semibold transition-colors ${sourceArtOn ? 'bg-accent text-[#2a1206]' : 'bg-black/50 text-white/85 hover:bg-black/75'}`}
+                >
+                  {sourceArtOn ? 'Source art ✓' : 'Source art'}
+                </button>
+              )}
               {!genreHubOn && (
                 <button
                   onClick={(e) => { e.stopPropagation(); onSplitFolders?.(cardItem); }}

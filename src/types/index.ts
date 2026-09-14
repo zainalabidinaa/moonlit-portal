@@ -211,6 +211,12 @@ export interface HomePresetItem {
    *  per tile — using the widget's own folder names as genres, whatever
    *  language they're in. */
   genre_hub?: boolean;
+  /** Per-widget "tiles show each genre folder's own source art" (see
+   *  20260930_home_preset_items_source_art.sql): on a `genre_hub` item, the
+   *  tiles preview artwork from the folders' own catalog sources instead of
+   *  the default TMDB genre art — which non-English genre labels can't
+   *  resolve. */
+  source_art?: boolean;
 }
 
 export type Plan = 'premium' | 'premium_plus';
