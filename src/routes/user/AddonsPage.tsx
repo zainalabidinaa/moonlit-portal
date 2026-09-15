@@ -36,12 +36,30 @@ export default function AddonsPage() {
   // set right after a successful add, or from a row's own Widgets button.
   const [widgetsTarget, setWidgetsTarget] = useState<{ url: string; label: string } | null>(null);
   const [widgetsNotice, setWidgetsNotice] = useState<string | null>(null);
-  // The profile whose `installed_addons` this page is actually showing —
-  // the active profile, or the admin it mirrors from (`uses_primary_addons`).
-  // Writes MUST target the same profile as the display, or an addon added
-  // here lands on a profile the app never pulls (and then vanishes from the
-  // list on the next reload).
-  const [addonsProfileId, setAddonsProfileId] = useState<string | null>(null);
+  // Add-ons are account-scoped: every profile in the account shares one list.
+  // Rows still carry profile_id (older clients keep working), so the account
+  // view collapses the per-profile copies to one row per URL below — earliest
+  // sort order wins and `enabled` is OR across them.
+  const accountUserId = activeProfile?.user_id ?? null;
+
+  /** One row per URL for the account: first (lowest sort_order) row wins, but
+   *  a URL enabled on any profile shows as enabled. */
+  function dedupeByURL(rows: InstalledAddon[]): InstalledAddon[] {
+    const byURL = new Map<string, InstalledAddon>();
+    for (const row of rows) {
+      const existing = byURL.get(row.addon_url);
+      if (!existing) { byURL.set(row.addon_url, row); continue; }
+      if (row.enabled && !existing.enabled) byURL.set(row.addon_url, { ...existing, enabled: true });
+    }
+    return [...byURL.values()];
+  }
+
+  async function loadAddons() {
+    if (!accountUserId) return;
+    const { data } = await supabase
+      .from('installed_addons').select('*').eq('user_id', accountUserId).order('sort_order');
+    setAddons(dedupeByURL(data ?? []));
+  }
 
   function openWidgetsFor(url: string, label: string) {
     setWidgetsNotice(null);
@@ -56,33 +74,22 @@ export default function AddonsPage() {
     if (!activeProfile) return;
     async function load() {
       setLoading(true);
-      let profileId = activeProfile!.id;
-      // uses_primary_addons defaults to true and is never cleared for admin
-      // profiles (install_curated_setup() returns early for role='admin'
-      // before it would flip the flag), so an admin must always see their
-      // own installed_addons — never redirect to "the" admin profile, which
-      // is ambiguous whenever an account has more than one admin-role
-      // profile (e.g. multiple household profiles under one account).
-      if (activeProfile!.role !== 'admin' && activeProfile!.uses_primary_addons) {
-        const { data } = await supabase
-          .from('profiles').select('id').eq('role', 'admin').order('created_at').limit(1).single();
-        if (data) profileId = data.id;
-      }
-      setAddonsProfileId(profileId);
-      const { data } = await supabase.from('installed_addons').select('*').eq('profile_id', profileId).order('sort_order');
-      setAddons(data ?? []);
+      await loadAddons();
       setLoading(false);
     }
     load();
   }, [activeProfile]);
 
   async function handleAdd() {
-    if (!newUrl.trim() || !activeProfile) return;
+    if (!newUrl.trim() || !activeProfile || !accountUserId) return;
     if (!newUrl.startsWith('https://')) { setError('URL must start with https://'); return; }
-    const targetProfileId = addonsProfileId ?? activeProfile.id;
     setSaving(true);
     const { error: e } = await supabase.from('installed_addons').insert({
-      profile_id: targetProfileId,
+      // profile_id is still written for older clients; user_id is stamped
+      // explicitly (the DB trigger would derive it too) so the row is
+      // account-scoped from the moment it lands.
+      profile_id: activeProfile.id,
+      user_id: accountUserId,
       addon_url: newUrl.trim(),
       // Explicit: the app's pull drops `enabled = false` rows, and relying on
       // the column default once left new addons invisible in the app.
@@ -92,8 +99,7 @@ export default function AddonsPage() {
     if (e) { setError(e.message); setSaving(false); return; }
     setNewUrl('');
     setError('');
-    const { data } = await supabase.from('installed_addons').select('*').eq('profile_id', targetProfileId).order('sort_order');
-    setAddons(data ?? []);
+    await loadAddons();
     setSaving(false);
     // The add-on is saved; the popup (if the manifest declares catalogs) is
     // how its rows can also become preset widgets — append-only, and it can
@@ -102,35 +108,46 @@ export default function AddonsPage() {
   }
 
   async function handleToggle(addon: InstalledAddon) {
-    await supabase.from('installed_addons').update({ enabled: !addon.enabled }).eq('id', addon.id);
-    setAddons(prev => prev.map(a => a.id === addon.id ? { ...a, enabled: !a.enabled } : a));
+    if (!accountUserId) return;
+    const next = !addon.enabled;
+    // Account-wide: a toggle applies to every profile's copy of the URL.
+    await supabase.from('installed_addons').update({ enabled: next })
+      .eq('user_id', accountUserId).eq('addon_url', addon.addon_url);
+    setAddons(prev => prev.map(a => a.addon_url === addon.addon_url ? { ...a, enabled: next } : a));
   }
 
   // Marks one of the admin's own addons as a stream source, which excludes it
   // from provisioning for users whose invite code didn't include streams.
   // Takes effect on the next sync pass (or immediately for new signups).
   async function handleToggleStreamSource(addon: InstalledAddon) {
+    if (!accountUserId) return;
     const next = !addon.provides_stream;
     const { error: e } = await supabase
-      .from('installed_addons').update({ provides_stream: next }).eq('id', addon.id);
+      .from('installed_addons').update({ provides_stream: next })
+      .eq('user_id', accountUserId).eq('addon_url', addon.addon_url);
     if (e) { setError(e.message); return; }
-    setAddons(prev => prev.map(a => a.id === addon.id ? { ...a, provides_stream: next } : a));
+    setAddons(prev => prev.map(a => a.addon_url === addon.addon_url ? { ...a, provides_stream: next } : a));
   }
 
-  async function handleRemove(id: string) {
-    await supabase.from('installed_addons').delete().eq('id', id);
-    setAddons(prev => prev.filter(a => a.id !== id));
+  async function handleRemove(addon: InstalledAddon) {
+    if (!accountUserId) return;
+    // Account-wide: removing on any profile removes the URL everywhere.
+    await supabase.from('installed_addons').delete()
+      .eq('user_id', accountUserId).eq('addon_url', addon.addon_url);
+    setAddons(prev => prev.filter(a => a.addon_url !== addon.addon_url));
   }
 
   function handleDragStart(i: number) { dragIndex.current = i; }
   async function handleDrop(i: number) {
-    if (dragIndex.current === null || dragIndex.current === i) return;
+    if (dragIndex.current === null || dragIndex.current === i || !accountUserId) return;
     const reordered = [...addons];
     const [moved] = reordered.splice(dragIndex.current, 1);
     reordered.splice(i, 0, moved);
     setAddons(reordered);
     dragIndex.current = null;
-    await Promise.all(reordered.map((a, idx) => supabase.from('installed_addons').update({ sort_order: idx }).eq('id', a.id)));
+    await Promise.all(reordered.map((a, idx) => supabase.from('installed_addons')
+      .update({ sort_order: idx })
+      .eq('user_id', accountUserId).eq('addon_url', a.addon_url)));
   }
 
   // Manual re-sync. Profiles are provisioned automatically now — a trigger calls
@@ -154,9 +171,7 @@ export default function AddonsPage() {
 
     await refreshProfiles?.();
 
-    const { data } = await supabase
-      .from('installed_addons').select('*').eq('profile_id', activeProfile.id).order('sort_order');
-    setAddons(data ?? []);
+    await loadAddons();
     setLastInstallCount(typeof changed === 'number' ? changed : 0);
     setCuratedSyncedAt(new Date().toISOString());
     setInstalling(false);
@@ -295,7 +310,7 @@ export default function AddonsPage() {
                       <input type="checkbox" className="sr-only peer" checked={addon.enabled} onChange={() => handleToggle(addon)} />
                       <div className="w-9 h-5 bg-border rounded-full peer peer-checked:bg-accent transition-colors after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-4" />
                     </label>
-                    <button onClick={() => handleRemove(addon.id)} className="text-muted hover:text-red-500 transition-colors text-lg leading-none">&times;</button>
+                    <button onClick={() => handleRemove(addon)} className="text-muted hover:text-red-500 transition-colors text-lg leading-none">&times;</button>
                   </>
                 )}
               </Card>

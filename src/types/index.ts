@@ -18,7 +18,12 @@ export interface Profile {
 
 export interface InstalledAddon {
   id: string;
+  /** Legacy per-profile owner. Add-ons are account-scoped now; this is kept
+   *  so older clients keep reading/writing while they're updated. */
   profile_id: string;
+  /** Owner account. Account-scoped reads filter on this, so every profile in
+   *  the account sees the same list. */
+  user_id?: string | null;
   addon_url: string;
   addon_name: string | null;
   enabled: boolean;
