@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseUserAgent, lastActiveStatus, formatRelativeTime } from './userActivity';
+import { parseUserAgent, lastActiveStatus, lastActiveLabel, formatRelativeTime } from './userActivity';
 
 describe('parseUserAgent', () => {
   it('labels the native app regardless of iOS vs macOS', () => {
@@ -42,6 +42,22 @@ describe('lastActiveStatus', () => {
 
   it('is "stale" beyond 24 hours', () => {
     expect(lastActiveStatus('2026-08-01T06:00:00Z', now)).toBe('stale');
+  });
+});
+
+describe('lastActiveLabel', () => {
+  const now = new Date('2026-09-03T12:00:00Z');
+
+  it('is "No activity yet" when there is no timestamp', () => {
+    expect(lastActiveLabel(null, now)).toBe('No activity yet');
+  });
+
+  it('is "Active now" within five minutes', () => {
+    expect(lastActiveLabel('2026-09-03T11:58:00Z', now)).toBe('Active now');
+  });
+
+  it('is relative time for older activity', () => {
+    expect(lastActiveLabel('2026-09-03T09:00:00Z', now)).toBe('3 hours ago');
   });
 });
 

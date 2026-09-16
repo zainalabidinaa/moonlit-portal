@@ -5,7 +5,7 @@ import { AppShell } from '../../components/layout/AppShell';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { DeleteUserModal } from '../../components/admin/DeleteUserModal';
-import { lastActiveStatus, formatRelativeTime, parseUserAgent, type ActiveStatus } from '../../lib/userActivity';
+import { lastActiveStatus, lastActiveLabel, formatRelativeTime, parseUserAgent, type ActiveStatus } from '../../lib/userActivity';
 import type { SessionInfo, ActivityEntry } from '../../lib/userActivity';
 import type { UserRole } from '../../types';
 
@@ -18,7 +18,7 @@ type AdminUser = {
   role_expires_at: string | null;
   created_at: string;
   stream_addons_enabled: boolean;
-  last_sign_in_at: string | null;
+  last_active_at: string | null;
 };
 
 const ROLE_LABELS: Record<UserRole, string> = {
@@ -82,18 +82,13 @@ const STATUS_DOT_CLASS: Record<ActiveStatus, string> = {
   never: 'bg-muted/40',
 };
 
-function LastActiveCell({ lastSignInAt }: { lastSignInAt: string | null }) {
-  const status = lastActiveStatus(lastSignInAt);
-  const label = status === 'never' || !lastSignInAt
-    ? 'Never signed in'
-    : status === 'online'
-      ? 'Active now'
-      : formatRelativeTime(lastSignInAt);
+function LastActiveCell({ lastActiveAt }: { lastActiveAt: string | null }) {
+  const status = lastActiveStatus(lastActiveAt);
 
   return (
     <div className="flex items-center gap-2">
       <span className={`w-2 h-2 rounded-full flex-none ${STATUS_DOT_CLASS[status]}`} />
-      <span className="text-text">{label}</span>
+      <span className="text-text">{lastActiveLabel(lastActiveAt)}</span>
     </div>
   );
 }
@@ -437,7 +432,7 @@ export default function UsersPage() {
                       </label>
                     </td>
                     <td className="px-4 py-3">
-                      <LastActiveCell lastSignInAt={u.last_sign_in_at} />
+                      <LastActiveCell lastActiveAt={u.last_active_at} />
                     </td>
                     <td className="px-4 py-3 text-muted">{new Date(u.created_at).toLocaleDateString()}</td>
                     <td className="px-4 py-3">

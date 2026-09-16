@@ -65,3 +65,12 @@ export function formatRelativeTime(iso: string, now: Date = new Date()): string 
 
   return new Date(iso).toLocaleDateString();
 }
+
+/** Label for the Last Active cell. Kept here, not inline in the page, so the
+ *  never/online fallbacks stay unit-tested next to the thresholds they use. */
+export function lastActiveLabel(iso: string | null, now: Date = new Date()): string {
+  const status = lastActiveStatus(iso, now);
+  if (!iso || status === 'never') return 'No activity yet';
+  if (status === 'online') return 'Active now';
+  return formatRelativeTime(iso, now);
+}
