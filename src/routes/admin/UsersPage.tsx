@@ -192,7 +192,11 @@ export default function UsersPage() {
         if (e instanceof SessionExpiredError) {
           // The token is dead: sign out so AdminRoute sends us to /login
           // instead of leaving this page stuck with a permissions error.
-          await supabase.auth.signOut();
+          // The token is already dead, so a server-side revoke buys nothing
+          // here — a local-only sign-out can't block on the network and fires
+          // SIGNED_OUT immediately for AdminRoute. Keep it non-blocking so
+          // the finally below always runs.
+          void supabase.auth.signOut({ scope: 'local' });
           return;
         }
         if (!cancelled) setError((e as Error).message || 'Failed to load users');
