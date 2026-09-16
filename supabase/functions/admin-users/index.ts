@@ -39,14 +39,22 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
-    const { data: profiles, error: profileErr } = await supabaseAdmin
-      .from('profiles')
-      .select('role')
-      .eq('user_id', user.id);
+    // Role is account-level now: accounts.role is the source of truth and
+    // profiles.role is a trigger-maintained mirror (20260812_account_level_role.sql).
+    // Check both so a mirror lag can never 403 a real admin.
+    const [
+      { data: accountRows, error: accountErr },
+      { data: roleProfiles, error: profileErr },
+    ] = await Promise.all([
+      supabaseAdmin.from('accounts').select('role').eq('user_id', user.id),
+      supabaseAdmin.from('profiles').select('role').eq('user_id', user.id),
+    ]);
 
+    if (accountErr) throw accountErr;
     if (profileErr) throw profileErr;
 
-    const isAdmin = (profiles ?? []).some((p: any) => p.role === 'admin');
+    const isAdmin = [...(accountRows ?? []), ...(roleProfiles ?? [])]
+      .some((r: any) => r.role === 'admin');
     if (!isAdmin) {
       return new Response(JSON.stringify({ error: 'Forbidden — admin role required' }), {
         status: 403,
@@ -161,10 +169,29 @@ Deno.serve(async (req) => {
         page++;
       }
 
-      const { data: profiles } = await supabaseAdmin
-        .from('profiles')
-        .select('user_id, role, name, role_expires_at, stream_addons_enabled');
-      const profileMap = new Map((profiles ?? []).map((p: any) => [p.user_id, p]));
+      // A single PostgREST response is capped at the project max-rows (1000),
+      // so an unpaginated read silently drops the tail once profiles grows —
+      // same fix the portal made in src/lib/fetchAllRows.ts.
+      let allProfiles: any[] = [];
+      for (let from = 0; ; from += 1000) {
+        const { data: page, error: pageErr } = await supabaseAdmin
+          .from('profiles')
+          .select('user_id, role, name, role_expires_at, stream_addons_enabled')
+          .order('user_id')
+          .order('id')
+          .range(from, from + 999);
+        if (pageErr) throw pageErr;
+        allProfiles = allProfiles.concat(page ?? []);
+        if (!page || page.length < 1000) break;
+      }
+      const profileMap = new Map(allProfiles.map((p: any) => [p.user_id, p]));
+
+      const { data: lastActiveRows, error: lastActiveErr } = await supabaseAdmin
+        .rpc('admin_list_users_last_active');
+      if (lastActiveErr) throw lastActiveErr;
+      const lastActiveMap = new Map(
+        (lastActiveRows ?? []).map((r: any) => [r.user_id, r.last_active_at]),
+      );
 
       const users = allAuthUsers.map((u) => {
         const p = profileMap.get(u.id);
@@ -178,6 +205,7 @@ Deno.serve(async (req) => {
           stream_addons_enabled: p?.stream_addons_enabled ?? false,
           created_at: u.created_at,
           last_sign_in_at: u.last_sign_in_at ?? null,
+          last_active_at: lastActiveMap.get(u.id) ?? u.last_sign_in_at ?? null,
         };
       });
 
