@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { authHeaders } from '../../lib/auth-headers';
+import { authedFetchJson, SessionExpiredError } from '../../lib/authed-fetch';
+import { supabase } from '../../lib/supabase';
 import { AppShell } from '../../components/layout/AppShell';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
@@ -174,31 +175,48 @@ export default function UsersPage() {
   const [activityLoading, setActivityLoading] = useState<string | null>(null);
   const [activityError, setActivityError] = useState<Record<string, string>>({});
 
+  const [reloadKey, setReloadKey] = useState(0);
+
   useEffect(() => {
     if (!session) return;
-    authHeaders()
-      .then(headers => fetch(`${import.meta.env.VITE_SUPABASE_FUNCTIONS_URL}/admin-users`, { headers }))
-      .then(async r => {
-        const data = await r.json();
-        if (!r.ok) throw new Error(data.error ?? `HTTP ${r.status}`);
-        setUsers(data.users ?? []);
-        setLoading(false);
-      })
-      .catch((e) => { setError(e.message || 'Failed to load users'); setLoading(false); });
-  }, [session]);
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      setError('');
+      try {
+        const data = await authedFetchJson<{ users: AdminUser[] }>(
+          `${import.meta.env.VITE_SUPABASE_FUNCTIONS_URL}/admin-users`,
+        );
+        if (!cancelled) setUsers(data.users ?? []);
+      } catch (e) {
+        if (e instanceof SessionExpiredError) {
+          // The token is dead: sign out so AdminRoute sends us to /login
+          // instead of leaving this page stuck with a permissions error.
+          await supabase.auth.signOut();
+          return;
+        }
+        if (!cancelled) setError((e as Error).message || 'Failed to load users');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [session, reloadKey]);
 
   async function handleRoleChange(userId: string, newRole: UserRole) {
     setChangingRole(userId);
     try {
-      const res = await fetch(`${import.meta.env.VITE_SUPABASE_FUNCTIONS_URL}/admin-users`, {
+      await authedFetchJson(`${import.meta.env.VITE_SUPABASE_FUNCTIONS_URL}/admin-users`, {
         method: 'PATCH',
-        headers: await authHeaders({ 'Content-Type': 'application/json' }),
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId, role: newRole }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? `HTTP ${res.status}`);
       setUsers(prev => prev.map(u => u.user_id === userId ? { ...u, role: newRole } : u));
     } catch (e) {
+      if (e instanceof SessionExpiredError) {
+        void supabase.auth.signOut();
+        return;
+      }
       setError((e as Error).message || 'Failed to change role');
       setTimeout(() => setError(''), 4000);
     } finally {
@@ -212,15 +230,17 @@ export default function UsersPage() {
   async function handleStreamsToggle(userId: string, next: boolean) {
     setChangingStreams(userId);
     try {
-      const res = await fetch(`${import.meta.env.VITE_SUPABASE_FUNCTIONS_URL}/admin-users`, {
+      await authedFetchJson(`${import.meta.env.VITE_SUPABASE_FUNCTIONS_URL}/admin-users`, {
         method: 'PATCH',
-        headers: await authHeaders({ 'Content-Type': 'application/json' }),
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId, stream_addons_enabled: next }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? `HTTP ${res.status}`);
       setUsers(prev => prev.map(u => u.user_id === userId ? { ...u, stream_addons_enabled: next } : u));
     } catch (e) {
+      if (e instanceof SessionExpiredError) {
+        void supabase.auth.signOut();
+        return;
+      }
       setError((e as Error).message || 'Failed to change streams access');
       setTimeout(() => setError(''), 4000);
     } finally {
@@ -234,17 +254,19 @@ export default function UsersPage() {
   async function handleRunSetup(userId: string) {
     setRunningSetup(userId);
     try {
-      const res = await fetch(`${import.meta.env.VITE_SUPABASE_FUNCTIONS_URL}/admin-users`, {
+      await authedFetchJson(`${import.meta.env.VITE_SUPABASE_FUNCTIONS_URL}/admin-users`, {
         method: 'PATCH',
-        headers: await authHeaders({ 'Content-Type': 'application/json' }),
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId, runSetup: true }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? `HTTP ${res.status}`);
       setUsers(prev => prev.map(u => u.user_id === userId ? { ...u, stream_addons_enabled: true } : u));
       setSetupDone(userId);
       setTimeout(() => setSetupDone(prev => prev === userId ? null : prev), 2000);
     } catch (e) {
+      if (e instanceof SessionExpiredError) {
+        void supabase.auth.signOut();
+        return;
+      }
       setError((e as Error).message || 'Failed to run setup');
       setTimeout(() => setError(''), 4000);
     } finally {
@@ -255,13 +277,11 @@ export default function UsersPage() {
   // The server independently re-checks confirmEmail against the target's real
   // email (see the admin-users DELETE handler) — this isn't just UI trust.
   async function handleDeleteUser(userId: string, confirmEmail: string) {
-    const res = await fetch(`${import.meta.env.VITE_SUPABASE_FUNCTIONS_URL}/admin-users`, {
+    await authedFetchJson(`${import.meta.env.VITE_SUPABASE_FUNCTIONS_URL}/admin-users`, {
       method: 'DELETE',
-      headers: await authHeaders({ 'Content-Type': 'application/json' }),
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userId, confirmEmail }),
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error ?? `HTTP ${res.status}`);
     setUsers(prev => prev.filter(u => u.user_id !== userId));
   }
 
@@ -276,12 +296,9 @@ export default function UsersPage() {
     setActivityLoading(userId);
     setActivityError(prev => { const next = { ...prev }; delete next[userId]; return next; });
     try {
-      const res = await fetch(
+      const data = await authedFetchJson<{ sessions?: SessionInfo[]; activity?: ActivityEntry[] }>(
         `${import.meta.env.VITE_SUPABASE_FUNCTIONS_URL}/admin-users?activity=${userId}`,
-        { headers: await authHeaders() },
       );
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? `HTTP ${res.status}`);
       setActivityByUser(prev => ({ ...prev, [userId]: { sessions: data.sessions ?? [], activity: data.activity ?? [] } }));
     } catch (e) {
       setActivityError(prev => ({ ...prev, [userId]: (e as Error).message || 'Failed to load activity' }));
@@ -328,15 +345,17 @@ export default function UsersPage() {
 
   async function patchExpiry(userId: string, role: UserRole, iso: string | null) {
     try {
-      const res = await fetch(`${import.meta.env.VITE_SUPABASE_FUNCTIONS_URL}/admin-users`, {
+      await authedFetchJson(`${import.meta.env.VITE_SUPABASE_FUNCTIONS_URL}/admin-users`, {
         method: 'PATCH',
-        headers: await authHeaders({ 'Content-Type': 'application/json' }),
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId, role, role_expires_at: iso }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? `HTTP ${res.status}`);
       setUsers(prev => prev.map(u => u.user_id === userId ? { ...u, role_expires_at: iso } : u));
     } catch (e) {
+      if (e instanceof SessionExpiredError) {
+        void supabase.auth.signOut();
+        return;
+      }
       setError((e as Error).message || 'Failed to update expiration');
       setTimeout(() => setError(''), 4000);
     }
@@ -353,7 +372,12 @@ export default function UsersPage() {
         <h1 className="text-2xl font-bold text-text mb-6">Users</h1>
 
         {loading && <p className="text-muted text-sm">Loading…</p>}
-        {error && <p className="text-red-500 text-sm">{error}</p>}
+        {error && (
+          <div className="flex items-center gap-3">
+            <p className="text-red-500 text-sm">{error}</p>
+            <Button size="sm" variant="ghost" onClick={() => setReloadKey(k => k + 1)}>Try again</Button>
+          </div>
+        )}
 
         {!loading && !error && (
           <div className="inline-block max-w-full overflow-x-auto rounded-xl border border-border bg-surface">
