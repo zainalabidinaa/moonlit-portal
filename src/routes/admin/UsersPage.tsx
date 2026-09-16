@@ -84,12 +84,16 @@ const STATUS_DOT_CLASS: Record<ActiveStatus, string> = {
 };
 
 function LastActiveCell({ lastActiveAt }: { lastActiveAt: string | null }) {
-  const status = lastActiveStatus(lastActiveAt);
+  // One clock read for the dot and the label, which share thresholds: two
+  // separate new Date() calls could straddle a boundary (say five minutes)
+  // and render a fresh dot next to a stale label.
+  const now = new Date();
+  const status = lastActiveStatus(lastActiveAt, now);
 
   return (
     <div className="flex items-center gap-2">
       <span className={`w-2 h-2 rounded-full flex-none ${STATUS_DOT_CLASS[status]}`} />
-      <span className="text-text">{lastActiveLabel(lastActiveAt)}</span>
+      <span className="text-text">{lastActiveLabel(lastActiveAt, now)}</span>
     </div>
   );
 }
@@ -218,7 +222,7 @@ export default function UsersPage() {
       setUsers(prev => prev.map(u => u.user_id === userId ? { ...u, role: newRole } : u));
     } catch (e) {
       if (e instanceof SessionExpiredError) {
-        void supabase.auth.signOut();
+        void supabase.auth.signOut({ scope: 'local' });
         return;
       }
       setError((e as Error).message || 'Failed to change role');
@@ -242,7 +246,7 @@ export default function UsersPage() {
       setUsers(prev => prev.map(u => u.user_id === userId ? { ...u, stream_addons_enabled: next } : u));
     } catch (e) {
       if (e instanceof SessionExpiredError) {
-        void supabase.auth.signOut();
+        void supabase.auth.signOut({ scope: 'local' });
         return;
       }
       setError((e as Error).message || 'Failed to change streams access');
@@ -268,7 +272,7 @@ export default function UsersPage() {
       setTimeout(() => setSetupDone(prev => prev === userId ? null : prev), 2000);
     } catch (e) {
       if (e instanceof SessionExpiredError) {
-        void supabase.auth.signOut();
+        void supabase.auth.signOut({ scope: 'local' });
         return;
       }
       setError((e as Error).message || 'Failed to run setup');
@@ -281,12 +285,21 @@ export default function UsersPage() {
   // The server independently re-checks confirmEmail against the target's real
   // email (see the admin-users DELETE handler) — this isn't just UI trust.
   async function handleDeleteUser(userId: string, confirmEmail: string) {
-    await authedFetchJson(`${import.meta.env.VITE_SUPABASE_FUNCTIONS_URL}/admin-users`, {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId, confirmEmail }),
-    });
-    setUsers(prev => prev.filter(u => u.user_id !== userId));
+    try {
+      await authedFetchJson(`${import.meta.env.VITE_SUPABASE_FUNCTIONS_URL}/admin-users`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, confirmEmail }),
+      });
+      setUsers(prev => prev.filter(u => u.user_id !== userId));
+    } catch (e) {
+      if (e instanceof SessionExpiredError) {
+        void supabase.auth.signOut({ scope: 'local' });
+      }
+      // The modal owns the failure UI, so always rethrow — including a dead
+      // session, where the sign-out above unmounts the page mid-close.
+      throw e;
+    }
   }
 
   async function toggleRow(userId: string) {
@@ -305,6 +318,13 @@ export default function UsersPage() {
       );
       setActivityByUser(prev => ({ ...prev, [userId]: { sessions: data.sessions ?? [], activity: data.activity ?? [] } }));
     } catch (e) {
+      if (e instanceof SessionExpiredError) {
+        // A dead token here means every other call on this page is dead too,
+        // so redirect through AdminRoute instead of leaving a drawer open
+        // with a stale "expired session" error.
+        void supabase.auth.signOut({ scope: 'local' });
+        return;
+      }
       setActivityError(prev => ({ ...prev, [userId]: (e as Error).message || 'Failed to load activity' }));
     } finally {
       setActivityLoading(null);
@@ -357,7 +377,7 @@ export default function UsersPage() {
       setUsers(prev => prev.map(u => u.user_id === userId ? { ...u, role_expires_at: iso } : u));
     } catch (e) {
       if (e instanceof SessionExpiredError) {
-        void supabase.auth.signOut();
+        void supabase.auth.signOut({ scope: 'local' });
         return;
       }
       setError((e as Error).message || 'Failed to update expiration');

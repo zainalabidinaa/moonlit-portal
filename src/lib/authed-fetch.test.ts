@@ -8,7 +8,12 @@ const mockAuthHeaders = vi.mocked(authHeaders);
 
 beforeEach(() => {
   vi.restoreAllMocks();
-  mockAuthHeaders.mockResolvedValue({ Authorization: 'Bearer test' });
+  // Mirror the real authHeaders contract (spread extra, then Authorization)
+  // so the header merge callers depend on is actually exercised here.
+  mockAuthHeaders.mockImplementation(async (extra = {}) => ({
+    ...extra,
+    Authorization: 'Bearer test',
+  }));
 });
 
 describe('withTimeout', () => {
@@ -29,6 +34,32 @@ describe('authedFetchJson', () => {
     await expect(authedFetchJson('https://x.test')).resolves.toEqual({ users: [] });
   });
 
+  it('sends the resolved auth headers, merged with the call-site headers', async () => {
+    const mockFetch = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ ok: true }), { status: 200 }),
+    );
+    vi.stubGlobal('fetch', mockFetch);
+    await authedFetchJson('https://x.test', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: '{}',
+    });
+    expect(mockFetch).toHaveBeenCalledWith(
+      'https://x.test',
+      expect.objectContaining({
+        method: 'PATCH',
+        headers: { Authorization: 'Bearer test', 'Content-Type': 'application/json' },
+      }),
+    );
+  });
+
+  it('resolves null when a successful response has a non-JSON body', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
+      new Response('not json', { status: 200 }),
+    ));
+    await expect(authedFetchJson('https://x.test')).resolves.toBeNull();
+  });
+
   it('rejects with SessionExpiredError on 401', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
       new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 }),
@@ -45,6 +76,25 @@ describe('authedFetchJson', () => {
 
   it('times out when fetch never settles', async () => {
     vi.stubGlobal('fetch', vi.fn().mockReturnValue(new Promise(() => {})));
+    await expect(
+      authedFetchJson('https://x.test', {}, { requestMs: 20 }),
+    ).rejects.toThrow('timed out');
+  });
+
+  it('throws the timeout error when the abort lands during the body read', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockImplementation((_url: string, init: RequestInit) =>
+      Promise.resolve({
+        status: 200,
+        ok: true,
+        json: () => new Promise((_, reject) => {
+          init.signal?.addEventListener('abort', () => {
+            const err = new Error('aborted');
+            err.name = 'AbortError';
+            reject(err);
+          });
+        }),
+      } as unknown as Response),
+    ));
     await expect(
       authedFetchJson('https://x.test', {}, { requestMs: 20 }),
     ).rejects.toThrow('timed out');

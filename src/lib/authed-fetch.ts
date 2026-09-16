@@ -41,7 +41,11 @@ export async function authedFetchJson<T>(
 
   const controller = new AbortController();
   const requestMs = timeouts.requestMs ?? REQUEST_TIMEOUT_MS;
-  const timer = setTimeout(() => controller.abort(), requestMs);
+  let timedOut = false;
+  const timer = setTimeout(() => {
+    timedOut = true;
+    controller.abort();
+  }, requestMs);
   try {
     const res = await withTimeout(
       fetch(url, { ...init, headers, signal: controller.signal }),
@@ -49,6 +53,10 @@ export async function authedFetchJson<T>(
       TIMEOUT_MESSAGE,
     );
     const data = await res.json().catch(() => null);
+    // An abort can land while the body is still being read; res.json() then
+    // rejects and the catch above turns it into null, which would masquerade
+    // as a legitimate empty body. Surface the timeout instead.
+    if (timedOut) throw new Error(TIMEOUT_MESSAGE);
     if (res.status === 401) {
       throw new SessionExpiredError(data?.error ?? undefined);
     }

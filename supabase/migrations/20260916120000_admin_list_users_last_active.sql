@@ -46,10 +46,12 @@ revoke all on function public.admin_list_users_last_active() from anon;
 revoke all on function public.admin_list_users_last_active() from authenticated;
 grant execute on function public.admin_list_users_last_active() to service_role;
 
--- 20260812_account_level_role.sql created accounts_fanout_role for UPDATE
--- only, so an accounts row created by the admin-users PATCH upsert (INSERT
--- path) never fanned out to profiles — profiles.role (what the admin gate
--- and every client still reads) would go stale. Fire on INSERT too.
+-- Provenance: the canonical owner of accounts_fanout_role is the root
+-- monorepo's supabase/migrations/20260812_account_level_role.sql, which
+-- created it for UPDATE only. This file intentionally redefines the trigger
+-- to also fire on INSERT: an accounts row created by the admin-users PATCH
+-- upsert (INSERT path) never fanned out to profiles, so profiles.role (what
+-- the admin gate and every client still reads) would go stale.
 drop trigger if exists accounts_fanout_role on public.accounts;
 create trigger accounts_fanout_role
   after insert or update of role, role_expires_at, subscription_source on public.accounts
