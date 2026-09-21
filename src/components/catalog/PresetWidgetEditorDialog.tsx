@@ -3,6 +3,14 @@ import { Button } from '../ui/Button';
 import { supabase } from '../../lib/supabase';
 import type { HomePresetItem } from '../../types';
 import type { WidgetCardItem } from './WidgetGrid';
+import { FilteringWidgetFields } from './FilteringWidgetFields';
+import {
+  filteringValidationMessage,
+  mergeFilteringQuery,
+  parseFilteringState,
+  type FilteringMediaKind,
+  type FilteringState,
+} from '../../lib/filteringQuery';
 
 const STYLE_LABELS: Record<string, string> = {
   standard: 'Row Classic',
@@ -34,10 +42,10 @@ interface Props {
 /**
  * Editor for preset items that aren't collection- or hub-shaped: the widgets
  * the app/import publishes (Collections Rows, external-catalog and Filtering
- * widgets). Collections Rows and external catalogs are fully editable here —
- * name, tiles (title/cover/shape/source, order, add/remove) and the addon
- * catalog reference — and Save writes the row back to `home_preset_items`.
- * Filtering stays read-only: its facets live on-device.
+ * widgets). All three are editable here — Collections Rows and external
+ * catalogs edit their tiles/source, and Filtering gets the portal's own facet
+ * editor (ordering, genres, period, release status, rating/vote floors,
+ * runtime, language, row cap) writing the same TMDB query the app resolves.
  */
 export function PresetWidgetEditorDialog({ item, onClose, onRemove, onSaved }: Props) {
   const [tab, setTab] = useState<'details' | 'json'>('details');
@@ -45,14 +53,26 @@ export function PresetWidgetEditorDialog({ item, onClose, onRemove, onSaved }: P
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const presetItem: HomePresetItem | null = item.kind === 'generic' ? item.presetItem : null;
+  const presetItem: HomePresetItem | null = item.kind === 'generic'
+    ? item.presetItem
+    : item.kind === 'filtering' ? item.presetItem : null;
   const initialSource = presetItem?.data_source as
     | { kind?: string; entries?: EditorEntry[]; addonId?: string; catalogId?: string; mediaType?: string }
     | undefined;
 
   const isCollectionsRow = initialSource?.kind === 'collectionsRow';
   const isAddonCatalog = initialSource?.kind === 'addonCatalog';
-  const editable = isCollectionsRow || isAddonCatalog;
+  const isFiltering = item.kind === 'filtering';
+  const editable = isCollectionsRow || isAddonCatalog || isFiltering;
+
+  const [filtering, setFiltering] = useState<FilteringState | null>(() =>
+    isFiltering
+      ? parseFilteringState(
+          item.query,
+          (presetItem?.media_type as FilteringMediaKind | null) ?? 'movie',
+        )
+      : null,
+  );
 
   const [entries, setEntries] = useState<EditorEntry[]>(initialSource?.entries ?? []);
   const [addonId, setAddonId] = useState(initialSource?.addonId ?? '');
@@ -84,17 +104,36 @@ export function PresetWidgetEditorDialog({ item, onClose, onRemove, onSaved }: P
     if (isAddonCatalog) {
       return { kind: 'addonCatalog', addonId, catalogId, mediaType };
     }
+    if (isFiltering && filtering) {
+      // Merge, don't rebuild: the id-based facets this editor doesn't expose
+      // yet live only in the original query, and rebuilding was silently
+      // deleting them on save.
+      return { kind: 'filtering', query: mergeFilteringQuery(item.query, filtering) };
+    }
     return initialSource ?? {};
   }
 
+  const filteringBlocked = isFiltering && filtering ? filteringValidationMessage(filtering) : null
+
   async function save() {
     if (!presetItem) return;
+    if (filteringBlocked) {
+      setError(filteringBlocked)
+      return
+    }
     setSaving(true);
     setError(null);
     try {
       const { data, error: updateError } = await supabase
         .from('home_preset_items')
-        .update({ title: title.trim() || null, data_source: draftDataSource() })
+        .update({
+          title: title.trim() || null,
+          data_source: draftDataSource(),
+          // The content kind lives in the row's own column, not the query —
+          // the app reads it as the widget's `mediaType` to pick
+          // /discover/movie vs /discover/tv.
+          ...(isFiltering && filtering ? { media_type: filtering.mediaKind } : {}),
+        })
         .eq('id', presetItem.id)
         .select()
         .single();
@@ -155,18 +194,26 @@ export function PresetWidgetEditorDialog({ item, onClose, onRemove, onSaved }: P
             <pre className="max-h-[50vh] overflow-auto rounded-xl border border-border bg-bg p-3 font-mono text-[11px] leading-relaxed text-muted">
               {JSON.stringify({ title: title.trim() || null, ...draftDataSource() }, null, 2)}
             </pre>
-          ) : item.kind === 'filtering' ? (
-            <div className="rounded-xl border border-border px-4 py-2">
-              <p className="py-2 text-xs font-semibold uppercase tracking-wide text-faint">TMDB discover parameters</p>
-              {filteringParams.length === 0
-                ? <p className="py-2 text-sm text-muted">No parameters — defaults (popular movies).</p>
-                : filteringParams.map(([key, value]) => (
+          ) : isFiltering && filtering ? (
+            <div className="flex flex-col gap-4">
+              <label className="flex flex-col gap-1.5">
+                <span className="text-xs font-semibold uppercase tracking-wide text-faint">Name</span>
+                <input value={title} onChange={(e) => setTitle(e.target.value)} className={inputClass} placeholder="Widget name" />
+              </label>
+              <FilteringWidgetFields value={filtering} onChange={setFiltering} />
+              {filteringParams.length > 0 && (
+                <details className="rounded-xl border border-border px-4 py-2">
+                  <summary className="cursor-pointer py-1 text-xs font-semibold uppercase tracking-wide text-faint">
+                    Published parameters
+                  </summary>
+                  {filteringParams.map(([key, value]) => (
                     <div key={key} className="flex gap-4 border-b border-border py-2 text-sm last:border-b-0">
                       <span className="w-40 flex-none text-faint">{key}</span>
                       <span className="min-w-0 flex-1 break-words text-text">{value}</span>
                     </div>
                   ))}
-              <p className="py-2 text-xs text-faint">Filters are edited on-device from this widget's editor.</p>
+                </details>
+              )}
             </div>
           ) : (
             <div className="flex flex-col gap-4">
@@ -267,7 +314,15 @@ export function PresetWidgetEditorDialog({ item, onClose, onRemove, onSaved }: P
           <Button variant="danger" size="sm" onClick={onRemove}>Remove from preset</Button>
           <Button variant="ghost" size="sm" onClick={onClose}>Close</Button>
           {editable && (
-            <Button size="sm" onClick={save} loading={saving} disabled={saving}>Save</Button>
+            <Button
+              size="sm"
+              onClick={save}
+              loading={saving}
+              disabled={saving || Boolean(filteringBlocked)}
+              title={filteringBlocked ?? undefined}
+            >
+              Save
+            </Button>
           )}
         </div>
       </div>

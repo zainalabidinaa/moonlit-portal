@@ -61,10 +61,18 @@ export function useCollectionSubtree(collectionId: string | null) {
     // Real-time: this widget's own subtree only — CatalogPage's own
     // collections-changes/folders-changes subscriptions are unrelated and
     // stay scoped to its own sidebar-wide concern.
+    //
+    // `folder_catalogs`/`folder_sources` are subscribed WITHOUT a filter
+    // because Realtime filters can't express "folder_id IN (…)" — a source
+    // added to one of this panel's folders (or by a script/SQL pass) has to
+    // refresh these counts too, otherwise the editor keeps showing the old
+    // source count until a manual reload.
     const sub = supabase
       .channel(`widget-subtree-${collectionId}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'collections', filter: `id=eq.${collectionId}` }, () => refresh())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'folders', filter: `collection_id=eq.${collectionId}` }, () => refresh())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'folder_catalogs' }, () => refresh())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'folder_sources' }, () => refresh())
       .subscribe();
     return () => { supabase.removeChannel(sub); };
   }, [collectionId, refresh]);

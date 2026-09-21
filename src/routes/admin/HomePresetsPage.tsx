@@ -169,6 +169,7 @@ export default function HomePresetsPage() {
           kind: 'filtering',
           title: item.title?.trim() || 'Filtering',
           query: item.data_source.query ?? '',
+          presetItem: item,
         };
       }
       // Imported (or app-published) external-catalog widgets and Collections
@@ -413,6 +414,34 @@ export default function HomePresetsPage() {
     if (error) { alert(error.message); return; }
     setPresetItems((p) => [...p, data as HomePresetItem]);
     setShowAddPanel(false);
+  }
+
+  /** Adds a Filtering widget under the preset's current tab and drops the
+   *  admin straight into its facet editor. Until now filtering rows could only
+   *  arrive from the app's "Save & Publish" (and were read-only here), so a
+   *  preset couldn't be authored end-to-end in the portal. */
+  async function addFilteringToPreset() {
+    if (!selectedPresetId) return;
+    const { data, error } = await supabase.from('home_preset_items').insert({
+      preset_id: selectedPresetId,
+      tab: widgetTab,
+      data_source: { kind: 'filtering', query: 'sort_by=popularity.desc' },
+      media_type: 'movie',
+      style: 'standard',
+      title: 'Filtering',
+      sort_order: presetItems.length,
+    }).select().single();
+    if (error) { alert(error.message); return; }
+    const row = data as HomePresetItem;
+    setPresetItems((p) => [...p, row]);
+    setShowAddPanel(false);
+    setDetailItem({
+      key: row.id,
+      kind: 'filtering',
+      title: row.title?.trim() || 'Filtering',
+      query: row.data_source.query ?? '',
+      presetItem: row,
+    });
   }
 
   async function createAndAddToPreset() {
@@ -806,6 +835,9 @@ export default function HomePresetsPage() {
                   + Add "Browse by {hub === 'genre' ? 'Genre' : 'Language'}"
                 </Button>
               ))}
+              <Button size="sm" variant="ghost" onClick={addFilteringToPreset}>
+                + Filtering widget
+              </Button>
               <Button size="sm" variant="ghost" onClick={() => setShowImportDialog(true)}>
                 ⇪ Import Widgets
               </Button>

@@ -73,9 +73,12 @@ export type WidgetCardItem =
        *  falling back to "Filtering" for rows published before that column
        *  existed. */
       title: string;
-      /** The raw TMDB query the app published — shown summarized on the
-       *  card; editing the filters themselves stays on-device. */
+      /** The raw TMDB query — shown summarized on the card; the detail
+       *  dialog now authors the same facets in the portal. */
       query: string;
+      /** The raw preset row, so the dialog can write edits back to exactly
+       *  this placement. */
+      presetItem: HomePresetItem;
     }
   | {
       /** Preset items the app/import published that aren't collection- or
