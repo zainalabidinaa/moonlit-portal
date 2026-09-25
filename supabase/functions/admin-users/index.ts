@@ -200,7 +200,7 @@ Deno.serve(async (req) => {
           user_id: u.id,
           email: u.email,
           name: p?.name ?? u.email?.split('@')[0] ?? null,
-          role: p?.role ?? 'premium',
+          role: p?.role ?? 'spotlight',
           role_expires_at: p?.role_expires_at ?? null,
           stream_addons_enabled: p?.stream_addons_enabled ?? false,
           created_at: u.created_at,
@@ -223,8 +223,16 @@ Deno.serve(async (req) => {
         });
       }
 
-      const validRoles = ['admin', 'friends_family', 'premium', 'premium_plus', 'free', 'restricted'];
-      if (role && !validRoles.includes(role)) {
+      // Role domain matches the DB CHECK constraints introduced by
+      // 20261015_rename_roles_spotlight_studio.sql (spotlight/studio plus
+      // free, friends_family, admin, restricted, user). Callers from before
+      // the rename may still send `premium`/`premium_plus`; accept those and
+      // map them on write so no stored value can ever hit the legacy roles
+      // the constraints now reject.
+      const validRoles = ['admin', 'friends_family', 'spotlight', 'studio', 'free', 'restricted', 'user'];
+      const legacyRoleMap: Record<string, string> = { premium: 'spotlight', premium_plus: 'studio' };
+      const normalizedRole = role && legacyRoleMap[role] ? legacyRoleMap[role] : role;
+      if (role && !validRoles.includes(normalizedRole)) {
         return new Response(JSON.stringify({ error: 'Invalid role' }), {
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -236,7 +244,7 @@ Deno.serve(async (req) => {
       // profile for the user automatically.
       if (role || role_expires_at !== undefined) {
         const accountFields: Record<string, any> = {};
-        if (role) accountFields.role = role;
+        if (role) accountFields.role = normalizedRole;
         if (role_expires_at !== undefined) {
           accountFields.role_expires_at = role_expires_at || null;
         }
@@ -281,7 +289,7 @@ Deno.serve(async (req) => {
           .from('profiles')
           .insert({
             user_id: userId,
-            role: role ?? 'premium',
+            role: normalizedRole ?? 'spotlight',
             name: 'User',
             profile_index: 0,
             ...profileFields,
