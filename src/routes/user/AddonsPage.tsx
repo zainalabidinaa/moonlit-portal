@@ -66,8 +66,8 @@ export default function AddonsPage() {
     setWidgetsTarget({ url, label });
   }
 
-  const isManaged = role === 'premium';
-  const canEdit = role === 'admin' || role === 'premium_plus';
+  const isManaged = role === 'spotlight';
+  const canEdit = role === 'admin' || role === 'studio';
   const curatedSetupInstalled = activeProfile?.curated_setup_installed === true || curatedSyncedAt != null;
 
   useEffect(() => {
@@ -186,7 +186,7 @@ export default function AddonsPage() {
           {role === 'friends_family' && <Badge>Inherited from admin</Badge>}
         </div>
 
-        {(role === 'premium' || role === 'friends_family') && (
+        {(role === 'spotlight' || role === 'friends_family') && (
           <Card className="p-4 mb-6">
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0">

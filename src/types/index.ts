@@ -1,4 +1,4 @@
-export type UserRole = 'admin' | 'friends_family' | 'premium' | 'premium_plus' | 'free' | 'restricted';
+export type UserRole = 'admin' | 'friends_family' | 'spotlight' | 'studio' | 'free' | 'restricted';
 
 export interface Profile {
   id: string;
@@ -224,7 +224,7 @@ export interface HomePresetItem {
   source_art?: boolean;
 }
 
-export type Plan = 'premium' | 'premium_plus';
+export type Plan = 'spotlight' | 'studio';
 
 export type SupportTopic = 'general' | 'billing' | 'account' | 'playback' | 'bug';
 export type SupportStatus = 'new' | 'open' | 'resolved';

@@ -31,7 +31,7 @@ describe('PublicRoute', () => {
   });
 
   it('redirects to /profiles when session exists', () => {
-    mockUseAuth.mockReturnValue({ session: { user: {} }, loading: false, role: 'premium' });
+    mockUseAuth.mockReturnValue({ session: { user: {} }, loading: false, role: 'spotlight' });
     setup(<PublicRoute><div>public content</div></PublicRoute>);
     expect(screen.getByText('profiles page')).toBeInTheDocument();
   });
@@ -45,7 +45,7 @@ describe('UserRoute', () => {
   });
 
   it('renders children when session exists', () => {
-    mockUseAuth.mockReturnValue({ session: { user: {} }, loading: false, role: 'premium' });
+    mockUseAuth.mockReturnValue({ session: { user: {} }, loading: false, role: 'spotlight' });
     setup(<UserRoute><div>protected</div></UserRoute>);
     expect(screen.getByText('protected')).toBeInTheDocument();
   });
@@ -53,7 +53,7 @@ describe('UserRoute', () => {
 
 describe('AdminRoute', () => {
   it('redirects non-admin to /profiles', () => {
-    mockUseAuth.mockReturnValue({ session: { user: {} }, loading: false, role: 'premium' });
+    mockUseAuth.mockReturnValue({ session: { user: {} }, loading: false, role: 'spotlight' });
     setup(<AdminRoute><div>admin only</div></AdminRoute>);
     expect(screen.getByText('profiles page')).toBeInTheDocument();
   });

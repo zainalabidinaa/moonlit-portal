@@ -3,11 +3,11 @@ import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
 import { AppShell } from '../../components/layout/AppShell';
 
-type Role = 'premium' | 'friends_family' | 'free';
+type Role = 'spotlight' | 'friends_family' | 'free';
 type TabKey = 'home' | 'search' | 'library' | 'live_tv' | 'settings';
 
 const ROLES: { key: Role; label: string }[] = [
-  { key: 'premium', label: 'Premium' },
+  { key: 'spotlight', label: 'Spotlight' },
   { key: 'friends_family', label: 'Friends & Family' },
   { key: 'free', label: 'Regular' },
 ];

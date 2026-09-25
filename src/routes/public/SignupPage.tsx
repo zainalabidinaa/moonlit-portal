@@ -10,15 +10,15 @@ type Tab = 'invite' | 'subscribe';
 type InviteStep = 'form' | 'confirm';
 
 const PLAN_LABELS: Record<Plan, string> = {
-  premium: 'Premium — $9.99/mo',
-  premium_plus: 'Premium+ — $14.99/mo',
+  spotlight: 'Spotlight — $9.99/mo',
+  studio: 'Studio — $14.99/mo',
 };
 
 export default function SignupPage() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const initialTab: Tab = params.get('tab') === 'invite' ? 'invite' : params.get('plan') ? 'subscribe' : 'invite';
-  const initialPlan = (params.get('plan') as Plan | null) ?? 'premium';
+  const initialPlan = (params.get('plan') as Plan | null) ?? 'spotlight';
 
   const [tab, setTab] = useState<Tab>(initialTab);
   const [inviteStep, setInviteStep] = useState<InviteStep>('form');
@@ -149,7 +149,7 @@ export default function SignupPage() {
         ) : (
           <div className="flex flex-col gap-4">
             <div className="flex flex-col gap-2">
-              {(['premium', 'premium_plus'] as Plan[]).map(p => (
+              {(['spotlight', 'studio'] as Plan[]).map(p => (
                 <button
                   key={p}
                   onClick={() => setSelectedPlan(p)}

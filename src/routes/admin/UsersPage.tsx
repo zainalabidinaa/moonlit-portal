@@ -25,8 +25,8 @@ type AdminUser = {
 const ROLE_LABELS: Record<UserRole, string> = {
   admin: 'Admin',
   friends_family: 'F&F',
-  premium: 'Premium',
-  premium_plus: 'Premium+',
+  spotlight: 'Spotlight',
+  studio: 'Studio',
   free: 'Free',
   restricted: 'Restricted',
 };
@@ -34,8 +34,8 @@ const ROLE_LABELS: Record<UserRole, string> = {
 const ROLE_BADGE: Record<UserRole, 'default' | 'success' | 'warning' | 'danger' | 'purple'> = {
   admin: 'purple',
   friends_family: 'success',
-  premium: 'warning',
-  premium_plus: 'default',
+  spotlight: 'warning',
+  studio: 'default',
   free: 'danger',
   restricted: 'danger',
 };

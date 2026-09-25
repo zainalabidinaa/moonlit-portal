@@ -15,23 +15,23 @@ const plans = [
     highlight: false,
   },
   {
-    id: 'premium',
-    name: 'Premium',
+    id: 'spotlight',
+    name: 'Spotlight',
     price: '$6.99',
     description: 'Everything set up and ready to go. Just sign in and watch.',
     features: ['Full catalog access', 'Pre-configured', 'Up to 5 profiles', 'HD streaming'],
     cta: 'Get Started',
-    ctaTo: '/signup?plan=premium',
+    ctaTo: '/signup?plan=spotlight',
     highlight: true,
   },
   {
-    id: 'premium_plus',
-    name: 'Premium+',
+    id: 'studio',
+    name: 'Studio',
     price: '$9.99',
-    description: 'All of Premium, plus you control your own add-ons and sources.',
-    features: ['Everything in Premium', 'Self-managed add-ons', 'Custom sources', 'Priority support'],
+    description: 'All of Spotlight, plus you control your own add-ons and sources.',
+    features: ['Everything in Spotlight', 'Self-managed add-ons', 'Custom sources', 'Priority support'],
     cta: 'Get Started',
-    ctaTo: '/signup?plan=premium_plus',
+    ctaTo: '/signup?plan=studio',
     highlight: false,
   },
 ];
@@ -48,7 +48,7 @@ export default function PricingPage() {
           <p className="text-muted text-base sm:text-lg">Pick the plan that fits how you watch.</p>
         </div>
 
-        {/* Premium is the middle card on desktop and the first one on phones. */}
+        {/* Spotlight is the middle card on desktop and the first one on phones. */}
         <div className="grid md:grid-cols-3 gap-5 md:gap-6">
           {plans.map(plan => (
             <Card
