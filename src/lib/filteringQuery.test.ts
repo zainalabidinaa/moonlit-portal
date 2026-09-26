@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  applyQuickPreset,
   buildFilteringQuery,
   DEFAULT_FILTERING_STATE,
   filteringSummary,
@@ -51,6 +52,41 @@ describe('buildFilteringQuery', () => {
     expect(upcoming).toContain(`release_date.gte=${TODAY}`)
     expect(upcoming.match(/primary_release_date.gte/g)?.length).toBe(1)
     expect(upcoming.match(/release_date.gte/g)?.length).toBe(1)
+  })
+
+  it('routes the curated list sentinels the app resolves', () => {
+    expect(buildFilteringQuery(state({ ordering: 'nowPlaying' }), TODAY)).toContain('sort_by=tmdb.now_playing')
+    expect(buildFilteringQuery(state({ mediaKind: 'series', ordering: 'onTheAir' }), TODAY)).toContain('sort_by=tmdb.on_the_air')
+    expect(buildFilteringQuery(state({ mediaKind: 'series', ordering: 'airingToday' }), TODAY)).toContain('sort_by=tmdb.airing_today')
+  })
+
+  it('writes the TV status and next air-date window only for series', () => {
+    const series = buildFilteringQuery(
+      state({ mediaKind: 'series', status: '0', airDateFrom: TODAY, airDateTo: '2026-09-29' }),
+      TODAY,
+    )
+    expect(series).toContain('with_status=0')
+    expect(series).toContain(`air_date.gte=${TODAY}`)
+    expect(series).toContain('air_date.lte=2026-09-29')
+
+    const movie = buildFilteringQuery(state({ status: '0', airDateFrom: TODAY }), TODAY)
+    expect(movie).not.toContain('with_status')
+    expect(movie).not.toContain('air_date')
+  })
+
+  it('quick presets compose the facets they describe', () => {
+    const newSeries = applyQuickPreset(state({}), 'newSeries', TODAY)
+    expect(newSeries.mediaKind).toBe('series')
+    expect(newSeries.ordering).toBe('newest')
+    expect(newSeries.period).toBe('custom')
+    expect(newSeries.customFrom).toBe('2026-07-24')
+    expect(newSeries.customTo).toBe(TODAY)
+    expect(newSeries.minVotes).toBe('20')
+
+    const returning = applyQuickPreset(state({}), 'returningThisWeek', TODAY)
+    expect(returning.status).toBe('0')
+    expect(returning.airDateFrom).toBe(TODAY)
+    expect(returning.airDateTo).toBe('2026-09-29')
   })
 
   it('seeds a vote floor only for the orderings that need one', () => {
@@ -110,6 +146,17 @@ describe('mergeFilteringQuery', () => {
 })
 
 describe('parseFilteringState', () => {
+  it('round-trips status, air-date window and the curated sentinels', () => {
+    const original = state({
+      mediaKind: 'series',
+      ordering: 'airingToday',
+      status: '0',
+      airDateFrom: TODAY,
+      airDateTo: '2026-09-29',
+    })
+    expect(parseFilteringState(buildFilteringQuery(original, TODAY))).toEqual(original)
+  })
+
   it('round-trips the release status through its release_date window', () => {
     const released = parseFilteringState(buildFilteringQuery(state({ releaseStatus: 'released' }), TODAY))
     expect(released.releaseStatus).toBe('released')

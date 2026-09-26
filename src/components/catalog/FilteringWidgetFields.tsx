@@ -1,11 +1,13 @@
 import {
+  applyQuickPreset,
   buildFilteringQuery,
   filteringValidationMessage,
   genresFor,
   filteringSummary,
+  ORDERING_OPTIONS,
   orderingSeedsVoteCount,
+  STATUS_OPTIONS,
   type FilteringMediaKind,
-  type FilteringOrdering,
   type FilteringPeriod,
   type FilteringReleaseStatus,
   type FilteringState,
@@ -26,16 +28,6 @@ import {
 
 const inputClass =
   'w-full rounded-lg border border-border bg-bg px-3 py-1.5 text-sm text-text focus:border-accent focus:outline-none'
-
-const ORDERINGS: { value: FilteringOrdering; label: string; hint?: string }[] = [
-  { value: 'popular', label: 'Popular' },
-  { value: 'trendingDay', label: 'Trending Today' },
-  { value: 'trendingWeek', label: 'Trending This Week' },
-  { value: 'topRated', label: 'Top Rated' },
-  { value: 'newest', label: 'Newest' },
-  { value: 'oldest', label: 'Oldest' },
-  { value: 'revenue', label: 'Revenue', hint: 'movies' },
-]
 
 const PERIODS: { value: FilteringPeriod; label: string }[] = [
   { value: 'any', label: 'Any' },
@@ -123,7 +115,13 @@ export function FilteringWidgetFields({
                   // nothing, so a switch clears the selection.
                   genreIds: [],
                   releaseStatus: kind === 'series' ? 'any' : value.releaseStatus,
-                  ordering: value.ordering === 'revenue' && kind === 'series' ? 'popular' : value.ordering,
+                  // TV-only facets and the movie/TV-only curated lists.
+                  status: kind === 'movie' ? '' : value.status,
+                  airDateFrom: kind === 'movie' ? '' : value.airDateFrom,
+                  airDateTo: kind === 'movie' ? '' : value.airDateTo,
+                  ordering: ORDERING_OPTIONS.find((o) => o.value === value.ordering)?.kinds.includes(kind)
+                    ? value.ordering
+                    : 'popular',
                 })
               }
             />
@@ -133,7 +131,7 @@ export function FilteringWidgetFields({
 
       <Field label="Ordering">
         <div className="flex flex-wrap gap-1.5">
-          {ORDERINGS.filter((o) => !(o.value === 'revenue' && value.mediaKind === 'series')).map((ordering) => (
+          {ORDERING_OPTIONS.filter((o) => o.kinds.includes(value.mediaKind)).map((ordering) => (
             <Chip
               key={ordering.value}
               active={value.ordering === ordering.value}
@@ -153,9 +151,29 @@ export function FilteringWidgetFields({
           ))}
         </div>
         <p className="text-[11px] text-faint">
-          “Trending Today/This Week” use TMDB&apos;s trending endpoint, which has no filters of
-          its own: only the period window and the row limit apply. Genres, keywords, rating and
-          vote floors are ignored for those two orderings.
+          “Trending Today/This Week”, “Now Playing”, “Currently Airing” and “Airing Today” are
+          TMDB&apos;s own curated lists. They take no filters: only the period, the next air-date
+          window and the row limit apply — genres, keywords, rating and vote floors are ignored
+          for those orderings.
+        </p>
+      </Field>
+
+      <Field label="Quick presets">
+        <div className="flex flex-wrap gap-1.5">
+          <Chip
+            active={false}
+            label="New Series"
+            onClick={() => onChange(applyQuickPreset(value, 'newSeries'))}
+          />
+          <Chip
+            active={false}
+            label="Returning This Week"
+            onClick={() => onChange(applyQuickPreset(value, 'returningThisWeek'))}
+          />
+        </div>
+        <p className="text-[11px] text-faint">
+          New Series = newest-first over the last 60 days · Returning This Week = Returning
+          status with a next-air-date window of today → +7 days.
         </p>
       </Field>
 
@@ -213,6 +231,44 @@ export function FilteringWidgetFields({
           “Upcoming” keeps future-dated titles; every other window hides them.
         </p>
       </Field>
+
+      {value.mediaKind === 'series' && (
+        <Field label="Status">
+          <div className="flex flex-wrap gap-1.5">
+            {STATUS_OPTIONS.map((option) => (
+              <Chip
+                key={option.value}
+                active={value.status === option.value}
+                label={option.label}
+                onClick={() => set({ status: option.value })}
+              />
+            ))}
+          </div>
+        </Field>
+      )}
+
+      {value.mediaKind === 'series' && (
+        <Field label="Next air date">
+          <div className="flex items-center gap-2">
+            <input
+              type="date"
+              value={value.airDateFrom}
+              onChange={(e) => set({ airDateFrom: e.target.value })}
+              className={inputClass}
+            />
+            <span className="text-xs text-faint">to</span>
+            <input
+              type="date"
+              value={value.airDateTo}
+              onChange={(e) => set({ airDateTo: e.target.value })}
+              className={inputClass}
+            />
+          </div>
+          <p className="text-[11px] text-faint">
+            For returning shows: when the next episode airs. “Returning This Week” seeds this.
+          </p>
+        </Field>
+      )}
 
       {value.mediaKind === 'movie' && (
         <Field label="Release status">

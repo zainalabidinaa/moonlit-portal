@@ -22,6 +22,9 @@ export type FilteringOrdering =
   | 'newest'
   | 'oldest'
   | 'revenue'
+  | 'nowPlaying'
+  | 'onTheAir'
+  | 'airingToday'
 
 export type FilteringPeriod =
   | 'any'
@@ -45,6 +48,14 @@ export interface FilteringState {
   customFrom: string
   customTo: string
   releaseStatus: FilteringReleaseStatus
+  /** `with_status` (TV only): '' any, 0 Returning, 1 Planned, 2 In Production,
+   *  3 Ended, 4 Cancelled, 5 Pilot. */
+  status: string
+  /** The *next* air-date window (TV only) — `air_date.*`, distinct from the
+   *  Period window's `first_air_date.*`. This is what makes "Returning This
+   *  Week" expressible: status=Returning plus today → +7 days. */
+  airDateFrom: string
+  airDateTo: string
   minRating: string
   minVotes: string
   runtimeMin: string
@@ -61,6 +72,9 @@ export const DEFAULT_FILTERING_STATE: FilteringState = {
   customFrom: '',
   customTo: '',
   releaseStatus: 'any',
+  status: '',
+  airDateFrom: '',
+  airDateTo: '',
   minRating: '',
   minVotes: '',
   runtimeMin: '',
@@ -202,8 +216,81 @@ function orderingValue(state: FilteringState): string {
       return 'trending.day'
     case 'trendingWeek':
       return 'trending.week'
+    // TMDB's own curated lists. The app resolves these sentinels to
+    // /movie/now_playing, /tv/on_the_air and /tv/airing_today; like trending
+    // they take no filter parameters, so only the period, the next air-date
+    // window and the limit apply.
+    case 'nowPlaying':
+      return 'tmdb.now_playing'
+    case 'onTheAir':
+      return 'tmdb.on_the_air'
+    case 'airingToday':
+      return 'tmdb.airing_today'
     default:
       return 'popularity.desc'
+  }
+}
+
+/** Ordering options with the media kinds each one supports. */
+export const ORDERING_OPTIONS: { value: FilteringOrdering; label: string; kinds: FilteringMediaKind[] }[] = [
+  { value: 'popular', label: 'Popular', kinds: ['movie', 'series'] },
+  { value: 'trendingDay', label: 'Trending Today', kinds: ['movie', 'series'] },
+  { value: 'trendingWeek', label: 'Trending This Week', kinds: ['movie', 'series'] },
+  { value: 'topRated', label: 'Top Rated', kinds: ['movie', 'series'] },
+  { value: 'newest', label: 'Newest', kinds: ['movie', 'series'] },
+  { value: 'oldest', label: 'Oldest', kinds: ['movie', 'series'] },
+  { value: 'revenue', label: 'Revenue', kinds: ['movie'] },
+  { value: 'nowPlaying', label: 'Now Playing', kinds: ['movie'] },
+  { value: 'onTheAir', label: 'Currently Airing', kinds: ['series'] },
+  { value: 'airingToday', label: 'Airing Today', kinds: ['series'] },
+]
+
+/** TV statuses, for `with_status`. */
+export const STATUS_OPTIONS: { value: string; label: string }[] = [
+  { value: '', label: 'Any status' },
+  { value: '0', label: 'Returning Series' },
+  { value: '1', label: 'Planned' },
+  { value: '2', label: 'In Production' },
+  { value: '3', label: 'Ended' },
+  { value: '4', label: 'Cancelled' },
+  { value: '5', label: 'Pilot' },
+]
+
+/**
+ * One-tap compositions over the facets below. (The app also offers "New on
+ * Netflix"; the portal has no providers facet yet, so its presets stay within
+ * what this editor can show and clear.)
+ */
+export type FilteringQuickPreset = 'newSeries' | 'returningThisWeek'
+
+export function applyQuickPreset(
+  state: FilteringState,
+  preset: FilteringQuickPreset,
+  today?: string,
+): FilteringState {
+  const now = todayString(today)
+  if (preset === 'newSeries') {
+    const from = new Date(`${now}T00:00:00Z`)
+    from.setUTCDate(from.getUTCDate() - 60)
+    return {
+      ...state,
+      mediaKind: 'series',
+      ordering: 'newest',
+      period: 'custom',
+      customFrom: from.toISOString().slice(0, 10),
+      customTo: now,
+      minVotes: state.minVotes || '20',
+    }
+  }
+  const to = new Date(`${now}T00:00:00Z`)
+  to.setUTCDate(to.getUTCDate() + 7)
+  return {
+    ...state,
+    mediaKind: 'series',
+    ordering: 'popular',
+    status: '0',
+    airDateFrom: now,
+    airDateTo: to.toISOString().slice(0, 10),
   }
 }
 
@@ -239,6 +326,13 @@ export function buildFilteringQuery(state: FilteringState, today?: string): stri
     }
   }
 
+  if (state.mediaKind === 'series' && state.status) {
+    params.push(['with_status', state.status])
+  }
+  if (state.mediaKind === 'series') {
+    if (state.airDateFrom) params.push(['air_date.gte', state.airDateFrom])
+    if (state.airDateTo) params.push(['air_date.lte', state.airDateTo])
+  }
   if (state.minRating.trim()) params.push(['vote_average.gte', state.minRating.trim()])
   if (state.minVotes.trim()) params.push(['vote_count.gte', state.minVotes.trim()])
   if (state.runtimeMin.trim()) params.push(['with_runtime.gte', state.runtimeMin.trim()])
@@ -294,7 +388,16 @@ export function parseFilteringState(
   const sort = params['sort_by'] ?? ''
   if (sort === 'trending.day') state.ordering = 'trendingDay'
   else if (sort === 'trending.week') state.ordering = 'trendingWeek'
-  else if (sort.startsWith('vote_average')) state.ordering = 'topRated'
+  else if (sort === 'tmdb.now_playing') {
+    state.ordering = 'nowPlaying'
+    state.mediaKind = 'movie'
+  } else if (sort === 'tmdb.on_the_air') {
+    state.ordering = 'onTheAir'
+    state.mediaKind = 'series'
+  } else if (sort === 'tmdb.airing_today') {
+    state.ordering = 'airingToday'
+    state.mediaKind = 'series'
+  } else if (sort.startsWith('vote_average')) state.ordering = 'topRated'
   else if (sort === 'revenue.desc') state.ordering = 'revenue'
   else if (sort.startsWith('primary_release_date.desc') || sort.startsWith('first_air_date.desc')) state.ordering = 'newest'
   else if (sort.startsWith('primary_release_date.asc') || sort.startsWith('first_air_date.asc')) state.ordering = 'oldest'
@@ -342,6 +445,12 @@ export function parseFilteringState(
     else if (from === now) state.releaseStatus = 'upcoming'
   }
 
+  state.status = params['with_status'] ?? ''
+  state.airDateFrom = params['air_date.gte'] ?? ''
+  state.airDateTo = params['air_date.lte'] ?? ''
+  // Statuses and next-air-date windows only exist for series, so carrying one
+  // identifies the row's kind when the caller didn't supply it.
+  if (state.status || state.airDateFrom || state.airDateTo) state.mediaKind = 'series'
   state.minRating = params['vote_average.gte'] ?? ''
   state.minVotes = params['vote_count.gte'] ?? ''
   state.runtimeMin = params['with_runtime.gte'] ?? ''
@@ -371,6 +480,9 @@ export const AUTHORED_PARAMS: ReadonlySet<string> = new Set([
   'with_runtime.gte',
   'with_runtime.lte',
   'with_original_language',
+  'with_status',
+  'air_date.gte',
+  'air_date.lte',
   'limit',
 ])
 
@@ -419,6 +531,10 @@ export function filteringSummary(query: string): string {
     if (params['release_date.gte'] === todayString()) parts.push('upcoming')
     else parts.push('released')
   }
+  if (params['with_status']) {
+    parts.push(STATUS_OPTIONS.find((option) => option.value === params['with_status'])?.label ?? 'status')
+  }
+  if (params['air_date.gte'] || params['air_date.lte']) parts.push('next air date')
   if (params['with_original_language']) parts.push(params['with_original_language'].toUpperCase())
   const from = params['primary_release_date.gte'] ?? params['first_air_date.gte']
   const to = params['primary_release_date.lte'] ?? params['first_air_date.lte']
