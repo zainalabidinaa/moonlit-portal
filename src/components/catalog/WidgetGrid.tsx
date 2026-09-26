@@ -91,6 +91,9 @@ export type WidgetCardItem =
       title: string;
       subtitle: string;
       accent?: boolean;
+      /** Depends on an add-on: only the admin server can resolve it, users
+       *  never see it. Shown as a red badge on the card. */
+      adminOnly?: boolean;
       /** The raw preset row, so the detail sheet can show the tiles / source
        *  ids without a re-fetch. */
       presetItem: HomePresetItem;
@@ -271,6 +274,7 @@ function WidgetCard({
         title={item.title}
         subtitle={item.subtitle}
         accent={item.accent ?? false}
+        adminOnly={item.adminOnly ?? false}
         onClick={onClick}
         onDelete={onDelete}
         onDragStart={onDragStart}
@@ -655,11 +659,12 @@ function FilteringCard({
 // editor yet (external-catalog widgets, Collections Rows). Same chrome as the
 // Filtering card: title + subtitle, reorder/remove, edited on-device.
 function GenericPresetCard({
-  title, subtitle, accent, onClick, onDelete, onDragStart, onDrop, onMoveUp, onMoveDown,
+  title, subtitle, accent, adminOnly, onClick, onDelete, onDragStart, onDrop, onMoveUp, onMoveDown,
 }: {
   title: string;
   subtitle: string;
   accent: boolean;
+  adminOnly: boolean;
   onClick?: () => void;
   onDelete: () => void;
   onDragStart: () => void;
@@ -682,6 +687,14 @@ function GenericPresetCard({
       <button onClick={onClick} className="relative block w-full text-left" disabled={!onClick}>
         <p className="truncate text-[15px] font-semibold text-white">{title}</p>
         <p className="mt-0.5 truncate text-[12px] text-white/60">{subtitle}</p>
+        {adminOnly && (
+          <span
+            className="mt-1.5 inline-block rounded bg-red-500/15 px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wide text-red-400"
+            title="This widget depends on an add-on. Users never see add-on sources, so it will be empty for them."
+          >
+            Admin-only add-on
+          </span>
+        )}
       </button>
       <div className="relative flex items-center justify-between">
         <div className="flex gap-1.5">

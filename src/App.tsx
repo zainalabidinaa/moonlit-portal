@@ -10,7 +10,8 @@ import DownloadPage from './routes/public/DownloadPage';
 import ActivatePage from './routes/public/ActivatePage';
 import SupportPage from './routes/public/SupportPage';
 import ProfilesPage from './routes/user/ProfilesPage';
-import AddonsPage from './routes/user/AddonsPage';
+import AddonsUpstreamsPage from './routes/admin/AddonsUpstreamsPage';
+import CatalogSourcesPage from './routes/admin/CatalogSourcesPage';
 import MyCollectionsPage from './routes/user/MyCollectionsPage';
 import BillingPage from './routes/user/BillingPage';
 import CatalogPage from './routes/admin/CatalogPage';
@@ -42,7 +43,7 @@ export default function App() {
 
           {/* User */}
           <Route path="/profiles" element={<UserRoute><ProfilesPage /></UserRoute>} />
-          <Route path="/addons" element={<UserRoute><AddonsPage /></UserRoute>} />
+          <Route path="/addons" element={<Navigate to="/profiles" replace />} />
           <Route path="/my-collections" element={<UserRoute><MyCollectionsPage /></UserRoute>} />
           <Route path="/billing" element={<AuthRoute><BillingPage /></AuthRoute>} />
 
@@ -52,6 +53,8 @@ export default function App() {
           <Route path="/admin/home" element={<Navigate to="/admin/home-presets" replace />} />
           <Route path="/admin/home-presets" element={<AdminRoute><HomePresetsPage /></AdminRoute>} />
           <Route path="/admin/catalog" element={<AdminRoute><CatalogPage /></AdminRoute>} />
+          <Route path="/admin/sources" element={<AdminRoute><CatalogSourcesPage /></AdminRoute>} />
+          <Route path="/admin/addons" element={<AdminRoute><AddonsUpstreamsPage /></AdminRoute>} />
           <Route path="/admin/templates" element={<AdminRoute><TemplatesPage /></AdminRoute>} />
           <Route path="/admin/users" element={<AdminRoute><UsersPage /></AdminRoute>} />
           <Route path="/admin/invites" element={<AdminRoute><InvitesPage /></AdminRoute>} />

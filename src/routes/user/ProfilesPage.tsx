@@ -14,7 +14,7 @@ export default function ProfilesPage() {
 
   function handleSelectProfile(p: typeof profiles[0]) {
     setActiveProfile(p);
-    navigate('/addons');
+    navigate('/my-collections');
   }
 
   function handleSaved() {

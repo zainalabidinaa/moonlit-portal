@@ -19,7 +19,7 @@ const BUILTIN_ADDON_NAMES: Record<string, string> = {
   'opensubtitlesv3-pro.dexter21767.com': 'OpenSubtitles Pro',
 };
 
-export default function AddonsPage() {
+export default function AddonsUpstreamsPage() {
   const { activeProfile, role, refreshProfiles } = useAuth();
   const [addons, setAddons] = useState<InstalledAddon[]>([]);
   const [newUrl, setNewUrl] = useState('');
@@ -181,7 +181,13 @@ export default function AddonsPage() {
     <AppShell>
       <div className="max-w-2xl mx-auto">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold text-text">Add-ons</h1>
+          <div>
+            <h1 className="text-2xl font-bold text-text">Add-ons &amp; upstreams</h1>
+            <p className="mt-1 text-sm text-muted">
+              Admin only. Add-ons feed the server's copied lists and stream lookups behind the scenes;
+              users never see or manage them.
+            </p>
+          </div>
           {isManaged && <Badge variant="purple">Managed by Moonlit</Badge>}
           {role === 'friends_family' && <Badge>Inherited from admin</Badge>}
         </div>

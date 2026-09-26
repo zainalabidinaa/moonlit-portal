@@ -87,6 +87,7 @@ export interface AddCatalogSourceInput {
   mediaType: string;
   genre: string | null;
   addonId: string | null;
+  filterParams?: Record<string, string> | null;
 }
 
 export async function addCatalogSource(
@@ -100,6 +101,7 @@ export async function addCatalogSource(
       media_type: input.mediaType,
       genre: input.genre,
       addon_id: input.addonId,
+      filter_params: input.filterParams ?? null,
     })
     .select()
     .single();

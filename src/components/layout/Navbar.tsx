@@ -53,9 +53,6 @@ export function Navbar() {
               <NavLink to="/profiles" className={navClass}>
                 {({ isActive }) => (<>Profiles<ActiveBar show={isActive} /></>)}
               </NavLink>
-              <NavLink to="/addons" className={navClass}>
-                {({ isActive }) => (<>Addons<ActiveBar show={isActive} /></>)}
-              </NavLink>
               {isOwner && (
                 <NavLink to="/billing" className={navClass}>
                   {({ isActive }) => (<>Billing<ActiveBar show={isActive} /></>)}
@@ -74,6 +71,12 @@ export function Navbar() {
               </NavLink>
               <NavLink to="/admin/catalog" className={navClass}>
                 {({ isActive }) => (<>Collections<ActiveBar show={isActive} /></>)}
+              </NavLink>
+              <NavLink to="/admin/sources" className={navClass}>
+                {({ isActive }) => (<>Sources<ActiveBar show={isActive} /></>)}
+              </NavLink>
+              <NavLink to="/admin/addons" className={navClass}>
+                {({ isActive }) => (<>Add-ons<ActiveBar show={isActive} /></>)}
               </NavLink>
               <NavLink to="/admin/templates" className={navClass}>
                 {({ isActive }) => (<>Templates<ActiveBar show={isActive} /></>)}

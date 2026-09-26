@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { supabase } from '../../lib/supabase';
 import { AppShell } from '../../components/layout/AppShell';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
@@ -10,7 +9,8 @@ import {
   listFolders, createFolder, deleteFolder,
   listCatalogSources, addCatalogSource, deleteCatalogSource,
 } from '../../lib/personalCollections';
-import type { Collection, Folder, FolderCatalog, InstalledAddon } from '../../types';
+import type { Collection, Folder, FolderCatalog } from '../../types';
+import type { NativeSourceRow } from '../../lib/addSource';
 
 export default function MyCollectionsPage() {
   const { role, activeProfile } = useAuth();
@@ -19,7 +19,6 @@ export default function MyCollectionsPage() {
   const [collections, setCollections] = useState<Collection[]>([]);
   const [folders, setFolders] = useState<Folder[]>([]);
   const [catalogs, setCatalogs] = useState<FolderCatalog[]>([]);
-  const [addons, setAddons] = useState<InstalledAddon[]>([]);
   const [selectedCollection, setSelectedCollection] = useState<Collection | null>(null);
   const [selectedFolder, setSelectedFolder] = useState<Folder | null>(null);
   const [loading, setLoading] = useState(true);
@@ -29,9 +28,6 @@ export default function MyCollectionsPage() {
     const profileId = activeProfile.id;
     (async () => {
       setCollections(await listPersonalCollections(profileId));
-      const { data } = await supabase
-        .from('installed_addons').select('*').eq('profile_id', profileId).order('sort_order');
-      setAddons((data ?? []) as InstalledAddon[]);
       setLoading(false);
     })();
   }, [eligible, activeProfile]);
@@ -77,14 +73,18 @@ export default function MyCollectionsPage() {
     if (selectedFolder?.id === id) setSelectedFolder(null);
   }
 
-  async function handleAddCatalog(
-    catalogId: string, mediaType: string, genre: string | null, addonId: string | null,
-  ) {
+  async function handleAddNativeSource(row: NativeSourceRow) {
     if (!selectedFolder) return;
     const created = await addCatalogSource({
-      folderId: selectedFolder.id, catalogId, mediaType, genre, addonId,
+      folderId: selectedFolder.id,
+      catalogId: row.catalog_id,
+      mediaType: row.media_type,
+      genre: row.genre,
+      addonId: null,
+      filterParams: row.filter_params,
     });
-    if (created) setCatalogs((p) => [...p, created]);
+    if (!created) throw new Error('Could not add the source. Try again.');
+    setCatalogs((p) => [...p, created]);
   }
 
   async function handleDeleteCatalog(id: string) {
@@ -182,18 +182,16 @@ export default function MyCollectionsPage() {
 
         {selectedFolder && (
           <Card className="p-6">
-            {/* Provider (TMDB) sources stay admin-only — personal collections are
-                addon-catalog-driven in Phase 1, so those two props are
-                deliberately inert, not unimplemented. */}
             <SourcesTable
+              mode="personal"
               folder={selectedFolder}
               sources={[]}
               catalogs={catalogs}
               onAddSource={async () => {}}
               onDeleteSource={async () => {}}
-              onAddCatalog={handleAddCatalog}
+              onAddCatalog={async () => {}}
               onDeleteCatalog={handleDeleteCatalog}
-              addons={addons}
+              onAddNativeSource={handleAddNativeSource}
             />
           </Card>
         )}

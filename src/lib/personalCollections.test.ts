@@ -69,6 +69,26 @@ describe('addCatalogSource', () => {
       media_type: 'series',
       genre: null,
       addon_id: 'addon-9',
+      filter_params: null,
+    });
+  });
+
+  it('stores TMDB filter params for a native source', async () => {
+    const chain = builder({ data: { id: 'fc2' }, error: null });
+    mockFrom.mockReturnValue(chain);
+
+    await addCatalogSource({
+      folderId: 'f1', catalogId: 'tmdb.discover.custom.abc', mediaType: 'movie',
+      genre: null, addonId: null, filterParams: { sort_by: 'popularity.desc' },
+    });
+
+    expect(chain.insert).toHaveBeenCalledWith({
+      folder_id: 'f1',
+      catalog_id: 'tmdb.discover.custom.abc',
+      media_type: 'movie',
+      genre: null,
+      addon_id: null,
+      filter_params: { sort_by: 'popularity.desc' },
     });
   });
 });

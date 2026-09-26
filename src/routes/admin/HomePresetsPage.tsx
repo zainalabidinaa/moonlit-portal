@@ -179,8 +179,9 @@ export default function HomePresetsPage() {
         return {
           key: item.id,
           kind: 'generic',
-          title: item.title?.trim() || 'External Catalog',
-          subtitle: 'External catalog',
+          title: item.title?.trim() || 'Add-on source',
+          subtitle: 'Add-on source',
+          adminOnly: true,
           presetItem: item,
         };
       }

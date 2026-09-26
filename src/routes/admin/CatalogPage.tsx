@@ -8,6 +8,7 @@ import { FolderGrid } from '../../components/catalog/FolderGrid';
 import { CollectionTree } from '../../components/catalog/CollectionTree';
 import { ArtworkGallery } from '../../components/catalog/ArtworkGallery';
 import { SourcesTable } from '../../components/catalog/SourcesTable';
+import type { NativeSourceRow } from '../../lib/addSource';
 import { JsonImport } from '../../components/catalog/JsonImport';
 import { CollectionSettings } from '../../components/catalog/CollectionSettings';
 import { useAutoScrollOnDrag } from '../../hooks/useAutoScrollOnDrag';
@@ -350,6 +351,19 @@ export default function CatalogPage() {
     }).select().single();
     if (data) setCatalogs((p) => [...p, data as FolderCatalog]);
   }
+  async function addNativeSource(row: NativeSourceRow) {
+    if (!selectedFolder) return;
+    const { data, error } = await supabase.from('folder_catalogs').insert({
+      folder_id: selectedFolder.id,
+      catalog_id: row.catalog_id,
+      media_type: row.media_type,
+      genre: row.genre,
+      addon_id: null,
+      filter_params: row.filter_params,
+    }).select().single();
+    if (error) throw new Error(error.message);
+    if (data) setCatalogs((p) => [...p, data as FolderCatalog]);
+  }
   async function deleteCatalog(id: string) {
     await supabase.from('folder_catalogs').delete().eq('id', id);
     setCatalogs((p) => p.filter((c) => c.id !== id));
@@ -647,6 +661,7 @@ export default function CatalogPage() {
                   onAddSource={addSource}
                   onDeleteSource={deleteSource}
                   onAddCatalog={addCatalog}
+                  onAddNativeSource={addNativeSource}
                   onDeleteCatalog={deleteCatalog}
                   addons={installedAddons}
                 />
