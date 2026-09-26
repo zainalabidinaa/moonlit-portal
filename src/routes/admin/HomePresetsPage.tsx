@@ -33,7 +33,7 @@ function Toggle({ on, onChange }: { on: boolean; onChange: (v: boolean) => void 
     <button
       onClick={() => onChange(!on)}
       className={`relative h-5 w-9 flex-none rounded-full transition-colors ${on ? 'bg-accent' : 'border border-border bg-surface-2'}`}
-      title={on ? 'Active — visible to Premium/Friends & Family' : 'Inactive — hidden from the app'}
+      title={on ? 'Active — visible to Spotlight/Friends & Family' : 'Inactive — hidden from the app'}
     >
       <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${on ? 'translate-x-4' : 'translate-x-0.5'}`} />
     </button>
@@ -674,7 +674,7 @@ export default function HomePresetsPage() {
           <p className="mt-1 text-sm text-muted">
             {mode === 'all'
               ? 'Every Home/Movies/Series widget — build and publish them here.'
-              : <>Editing <span className="text-accent">{selectedPreset?.name}</span>'s widget list for this tab. Curated home layouts for Premium/Friends & Family — only <span className="text-accent">active</span> presets show up in the app.</>}
+              : <>Editing <span className="text-accent">{selectedPreset?.name}</span>'s widget list for this tab. Curated home layouts for Spotlight/Friends & Family — only <span className="text-accent">active</span> presets show up in the app.</>}
           </p>
         </div>
         <div className="flex items-center gap-2">

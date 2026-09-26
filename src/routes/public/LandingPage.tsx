@@ -48,7 +48,7 @@ const stats = [
   { n: '0', l: 'Ads, ever' },
 ];
 
-// Ordered so Premium sits in the middle column on desktop; on phones it is
+// Ordered so Spotlight sits in the middle column on desktop; on phones it is
 // pulled to the top (order-first) so the headline plan is what you see first.
 const plans = [
   {
@@ -57,14 +57,14 @@ const plans = [
     cta: 'Have a code?', to: '/signup?tab=invite',
   },
   {
-    name: 'Premium', price: '$6.99', unit: '/mo', highlight: true,
+    name: 'Spotlight', price: '$6.99', unit: '/mo', highlight: true,
     features: ['2 simultaneous streams', 'Up to 6 profiles', 'Full curated catalog', 'iOS · Mac · Web'],
-    cta: 'Choose Premium', to: '/signup?plan=premium',
+    cta: 'Choose Spotlight', to: '/signup?plan=spotlight',
   },
   {
-    name: 'Premium+', price: '$9.99', unit: '/mo', highlight: false,
+    name: 'Studio', price: '$9.99', unit: '/mo', highlight: false,
     features: ['4 simultaneous streams in 4K HDR', 'Unlimited profiles', 'Add your own sources — optional, for power users', 'Priority stream warm-up', 'Early access features'],
-    cta: 'Choose Premium+', to: '/signup?plan=premium_plus',
+    cta: 'Choose Studio', to: '/signup?plan=studio',
   },
 ];
 

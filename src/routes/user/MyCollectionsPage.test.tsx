@@ -31,14 +31,14 @@ beforeEach(() => { vi.clearAllMocks(); });
 
 describe('MyCollectionsPage', () => {
   it('tells non-eligible roles the feature is unavailable', () => {
-    mockUseAuth.mockReturnValue({ role: 'premium', activeProfile: { id: 'p1' } });
+    mockUseAuth.mockReturnValue({ role: 'spotlight', activeProfile: { id: 'p1' } });
     mockList.mockResolvedValue([]);
     render(<MyCollectionsPage />);
-    expect(screen.getByText(/only available on Premium\+/i)).toBeInTheDocument();
+    expect(screen.getByText(/only available on Studio/i)).toBeInTheDocument();
   });
 
-  it('lists the profile’s own collections for premium_plus', async () => {
-    mockUseAuth.mockReturnValue({ role: 'premium_plus', activeProfile: { id: 'p1' } });
+  it('lists the profile’s own collections for studio', async () => {
+    mockUseAuth.mockReturnValue({ role: 'studio', activeProfile: { id: 'p1' } });
     mockList.mockResolvedValue([{ id: 'c1', name: 'Weekend Picks' }]);
     render(<MyCollectionsPage />);
     await waitFor(() => expect(screen.getByText('Weekend Picks')).toBeInTheDocument());

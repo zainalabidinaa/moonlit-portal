@@ -12,8 +12,8 @@ import type { UserRole } from '../../types';
 const PLAN_LABELS: Record<UserRole, string> = {
   admin: 'Admin',
   friends_family: 'Friends & Family',
-  premium: 'Premium',
-  premium_plus: 'Premium+',
+  spotlight: 'Spotlight',
+  studio: 'Studio',
   free: 'Free',
   restricted: 'Restricted',
 };
@@ -30,7 +30,7 @@ export default function BillingPage() {
   const [pwError, setPwError] = useState('');
   const [pwSuccess, setPwSuccess] = useState('');
 
-  const isBilledPlan = role === 'premium' || role === 'premium_plus';
+  const isBilledPlan = role === 'spotlight' || role === 'studio';
 
   async function openCustomerPortal() {
     if (!session) return;

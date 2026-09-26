@@ -14,7 +14,7 @@ import type { Collection, Folder, FolderCatalog, InstalledAddon } from '../../ty
 
 export default function MyCollectionsPage() {
   const { role, activeProfile } = useAuth();
-  const eligible = role === 'premium_plus' || role === 'admin';
+  const eligible = role === 'studio' || role === 'admin';
 
   const [collections, setCollections] = useState<Collection[]>([]);
   const [folders, setFolders] = useState<Folder[]>([]);
@@ -98,7 +98,7 @@ export default function MyCollectionsPage() {
         <div className="max-w-2xl mx-auto">
           <h1 className="text-2xl font-bold text-text mb-2">My Collections</h1>
           <p className="text-sm text-muted">
-            Building your own collections is only available on Premium+.
+            Building your own collections is only available on Studio.
           </p>
         </div>
       </AppShell>
