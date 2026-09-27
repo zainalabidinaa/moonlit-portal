@@ -12,6 +12,7 @@ import SupportPage from './routes/public/SupportPage';
 import ProfilesPage from './routes/user/ProfilesPage';
 import AddonsUpstreamsPage from './routes/admin/AddonsUpstreamsPage';
 import CloudPage from './routes/cloud/CloudPage';
+import AuthConfirmPage from './routes/public/AuthConfirmPage';
 import CatalogSourcesPage from './routes/admin/CatalogSourcesPage';
 import MyCollectionsPage from './routes/user/MyCollectionsPage';
 import BillingPage from './routes/user/BillingPage';
@@ -51,6 +52,7 @@ export default function App() {
           <Route path="/catalog" element={<CollectionsPage />} />
           <Route path="/download" element={<DownloadPage />} />
           <Route path="/cloud" element={<CloudPage />} />
+          <Route path="/auth/confirm" element={<AuthConfirmPage />} />
           <Route path="/activate" element={<ActivatePage />} />
           <Route path="/contact" element={<SupportPage />} />
           <Route path="/support" element={<SupportPage />} />

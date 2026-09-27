@@ -52,7 +52,7 @@ export default function LoginPage() {
   async function handleMagicLink() {
     if (!email) { setError('Enter your email first'); return; }
     setLoading(true);
-    await supabase.auth.signInWithOtp({ email });
+    await supabase.auth.signInWithOtp({ email, options: { emailRedirectTo: window.location.origin } });
     setLoading(false);
     setMagicSent(true);
   }

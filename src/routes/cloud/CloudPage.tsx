@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
 import { cloudDate, cloudState, type CloudAccount, type CloudState } from '../../lib/cloudAccess';
+import { completeEmailLink } from '../../lib/emailLink';
 
 const CONNECT_ERRORS: Record<string, string> = {
   not_spotlight: 'Moonlit Cloud is included with an active Spotlight plan.',
@@ -174,6 +175,13 @@ export default function CloudPage() {
   const [account, setAccount] = useState<CloudAccount | null | undefined>(undefined);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [linkExpired, setLinkExpired] = useState(false);
+
+  // Sign-in emails link to /auth/confirm on this site; finish the sign-in
+  // here and settle back on the page's own address.
+  useEffect(() => {
+    void completeEmailLink('/').then((result) => setLinkExpired(result === 'failed'));
+  }, []);
 
   const load = useCallback(async () => {
     if (!session) { setAccount(undefined); return; }
@@ -228,7 +236,12 @@ export default function CloudPage() {
         {loading || (signedIn && state === null) ? (
           <Card><p className="text-sm text-muted">Loading…</p></Card>
         ) : !signedIn ? (
-          <SignIn />
+          <>
+            {linkExpired && (
+              <p className="mb-3 rounded-xl bg-red-500/10 p-4 text-sm text-red-400">That sign-in link has expired or was already used. Send yourself a new one below.</p>
+            )}
+            <SignIn />
+          </>
         ) : (
           <StatusCard
             state={state!}
