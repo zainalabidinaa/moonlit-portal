@@ -6,6 +6,8 @@ import { AppShell } from '../../components/layout/AppShell';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { DeleteUserModal } from '../../components/admin/DeleteUserModal';
+import { ServerAccessCell } from '../../components/admin/ServerAccessCell';
+import { grantExpiry, matchesServerFilter, serverAccessState, type ServerAccessFilter, type ServerAccessSource } from '../../lib/serverAccess';
 import { lastActiveStatus, lastActiveLabel, formatRelativeTime, parseUserAgent, type ActiveStatus } from '../../lib/userActivity';
 import type { SessionInfo, ActivityEntry } from '../../lib/userActivity';
 import type { UserRole } from '../../types';
@@ -19,8 +21,21 @@ type AdminUser = {
   role_expires_at: string | null;
   created_at: string;
   stream_addons_enabled: boolean;
+  server_access: boolean;
+  server_access_expires_at: string | null;
+  server_access_source: ServerAccessSource | null;
   last_active_at: string | null;
 };
+
+const SERVER_FILTERS: { value: ServerAccessFilter; label: string }[] = [
+  { value: 'all', label: 'All' },
+  { value: 'active', label: 'Has server access' },
+  { value: 'manual', label: 'Granted by you' },
+  { value: 'subscription', label: 'Via subscription' },
+  { value: 'store', label: 'Bought on store' },
+  { value: 'expired', label: 'Expired' },
+  { value: 'none', label: 'No access' },
+];
 
 const ROLE_LABELS: Record<UserRole, string> = {
   admin: 'Admin',
@@ -168,6 +183,8 @@ export default function UsersPage() {
   const [error, setError] = useState('');
   const [changingRole, setChangingRole] = useState<string | null>(null);
   const [changingStreams, setChangingStreams] = useState<string | null>(null);
+  const [changingServer, setChangingServer] = useState<string | null>(null);
+  const [serverFilter, setServerFilter] = useState<ServerAccessFilter>('all');
   const [deleteTarget, setDeleteTarget] = useState<AdminUser | null>(null);
   const [changingExpiry, setChangingExpiry] = useState<string | null>(null);
   const [runningSetup, setRunningSetup] = useState<string | null>(null);
@@ -235,6 +252,29 @@ export default function UsersPage() {
   // Toggling this re-runs install_curated_setup() server-side immediately (see
   // the admin-users PATCH handler), so it takes effect the next time that
   // user's app loads addons — not on the next cron pass two days from now.
+  async function patchServerAccess(userId: string, grant: boolean, expiresAt: string | null) {
+    setChangingServer(userId);
+    try {
+      await authedFetchJson(`${import.meta.env.VITE_SUPABASE_FUNCTIONS_URL}/admin-users`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, server_access: grant, server_access_expires_at: grant ? expiresAt : null }),
+      });
+      setUsers(prev => prev.map(u => u.user_id === userId
+        ? { ...u, server_access: grant, server_access_expires_at: grant ? expiresAt : null, server_access_source: grant ? 'manual' : null }
+        : u));
+    } catch (e) {
+      if (e instanceof SessionExpiredError) {
+        void supabase.auth.signOut({ scope: 'local' });
+        return;
+      }
+      setError((e as Error).message || 'Failed to update server access');
+      setTimeout(() => setError(''), 4000);
+    } finally {
+      setChangingServer(null);
+    }
+  }
+
   async function handleStreamsToggle(userId: string, next: boolean) {
     setChangingStreams(userId);
     try {
@@ -404,6 +444,22 @@ export default function UsersPage() {
         )}
 
         {!loading && !error && (
+          <div className="mb-4 flex flex-wrap gap-2">
+            {SERVER_FILTERS.map(f => (
+              <button
+                key={f.value}
+                onClick={() => setServerFilter(f.value)}
+                className={`rounded-full border px-3 py-1 text-xs transition-colors ${
+                  serverFilter === f.value ? 'border-accent bg-accent-light text-accent' : 'border-border text-muted hover:text-text'
+                }`}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {!loading && !error && (
           <div className="inline-block max-w-full overflow-x-auto rounded-xl border border-border bg-surface">
             <table className="text-sm">
               <thead>
@@ -411,6 +467,7 @@ export default function UsersPage() {
                   <th className="text-left px-4 py-3 font-medium text-muted">Email</th>
                   <th className="text-left px-4 py-3 font-medium text-muted">Role</th>
                   <th className="text-left px-4 py-3 font-medium text-muted">Expires</th>
+                  <th className="text-left px-4 py-3 font-medium text-muted">Server access</th>
                   <th className="text-left px-4 py-3 font-medium text-muted">Streams</th>
                   <th className="text-left px-4 py-3 font-medium text-muted">Last Active</th>
                   <th className="text-left px-4 py-3 font-medium text-muted">Joined</th>
@@ -420,7 +477,7 @@ export default function UsersPage() {
                 </tr>
               </thead>
               <tbody>
-                {users.map(u => (
+                {users.filter(u => matchesServerFilter(serverAccessState(u), serverFilter)).map(u => (
                   <Fragment key={u.id}>
                   <tr
                     className="border-b border-border last:border-0 cursor-pointer hover:bg-surface-2"
@@ -464,6 +521,14 @@ export default function UsersPage() {
                       ) : (
                         <span className="text-muted/60">{isoToDisplay(u.role_expires_at)}</span>
                       )}
+                    </td>
+                    <td className="px-4 py-3 min-w-[190px]">
+                      <ServerAccessCell
+                        user={u}
+                        busy={changingServer === u.user_id}
+                        onGrant={(preset) => patchServerAccess(u.user_id, true, grantExpiry(preset))}
+                        onRevoke={() => patchServerAccess(u.user_id, false, null)}
+                      />
                     </td>
                     <td className="px-4 py-3">
                       <label className="flex items-center gap-1.5 cursor-pointer select-none w-fit">
@@ -519,7 +584,7 @@ export default function UsersPage() {
                   </tr>
                   {expandedUser === u.user_id && (
                     <tr className="border-b border-border last:border-0">
-                      <td colSpan={9} className="px-4 py-4 bg-bg" onClick={(e) => e.stopPropagation()}>
+                      <td colSpan={10} className="px-4 py-4 bg-bg" onClick={(e) => e.stopPropagation()}>
                         <ActivityDrawer
                           loading={activityLoading === u.user_id}
                           error={activityError[u.user_id]}

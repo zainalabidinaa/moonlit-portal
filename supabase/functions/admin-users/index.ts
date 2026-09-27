@@ -186,6 +186,19 @@ Deno.serve(async (req) => {
       }
       const profileMap = new Map(allProfiles.map((p: any) => [p.user_id, p]));
 
+      let allAccounts: any[] = [];
+      for (let from = 0; ; from += 1000) {
+        const { data: page, error: pageErr } = await supabaseAdmin
+          .from('accounts')
+          .select('user_id, server_access, server_access_expires_at, server_access_source')
+          .order('user_id')
+          .range(from, from + 999);
+        if (pageErr) throw pageErr;
+        allAccounts = allAccounts.concat(page ?? []);
+        if (!page || page.length < 1000) break;
+      }
+      const accountMap = new Map(allAccounts.map((a: any) => [a.user_id, a]));
+
       const { data: lastActiveRows, error: lastActiveErr } = await supabaseAdmin
         .rpc('admin_list_users_last_active');
       if (lastActiveErr) throw lastActiveErr;
@@ -203,6 +216,9 @@ Deno.serve(async (req) => {
           role: p?.role ?? 'spotlight',
           role_expires_at: p?.role_expires_at ?? null,
           stream_addons_enabled: p?.stream_addons_enabled ?? false,
+          server_access: accountMap.get(u.id)?.server_access ?? false,
+          server_access_expires_at: accountMap.get(u.id)?.server_access_expires_at ?? null,
+          server_access_source: accountMap.get(u.id)?.server_access_source ?? null,
           created_at: u.created_at,
           last_sign_in_at: u.last_sign_in_at ?? null,
           last_active_at: lastActiveMap.get(u.id) ?? u.last_sign_in_at ?? null,
@@ -215,9 +231,9 @@ Deno.serve(async (req) => {
     }
 
     if (req.method === 'PATCH') {
-      const { userId, role, role_expires_at, stream_addons_enabled, runSetup } = await req.json();
-      if (!userId || (!role && stream_addons_enabled === undefined && !runSetup)) {
-        return new Response(JSON.stringify({ error: 'userId and (role, stream_addons_enabled, or runSetup) are required' }), {
+      const { userId, role, role_expires_at, stream_addons_enabled, runSetup, server_access, server_access_expires_at } = await req.json();
+      if (!userId || (!role && stream_addons_enabled === undefined && !runSetup && server_access === undefined)) {
+        return new Response(JSON.stringify({ error: 'userId and (role, stream_addons_enabled, runSetup, or server_access) are required' }), {
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
@@ -237,6 +253,37 @@ Deno.serve(async (req) => {
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
+      }
+
+      // Server access is a manual grant from this screen. Granting marks the
+      // source 'manual' so the Users page can tell it apart from access that
+      // comes with a subscription or a store purchase; revoking clears it.
+      if (server_access !== undefined) {
+        if (typeof server_access !== 'boolean') {
+          return new Response(JSON.stringify({ error: 'server_access must be true or false' }), {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+        const expiry = server_access_expires_at ?? null;
+        if (expiry !== null && (typeof expiry !== 'string' || Number.isNaN(Date.parse(expiry)))) {
+          return new Response(JSON.stringify({ error: 'server_access_expires_at must be an ISO date or null' }), {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+        const accessFields = server_access
+          ? { server_access: true, server_access_expires_at: expiry, server_access_source: 'manual' }
+          : { server_access: false, server_access_expires_at: null, server_access_source: null };
+        const { error: accessErr } = await supabaseAdmin
+          .from('accounts')
+          .upsert({ user_id: userId, ...accessFields }, { onConflict: 'user_id' });
+        if (accessErr) throw accessErr;
+        if (!role && stream_addons_enabled === undefined && !runSetup) {
+          return new Response(JSON.stringify({ success: true }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
       }
 
       // Role lives on `accounts` now, not `profiles` — the profiles sync
