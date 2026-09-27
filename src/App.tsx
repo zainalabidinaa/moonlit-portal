@@ -11,6 +11,7 @@ import ActivatePage from './routes/public/ActivatePage';
 import SupportPage from './routes/public/SupportPage';
 import ProfilesPage from './routes/user/ProfilesPage';
 import AddonsUpstreamsPage from './routes/admin/AddonsUpstreamsPage';
+import CloudPage from './routes/cloud/CloudPage';
 import CatalogSourcesPage from './routes/admin/CatalogSourcesPage';
 import MyCollectionsPage from './routes/user/MyCollectionsPage';
 import BillingPage from './routes/user/BillingPage';
@@ -24,7 +25,19 @@ import TabVisibilityPage from './routes/admin/TabVisibilityPage';
 import CardGeneratorPage from './routes/tools/CardGeneratorPage';
 import { ErrorBoundary } from './components/layout/ErrorBoundary';
 
+// cloud.trymoonlit.app serves only the Moonlit Cloud connect page, on every path.
+const isCloudHost = typeof window !== 'undefined' && window.location.hostname.startsWith('cloud.');
+
 export default function App() {
+  if (isCloudHost) {
+    return (
+      <AuthProvider>
+        <ErrorBoundary>
+          <CloudPage />
+        </ErrorBoundary>
+      </AuthProvider>
+    );
+  }
   return (
     <BrowserRouter>
       <AuthProvider>
@@ -37,6 +50,7 @@ export default function App() {
           <Route path="/signup" element={<PublicRoute><SignupPage /></PublicRoute>} />
           <Route path="/catalog" element={<CollectionsPage />} />
           <Route path="/download" element={<DownloadPage />} />
+          <Route path="/cloud" element={<CloudPage />} />
           <Route path="/activate" element={<ActivatePage />} />
           <Route path="/contact" element={<SupportPage />} />
           <Route path="/support" element={<SupportPage />} />
