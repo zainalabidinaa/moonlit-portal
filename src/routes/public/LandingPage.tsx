@@ -1,322 +1,213 @@
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { supabase } from '../../lib/supabase';
-import { fetchAllRows } from '../../lib/fetchAllRows';
+import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import { Navbar } from '../../components/layout/Navbar';
-import { Button } from '../../components/ui/Button';
-import { FeatureShowcase } from '../../components/landing/FeatureShowcase';
-import { HowItWorks } from '../../components/landing/HowItWorks';
-import { CrossPlatform } from '../../components/landing/CrossPlatform';
-import { AppWindow } from '../../components/landing/AppWindow';
-import { AppMock } from '../../components/landing/AppMock';
-import { CuratorSpotlight } from '../../components/landing/CuratorSpotlight';
-import type { Collection, Folder } from '../../types';
+import { Footer } from '../../components/layout/Footer';
+import { Reveal } from '../../components/landing/Reveal';
+import { SectionHead } from '../../components/landing/SectionHead';
+import { PosterRails, type RailPoster } from '../../components/landing/PosterRails';
+import { FeatureBento } from '../../components/landing/FeatureBento';
+import { CollectionsShowcase } from '../../components/landing/CollectionsShowcase';
+import { Devices } from '../../components/landing/Devices';
+import { PlansGrid } from '../../components/landing/PlansGrid';
+import { CtaBand } from '../../components/landing/CtaBand';
+import { AppleIcon, CheckIcon, GlobeIcon, PhoneIcon, TvIcon, WindowsIcon } from '../../components/landing/PlatformIcons';
+import { useTrending, posterUrl } from '../../hooks/useTrending';
+import { useCollectionPreviews, collectionCover, folderArt, type CollectionPreview } from '../../hooks/useCollectionPreviews';
+import { PLANS } from '../../lib/plans';
 
-const chips = ['4K • HDR', 'Multi-profile', 'Curated collections', 'iOS · Mac · Web'];
+const heroMeta = [`From ${PLANS[1].price} a month`, 'No ads, cancel anytime', 'Up to 4 profiles'];
 
-interface CollectionPreview extends Collection {
-  folders: Folder[];
-}
+/** "Tonight's collection": rotates through the real collections every 7s. */
+function TonightCard({ collections }: { collections: CollectionPreview[] }) {
+  const picks = useMemo(() => collections.filter((c) => folderArt(c, 3).length >= 1).slice(0, 6), [collections]);
+  const [i, setI] = useState(0);
+  const [swap, setSwap] = useState(false);
 
-function useCollectionPreviews() {
-  const [items, setItems] = useState<CollectionPreview[]>([]);
   useEffect(() => {
-    async function load() {
-      try {
-        const [{ data: cols }, folders] = await Promise.all([
-          supabase.from('collections').select('*').order('sort_order').limit(6),
-          fetchAllRows<Folder>('folders'),
-        ]);
-        if (!cols) return;
-        const folderList: Folder[] = folders;
-        setItems(
-          (cols as Collection[]).map((c) => ({
-            ...c,
-            folders: folderList.filter((f) => f.collection_id === c.id),
-          }))
-        );
-      } catch { /* ignore on public page if RLS blocks */ }
-    }
-    load();
-  }, []);
-  return items;
-}
+    if (picks.length < 2 || window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+    const id = setInterval(() => {
+      setSwap(true);
+      setTimeout(() => { setI((n) => (n + 1) % picks.length); setSwap(false); }, 450);
+    }, 7000);
+    return () => clearInterval(id);
+  }, [picks.length]);
 
-const stats = [
-  { n: '∞', l: 'Collections per account' },
-  { n: '6', l: 'Profiles included' },
-  { n: '0', l: 'Ads, ever' },
-];
-
-// Ordered so Spotlight sits in the middle column on desktop; on phones it is
-// pulled to the top (order-first) so the headline plan is what you see first.
-const plans = [
-  {
-    name: 'Friends & Family', price: 'Invite', unit: 'only', highlight: false,
-    features: ['Granted by an admin', 'Shared household catalog', 'Personal profile & library', 'No billing'],
-    cta: 'Have a code?', to: '/signup?tab=invite',
-  },
-  {
-    name: 'Spotlight', price: '$6.99', unit: '/mo', highlight: true,
-    features: ['2 simultaneous streams', 'Up to 6 profiles', 'Full curated catalog', 'iOS · Mac · Web'],
-    cta: 'Choose Spotlight', to: '/signup?plan=spotlight',
-  },
-  {
-    name: 'Studio', price: '$9.99', unit: '/mo', highlight: false,
-    features: ['4 simultaneous streams in 4K HDR', 'Unlimited profiles', 'Add your own sources — optional, for power users', 'Priority stream warm-up', 'Early access features'],
-    cta: 'Choose Studio', to: '/signup?plan=studio',
-  },
-];
-
-function CollectionsPreviewSection() {
-  const navigate = useNavigate();
-  const collections = useCollectionPreviews();
-
-  if (collections.length === 0) return null;
+  const c = picks[i];
+  if (!c) return null;
+  const art = folderArt(c, 3);
+  const groups = c.folders.length;
 
   return (
-    <section className="mx-auto max-w-7xl px-5 py-16 md:py-24">
-      <div className="mb-8 flex flex-wrap items-end justify-between gap-4 md:mb-10">
-        <div>
-          <p className="mb-3 font-mono text-[11px] uppercase tracking-[0.28em] text-accent">The catalog</p>
-          <h2 className="font-display text-[clamp(32px,5vw,60px)] font-extrabold uppercase">
-            Curated collections
-          </h2>
-          <p className="mt-2 text-sm text-muted">
-            {collections.length} collections · {collections.reduce((s, c) => s + c.folders.length, 0)} groups
-          </p>
+    <Link
+      to="/catalog"
+      className="mt-7 grid w-full max-w-[460px] grid-cols-[auto_1fr] items-center gap-3.5 rounded-[14px] border border-border-strong bg-[rgba(14,14,17,.62)] py-3 pl-3 pr-4 text-left backdrop-blur-xl"
+    >
+      <div className="relative h-[58px] w-[74px] flex-none">
+        {art.map((src, j) => (
+          <img
+            key={src}
+            src={src}
+            alt=""
+            className={`absolute bottom-0 aspect-[2/3] w-[38px] rounded-[5px] object-cover shadow-[0_8px_20px_-8px_rgba(0,0,0,1),0_0_0_1px_rgba(255,255,255,.1)] transition-opacity duration-500 ${swap ? 'opacity-0' : 'opacity-100'} ${
+              j === 0 ? 'left-0 -rotate-[8deg]' : j === 1 ? 'left-[18px] bottom-1 z-10' : 'left-9 rotate-[8deg]'
+            }`}
+          />
+        ))}
+      </div>
+      <div className={`transition-opacity duration-500 ${swap ? 'opacity-0' : 'opacity-100'}`}>
+        <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[.1em] text-muted">
+          <i className="animate-ping-soft h-1.5 w-1.5 rounded-full bg-accent" />
+          Tonight's collection
         </div>
-        <Button variant="ghost" size="sm" className="rounded-full" onClick={() => navigate('/catalog')}>
-          Browse all →
-        </Button>
+        <div className="mt-0.5 truncate text-base font-semibold tracking-tight">{c.name}</div>
+        <div className="text-[13px] text-muted">{groups > 1 ? `${groups} groups · curated weekly` : 'Curated · updated weekly'}</div>
       </div>
-
-      <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-        {collections.map((col) => {
-          const heroImg = col.backdrop_image ?? col.folders[0]?.hero_backdrop ?? col.folders[0]?.cover_image;
-          const isGrouped = col.folders.length > 1;
-          return (
-            <button
-              key={col.id}
-              onClick={() => navigate('/catalog')}
-              className="group overflow-hidden rounded-2xl border border-border bg-surface text-left transition-transform hover:-translate-y-1.5"
-            >
-              <div className="relative h-[160px] md:h-[200px] overflow-hidden bg-bg2">
-                {heroImg ? (
-                  <img src={heroImg} alt="" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
-                ) : (
-                  <div className="flex h-full items-center justify-center bg-bg2">
-                    <span className="font-mono text-[10px] text-faint">no image</span>
-                  </div>
-                )}
-                <div
-                  className="absolute inset-0"
-                  style={{ background: 'linear-gradient(160deg,rgba(200,148,26,.06),transparent 40%),linear-gradient(0deg,rgba(13,6,4,.92),transparent 55%)' }}
-                />
-                {isGrouped && (
-                  <div className="absolute right-3 top-3">
-                    <span className="rounded-full border border-accent/40 bg-accent/15 px-2.5 py-1 font-mono text-[10px] text-accent">
-                      {col.folders.length} groups
-                    </span>
-                  </div>
-                )}
-              </div>
-              <div className="p-4">
-                <h3 className="font-display text-lg font-extrabold uppercase">{col.name}</h3>
-                {isGrouped && (
-                  <p className="mt-1 truncate font-mono text-[10px] text-faint">
-                    {col.folders.map((f) => f.name).slice(0, 3).join(' · ')}{col.folders.length > 3 ? ' …' : ''}
-                  </p>
-                )}
-              </div>
-            </button>
-          );
-        })}
-      </div>
-
-      <div className="mt-8 text-center">
-        <Button className="rounded-full" onClick={() => navigate('/catalog')}>
-          Explore all collections →
-        </Button>
-      </div>
-    </section>
+    </Link>
   );
 }
 
-function Marquee({ items }: { items: string[] }) {
-  const row = (
-    <span className="flex items-center gap-12">
-      {items.map((t) => (
-        <span key={t} className="flex items-center gap-12">
-          {t}
-          <span className="text-accent">●</span>
-        </span>
-      ))}
-    </span>
-  );
-  return (
-    <div className="overflow-hidden border-y border-border bg-bg2 py-3.5">
-      <div className="flex w-max gap-12 whitespace-nowrap font-display text-[13px] font-extrabold tracking-wide text-faint animate-marquee md:text-[15px]">
-        {row}
-        {row}
-      </div>
-    </div>
-  );
-}
+const strip = [
+  { icon: <AppleIcon className="h-[18px] w-[18px]" />, label: 'Mac' },
+  { icon: <PhoneIcon className="h-[18px] w-[18px]" />, label: 'iPhone & iPad' },
+  { icon: <GlobeIcon className="h-[18px] w-[18px]" />, label: 'Web' },
+  { icon: <TvIcon className="h-[18px] w-[18px]" />, label: 'Apple TV', soon: true },
+  { icon: <WindowsIcon className="h-[18px] w-[18px]" />, label: 'Windows', soon: true },
+];
 
 export default function LandingPage() {
-  const navigate = useNavigate();
+  const { session } = useAuth();
+  const trending = useTrending();
+  const { collections } = useCollectionPreviews();
+
+  // Rails: trending posters first, then folder covers, deduplicated.
+  const rail: RailPoster[] = useMemo(() => {
+    const out: RailPoster[] = [];
+    const seen = new Set<string>();
+    for (const t of trending) {
+      const src = posterUrl(t);
+      if (src && !seen.has(src)) { seen.add(src); out.push({ key: `t-${t.media_type}-${t.id}`, src, title: t.title, sub: t.media_type === 'tv' ? 'Series' : 'Film' }); }
+    }
+    for (const c of collections) {
+      for (const f of c.folders) {
+        const src = f.cover_image;
+        if (src && !seen.has(src)) { seen.add(src); out.push({ key: `f-${f.id}`, src, title: f.name, sub: c.name }); }
+      }
+    }
+    return out.slice(0, 28);
+  }, [trending, collections]);
+
+  const backdrops = useMemo(
+    () => collections.map((c) => ({ c, src: collectionCover(c) })).filter((x): x is { c: CollectionPreview; src: string } => !!x.src),
+    [collections]
+  );
+  const continueArt = backdrops.slice(1, 4).map((x, i) => ({
+    src: x.src,
+    title: x.c.folders[0]?.name ?? x.c.name,
+    sub: ['S2 E4 · 31 min left', '1:12:40 left', 'S3 E1 · 18 min left'][i],
+    pct: [42, 61, 55][i],
+    device: ['MAC', 'IPHONE', 'WEB'][i],
+  }));
+  const curatedArt = collections.flatMap((c) => folderArt(c, 8)).slice(0, 8);
 
   return (
-    <div className="min-h-screen bg-bg overflow-x-hidden">
-      <Navbar />
+    <div className="min-h-screen bg-bg">
+      <Navbar transparent />
 
-      {/* HERO */}
-      <section className="mx-auto max-w-7xl px-5 pb-4 pt-12 md:pb-8 md:pt-16">
-        <div className="grid items-center gap-8 lg:grid-cols-[1.05fr_.95fr] lg:gap-8">
-          {/* min-w-0 keeps the columns inside the viewport on phones — grid items
-              default to min-width:auto and would otherwise be sized by the mockup. */}
-          <div className="min-w-0">
-            <p className="mb-3 font-mono text-[10px] uppercase tracking-[0.22em] text-accent md:mb-4 md:text-[11px] md:tracking-[0.28em]">
-              Your own streaming universe
-            </p>
-            <h1 className="font-display text-[clamp(40px,8vw,104px)] font-extrabold uppercase leading-[1.04]">
-              Every screen.<br />
-              One <span className="text-accent" style={{ textShadow: '0 0 40px var(--accent-glow)' }}>Moonlit.</span>
+      {/* HERO: copy left, the real Mac app on the right */}
+      <section className="relative overflow-hidden pb-12 pt-[calc(var(--nav-h)+56px)]">
+        <div className="mx-auto grid max-w-[1240px] items-center gap-10 px-5 md:px-8 lg:grid-cols-[.9fr_1.1fr] lg:gap-14 lg:py-6">
+          <div className="intro">
+            <p className="text-xs font-semibold uppercase tracking-[.12em] text-accent">Curated streaming for the whole household</p>
+            <h1 className="mt-3.5 max-w-[12em] text-[clamp(32px,4.4vw,56px)] font-semibold leading-[1.04] tracking-[-0.035em]">
+              Your own streaming service, already set up.
             </h1>
-            <p className="mt-4 max-w-md text-[15px] text-muted md:mt-5 md:text-[17px]">
-              Everything hand-picked, gorgeous artwork, and your whole household
-              on every device — sign up, open the app, press play.
+            <p className="mt-[18px] max-w-[34em] text-[17px] leading-relaxed text-[#d0d0d6]">
+              Collections picked by people, real 4K playback, and a profile for everyone at home. Open Moonlit on Mac, iPhone or the web and press play.
             </p>
             <div className="mt-7 flex flex-wrap gap-3">
-              <Button size="lg" className="rounded-full" onClick={() => navigate('/pricing')}>Get Moonlit →</Button>
-              <Button variant="ghost" size="lg" className="rounded-full" onClick={() => navigate('/login')}>Sign in</Button>
+              <Link to={session ? '/profiles' : '/signup'} className="group inline-flex h-[54px] items-center gap-2 rounded-full bg-text px-7 text-base font-semibold text-[#0a0a0c] transition-[transform,box-shadow] hover:-translate-y-px hover:bg-white hover:shadow-[0_10px_40px_-10px_rgba(255,255,255,.35)]">
+                {session ? 'Open Moonlit' : 'Start watching'}
+                <span aria-hidden="true" className="transition-transform group-hover:translate-x-0.5">→</span>
+              </Link>
+              <Link to="/catalog" className="inline-flex h-[54px] items-center rounded-full border border-border-strong bg-white/[.06] px-7 text-base font-semibold backdrop-blur transition-[transform,background] hover:-translate-y-px hover:bg-white/10">
+                Browse the catalog
+              </Link>
             </div>
-            <div className="mt-7 flex flex-wrap gap-2.5">
-              {chips.map((c) => (
-                <span key={c} className="rounded-full border border-border bg-surface px-3.5 py-1.5 font-mono text-xs tracking-wide text-muted">
-                  {c}
-                </span>
+            <div className="mt-6 flex flex-wrap gap-x-[22px] gap-y-2 text-sm font-medium text-muted">
+              {heroMeta.map((m) => (
+                <span key={m} className="inline-flex items-center gap-2"><CheckIcon className="h-4 w-4 text-accent" />{m}</span>
               ))}
             </div>
+            <TonightCard collections={collections} />
           </div>
 
-          <div className="relative mb-8 min-w-0 md:mb-0">
-            <div
-              className="pointer-events-none absolute -inset-6 -z-10"
-              style={{ background: 'radial-gradient(60% 60% at 70% 30%, var(--accent-glow), transparent 70%)', opacity: 0.5 }}
-            />
-            <AppWindow float>
-              <AppMock />
-            </AppWindow>
-            <div className="absolute -bottom-5 left-4 right-4 flex items-center gap-3 rounded-2xl border border-border bg-bg2/85 p-3 backdrop-blur-md shadow-2xl md:gap-3.5 md:p-4">
-              <span className="flex h-10 w-10 flex-none items-center justify-center rounded-lg shadow-glow md:h-12 md:w-12" style={{ background: 'linear-gradient(160deg,#fa824d,#ff6a2b)' }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="#2a1206"><path d="M8 5v14l11-7z" /></svg>
-              </span>
-              <div>
-                <div className="font-display text-base font-extrabold md:text-lg">Tonight on Moonlit</div>
-                <div className="font-mono text-[10px] text-muted md:text-xs">12 collections · 480 titles synced</div>
-              </div>
+          <div className="intro relative min-w-0 lg:-mr-[6%]">
+            <div className="pointer-events-none absolute -inset-x-[10%] -inset-y-[20%]" aria-hidden="true">
+              <img src="/screenshots/mac-home.webp" alt="" className="h-full w-full object-cover opacity-55 blur-[90px] saturate-[1.6]" />
             </div>
+            <img
+              src="/screenshots/mac-home.webp"
+              alt="Moonlit for Mac: the Home screen with a featured title and a Continue Watching row"
+              width="1500"
+              height="904"
+              fetchPriority="high"
+              className="relative w-full rounded-[14px] shadow-window"
+            />
           </div>
         </div>
       </section>
 
-      <Marquee items={['Streaming', 'Collections', '4K HDR', 'Multi-profile', 'No ads', 'Cross-device']} />
-
-      {/* HOW IT WORKS */}
-      <HowItWorks />
-
-      {/* FEATURE SHOWCASE */}
-      <FeatureShowcase />
-
-      {/* CURATOR SPOTLIGHT */}
-      <CuratorSpotlight />
-
-      {/* COLLECTIONS PREVIEW */}
-      <CollectionsPreviewSection />
-
-      {/* CROSS-PLATFORM */}
-      <CrossPlatform />
-
-      <div className="px-5 pb-8 text-center overflow-hidden">
-        <div className="text-stroke font-display text-[clamp(48px,14vw,150px)] font-extrabold uppercase leading-[.9] opacity-60">
-          MOONLIT
+      {/* PLATFORM STRIP */}
+      <div className="border-y border-border bg-bg">
+        <div className="mx-auto flex max-w-[1240px] flex-wrap items-center justify-between gap-x-7 gap-y-3 px-5 py-[18px] text-sm font-medium text-muted md:px-8">
+          <div className="flex flex-wrap gap-x-6 gap-y-2">
+            {strip.map((p) => (
+              <span key={p.label} className="inline-flex items-center gap-2">
+                {p.icon}{p.label}
+                {p.soon && <em className="rounded border border-border-strong px-1.5 py-0.5 font-mono text-[10px] not-italic text-faint">soon</em>}
+              </span>
+            ))}
+          </div>
+          <span>One account. Same library on every screen.</span>
         </div>
       </div>
 
-      {/* STATS */}
-      <section className="mx-auto max-w-7xl px-5 pb-24">
-        <div className="text-center">
-          <p className="mb-3.5 font-mono text-[11px] uppercase tracking-[0.28em] text-accent">By the numbers</p>
-          <h2 className="font-display text-[clamp(32px,5vw,60px)] font-extrabold uppercase">Built for households</h2>
-        </div>
-        <div className="mt-11 grid gap-4 md:gap-5 md:grid-cols-3">
-          {stats.map((s) => (
-            <div key={s.l} className="rounded-2xl border border-border bg-surface px-6 py-8 md:py-9 text-center">
-              <div className="font-display text-4xl md:text-5xl font-extrabold text-accent" style={{ textShadow: '0 0 30px var(--accent-glow)' }}>{s.n}</div>
-              <div className="mt-1.5 font-mono text-[11px] uppercase tracking-widest text-muted">{s.l}</div>
-            </div>
-          ))}
+      <PosterRails posters={rail} caption="A slice of what is on Moonlit this week. Artwork courtesy of TMDB." />
+
+      <FeatureBento
+        playerBackdrop={backdrops[0]?.src}
+        playerTitle={backdrops[0]?.c.folders[0]?.name ?? backdrops[0]?.c.name}
+        continueArt={continueArt}
+        curatedArt={curatedArt}
+      />
+
+      <CollectionsShowcase collections={collections} />
+
+      <Devices />
+
+      {/* PRICING SUMMARY */}
+      <section className="py-20 md:py-[120px]">
+        <div className="mx-auto max-w-[1240px] px-5 md:px-8">
+          <Reveal className="mb-11">
+            <SectionHead
+              center
+              kicker="Pricing"
+              title="Two plans and an invite."
+              lede="Every plan includes the full curated catalog and every device. Cancel any time from Billing."
+            />
+          </Reveal>
+          <PlansGrid />
+          <p className="mt-[18px] text-center text-[13px] text-faint">
+            Prices in USD. Streams are simultaneous streams per account.{' '}
+            <Link to="/pricing" className="text-accent">Compare plans in detail →</Link>
+          </p>
         </div>
       </section>
 
-      <Marquee items={['Moon so bright', 'Watch anything', 'Invite your people']} />
+      <CtaBand backdrop={backdrops[backdrops.length - 1]?.src} signedIn={!!session} />
 
-      {/* PRICING TEASER */}
-      <section className="mx-auto max-w-7xl px-5 py-16 md:py-24 text-center">
-        <p className="mb-3.5 font-mono text-[11px] uppercase tracking-[0.28em] text-accent">Choose your moon</p>
-        <h2 className="font-display text-[clamp(32px,5vw,60px)] font-extrabold uppercase">Pick your plan</h2>
-        <div className="mt-10 grid gap-5 text-left md:mt-12 md:grid-cols-3">
-          {plans.map((p) => (
-            <div
-              key={p.name}
-              className={`relative rounded-2xl border bg-surface p-5 md:p-7 ${
-                p.highlight ? 'order-first border-accent shadow-glow-lg md:order-none' : 'border-border'
-              }`}
-            >
-              {p.highlight && (
-                <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-accent px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-widest text-[#2a1206]">
-                  Most popular
-                </span>
-              )}
-              <div className="font-mono text-[11px] uppercase tracking-widest text-muted">{p.name}</div>
-              <div className="mb-0.5 mt-2.5 font-display text-[38px] md:text-[46px] font-extrabold leading-none">
-                {p.price}<span className="text-[15px] font-normal text-muted">{p.unit}</span>
-              </div>
-              <ul className="my-6 flex flex-col gap-3">
-                {p.features.map((f) => (
-                  <li key={f} className="flex items-start gap-2.5 text-sm text-muted">
-                    <span className="mt-0.5 text-accent">✓</span>{f}
-                  </li>
-                ))}
-              </ul>
-              <Button
-                variant={p.highlight ? 'primary' : 'ghost'}
-                className="w-full rounded-full"
-                onClick={() => navigate(p.to)}
-              >
-                {p.cta}
-              </Button>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* FOOTER */}
-      <footer className="border-t border-border py-10 md:py-14 text-center">
-        <div className="font-display text-3xl md:text-4xl font-extrabold tracking-tight">MOONLIT</div>
-        <div className="mt-4 flex flex-wrap justify-center gap-x-5 gap-y-2 text-xs md:text-sm text-muted">
-          <a href="#">About</a>
-          <a href="#" onClick={(e) => { e.preventDefault(); navigate('/catalog'); }}>Catalog</a>
-          <a href="#" onClick={(e) => { e.preventDefault(); navigate('/download'); }}>Download</a>
-          <a href="#" onClick={(e) => { e.preventDefault(); navigate('/pricing'); }}>Pricing</a>
-          <a href="#" onClick={(e) => { e.preventDefault(); navigate('/support'); }}>Support</a>
-          <a href="#" onClick={(e) => { e.preventDefault(); navigate('/contact'); }}>Contact</a>
-          <a href="#">Status</a>
-        </div>
-        <p className="mt-4 font-mono text-xs text-faint">© 2026 Moonlit</p>
-      </footer>
+      <Footer />
     </div>
   );
 }

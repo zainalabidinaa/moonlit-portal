@@ -3,7 +3,9 @@
 @tailwind utilities;
 
 :root {
-  --accent-glow: rgba(250, 130, 77, 0.55);
+  --accent-glow: rgba(255, 122, 61, 0.55);
+  --nav-h: 64px;
+  color-scheme: dark;
 }
 
 html {
@@ -11,33 +13,32 @@ html {
 }
 
 body {
-  font-family: 'Funnel Display', sans-serif;
-  background-color: #0d0604;
-  color: #f7ede6;
+  font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+  background-color: #08080a;
+  color: #f5f5f7;
   -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
 }
 
-/* ambient glow + grain — fixed behind all content */
-body::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  background:
-    radial-gradient(900px 600px at 78% -8%, rgba(250, 130, 77, 0.12), transparent 60%),
-    radial-gradient(700px 500px at 10% 5%, rgba(52, 230, 200, 0.05), transparent 60%),
-    radial-gradient(1000px 800px at 50% 120%, rgba(250, 130, 77, 0.05), transparent 60%);
-}
-
+/* film grain — fixed behind nothing, over everything, barely there */
 body::after {
   content: '';
   position: fixed;
-  inset: 0;
-  z-index: 0;
+  inset: -50%;
+  z-index: 90;
   pointer-events: none;
-  opacity: 0.04;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  opacity: 0.045;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  animation: moonlit-grain 1.2s steps(6) infinite;
+}
+@keyframes moonlit-grain {
+  0% { transform: translate(0, 0); }
+  20% { transform: translate(-3%, 2%); }
+  40% { transform: translate(2%, -4%); }
+  60% { transform: translate(-4%, -2%); }
+  80% { transform: translate(3%, 3%); }
+  100% { transform: translate(0, 0); }
 }
 
 #root {
@@ -45,72 +46,86 @@ body::after {
   z-index: 1;
 }
 
-h1, h2, h3 {
-  font-family: 'Bricolage Grotesque', sans-serif;
-  letter-spacing: -0.02em;
+h1, h2, h3, h4 {
+  letter-spacing: -0.03em;
+  text-wrap: balance;
 }
 
 ::selection {
-  background: #fa824d;
-  color: #2a1206;
+  background: #ff7a3d;
+  color: #1a0b04;
 }
 
-/* marquee strip used on the landing page */
-@keyframes moonlit-marquee {
-  to {
-    transform: translateX(-50%);
-  }
-}
-.animate-marquee {
-  animation: moonlit-marquee 28s linear infinite;
+:focus-visible {
+  outline: 2px solid #ff7a3d;
+  outline-offset: 3px;
+  border-radius: 6px;
 }
 
-/* outlined "ghost" wordmark */
-.text-stroke {
-  color: transparent;
-  -webkit-text-stroke: 1px #3a2c23;
+/* ── landing motion ─────────────────────────────────────────── */
+
+/* poster rails drifting sideways (content is duplicated so -50% loops) */
+@keyframes moonlit-drift {
+  to { transform: translateX(-50%); }
 }
+.animate-drift { animation: moonlit-drift 90s linear infinite; }
+.animate-drift-rev { animation: moonlit-drift 105s linear infinite reverse; }
+.rails:hover .animate-drift,
+.rails:hover .animate-drift-rev { animation-play-state: paused; }
 
-/* ── landing feature-demo motion ─────────────────────────────── */
+/* staged entrance for the hero copy */
+@keyframes moonlit-rise {
+  from { opacity: 0; transform: translateY(26px); }
+  to { opacity: 1; transform: none; }
+}
+.intro > * { animation: moonlit-rise 1s cubic-bezier(.2,.7,.2,1) both; }
+.intro > :nth-child(1) { animation-delay: .15s; }
+.intro > :nth-child(2) { animation-delay: .28s; }
+.intro > :nth-child(3) { animation-delay: .42s; }
+.intro > :nth-child(4) { animation-delay: .55s; }
+.intro > :nth-child(5) { animation-delay: .68s; }
+.intro > :nth-child(6) { animation-delay: .8s; }
 
-/* player scrubber sweeping across the timeline */
+/* live dot */
+@keyframes moonlit-ping {
+  0% { box-shadow: 0 0 0 0 rgba(255,122,61,.55); }
+  100% { box-shadow: 0 0 0 10px rgba(255,122,61,0); }
+}
+.animate-ping-soft { animation: moonlit-ping 2.4s ease-out infinite; }
+
+/* player scrubber creeping forward */
 @keyframes moonlit-scrub {
-  0%   { width: 8%; }
-  50%  { width: 62%; }
-  100% { width: 8%; }
+  from { width: 31%; }
+  to { width: 52%; }
 }
-.animate-scrub { animation: moonlit-scrub 9s cubic-bezier(.4, 0, .2, 1) infinite; }
+.animate-scrub { animation: moonlit-scrub 120s linear infinite; }
 
-/* soft vertical float for device frames */
-@keyframes moonlit-float {
-  0%, 100% { transform: translateY(0); }
-  50%      { transform: translateY(-10px); }
+/* slow zoom on a still */
+@keyframes moonlit-slowzoom {
+  from { transform: scale(1); }
+  to { transform: scale(1.08); }
 }
-.animate-float { animation: moonlit-float 6s ease-in-out infinite; }
-.animate-float-slow { animation: moonlit-float 8s ease-in-out infinite; }
+.animate-slowzoom { animation: moonlit-slowzoom 30s ease-in-out infinite alternate; }
 
-/* sheen sweeping across a surface (source scan / loading) */
+/* light sweep across an active chip */
 @keyframes moonlit-sheen {
-  0%   { transform: translateX(-120%); }
-  100% { transform: translateX(220%); }
+  0%, 60% { transform: translateX(-120%); }
+  100% { transform: translateX(120%); }
 }
-.animate-sheen { animation: moonlit-sheen 2.6s ease-in-out infinite; }
+.animate-sheen { animation: moonlit-sheen 4s ease-in-out infinite; }
 
-/* gentle pulse for "live" dots and now-playing bars */
-@keyframes moonlit-eq {
-  0%, 100% { transform: scaleY(0.35); }
-  50%      { transform: scaleY(1); }
+/* poster wall behind the auth forms */
+@keyframes moonlit-wall {
+  to { transform: translateY(-50%); }
 }
-.animate-eq { animation: moonlit-eq 0.9s ease-in-out infinite; transform-origin: bottom; }
+.animate-wall { animation: moonlit-wall 60s linear infinite; }
+.animate-wall-rev { animation: moonlit-wall 75s linear infinite reverse; }
 
 @media (prefers-reduced-motion: reduce) {
-  .animate-scrub,
-  .animate-float,
-  .animate-float-slow,
-  .animate-sheen,
-  .animate-eq,
-  .animate-marquee {
-    animation: none !important;
+  *, *::before, *::after {
+    animation-duration: 0.001s !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001s !important;
   }
 }
 
@@ -119,7 +134,7 @@ h1, h2, h3 {
   height: 10px;
 }
 ::-webkit-scrollbar-thumb {
-  background: #221710;
+  background: #1a1a1f;
   border-radius: 20px;
 }
 ::-webkit-scrollbar-track {

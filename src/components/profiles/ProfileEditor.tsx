@@ -8,7 +8,7 @@ import type { Profile } from '../../types';
 const COLORS = ['#6d28d9', '#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#ec4899', '#8b5cf6', '#06b6d4'];
 
 // Must stay in sync with iOS/Mac moonlitAvatarURLs — avatar_id is a portable index
-const AVATAR_URLS: string[] = [
+export const AVATAR_URLS: string[] = [
   'https://media1.tenor.com/m/BbkxgHGg-EEAAAAC/butcher-billy-butcher.gif',
   'https://i.pinimg.com/originals/29/bd/26/29bd261d201e956588ee777d37d26800.gif',
   'https://i.postimg.cc/cLnhTxnr/Rick-Grimes-v2.png',

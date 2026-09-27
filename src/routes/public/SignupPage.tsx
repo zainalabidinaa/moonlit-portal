@@ -3,21 +3,22 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
-import { Card } from '../../components/ui/Card';
+import { AuthLayout } from '../../components/layout/AuthLayout';
+import { PLAN_BY_ID } from '../../lib/plans';
 import type { Plan } from '../../types';
 
 type Tab = 'invite' | 'subscribe';
 type InviteStep = 'form' | 'confirm';
 
-const PLAN_LABELS: Record<Plan, string> = {
-  spotlight: 'Spotlight — $9.99/mo',
-  studio: 'Studio — $14.99/mo',
+const PLAN_SUMMARY: Record<Plan, string> = {
+  spotlight: '2 streams · up to 4 profiles · 4K HDR',
+  studio: '4 streams · unlimited profiles · your own sources',
 };
 
 export default function SignupPage() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
-  const initialTab: Tab = params.get('tab') === 'invite' ? 'invite' : params.get('plan') ? 'subscribe' : 'invite';
+  const initialTab: Tab = params.get('tab') === 'invite' ? 'invite' : params.get('plan') ? 'subscribe' : 'subscribe';
   const initialPlan = (params.get('plan') as Plan | null) ?? 'spotlight';
 
   const [tab, setTab] = useState<Tab>(initialTab);
@@ -101,75 +102,73 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="min-h-screen bg-bg flex items-center justify-center p-4">
-      <Card className="w-full max-w-sm p-8">
-        <h1 className="text-2xl font-bold text-text mb-1">Create your account</h1>
-        <p className="text-sm text-muted mb-6">Join Moonlit today</p>
+    <AuthLayout quote="Collections picked by people. Real 4K playback. A profile for everyone at home." attribution="What you get with Moonlit">
+      <h1 className="text-[34px] font-semibold tracking-tight">Create your account.</h1>
+      <p className="-mt-2.5 text-[15px] text-muted">Subscribe in a minute, or redeem an invite from someone who already has Moonlit.</p>
 
-        {/* Tabs */}
-        <div className="flex gap-1 bg-border rounded-lg p-1 mb-6">
-          {(['invite', 'subscribe'] as Tab[]).map(t => (
-            <button
-              key={t}
-              onClick={() => setTab(t)}
-              className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-colors ${tab === t ? 'bg-surface text-text shadow-sm' : 'text-muted'}`}
-            >
-              {t === 'invite' ? 'Invite Code' : 'Subscribe'}
-            </button>
-          ))}
-        </div>
+      <div className="flex rounded-full border border-border bg-bg2 p-1" role="tablist">
+        {(['subscribe', 'invite'] as Tab[]).map((t) => (
+          <button
+            key={t}
+            role="tab"
+            type="button"
+            aria-selected={tab === t}
+            onClick={() => { setTab(t); setError(''); }}
+            className={`h-9 flex-1 rounded-full text-sm font-medium transition-colors ${tab === t ? 'bg-surface-2 text-text' : 'text-muted'}`}
+          >
+            {t === 'invite' ? 'I have an invite code' : 'Subscribe'}
+          </button>
+        ))}
+      </div>
 
-        {tab === 'invite' ? (
-          inviteStep === 'form' ? (
-            <form onSubmit={handleReviewInvite} className="flex flex-col gap-4">
-              <Input id="code" label="Invite Code" value={code} onChange={e => setCode(e.target.value)} placeholder="XXXX-XXXX" required />
-              <Input id="email" label="Email" type="email" value={email} onChange={e => setEmail(e.target.value)} required autoComplete="email" />
-              <Input id="password" label="Password" type="password" value={password} onChange={e => setPassword(e.target.value)} required autoComplete="new-password" />
-              {error && <p className="text-xs text-red-500">{error}</p>}
-              <Button type="submit" className="w-full mt-1">Continue</Button>
-            </form>
-          ) : (
-            <div className="flex flex-col gap-4">
-              <div>
-                <p className="text-sm text-muted mb-1">You're creating an account with:</p>
-                <p className="text-base font-semibold text-text break-all">{email}</p>
-              </div>
-              <p className="text-xs text-muted">
-                This invite code can only be used once — double-check the email before continuing.
-              </p>
-              {error && <p className="text-xs text-red-500">{error}</p>}
-              <Button onClick={handleInviteSignup} loading={loading} className="w-full">
-                This is correct — Create Account
-              </Button>
-              <Button variant="ghost" onClick={() => setInviteStep('form')} disabled={loading} className="w-full">
-                Change email
-              </Button>
-            </div>
-          )
+      {tab === 'invite' ? (
+        inviteStep === 'form' ? (
+          <form onSubmit={handleReviewInvite} className="grid gap-4">
+            <Input id="code" label="Invite code" value={code} onChange={e => setCode(e.target.value)} placeholder="XXXX-XXXX" required className="font-mono uppercase tracking-[.1em]" />
+            <Input id="email" label="Email" type="email" placeholder="you@example.com" value={email} onChange={e => setEmail(e.target.value)} required autoComplete="email" />
+            <Input id="password" label="Password" type="password" value={password} onChange={e => setPassword(e.target.value)} required autoComplete="new-password" />
+            {error && <p className="text-xs text-red-400">{error}</p>}
+            <Button type="submit" className="w-full">Continue</Button>
+            <p className="text-[13px] text-faint">An invite code works once. Double-check the email before continuing.</p>
+          </form>
         ) : (
-          <div className="flex flex-col gap-4">
-            <div className="flex flex-col gap-2">
-              {(['spotlight', 'studio'] as Plan[]).map(p => (
-                <button
-                  key={p}
-                  onClick={() => setSelectedPlan(p)}
-                  className={`px-4 py-3 rounded-lg border text-sm text-left transition-colors ${selectedPlan === p ? 'border-accent bg-accent-light text-accent' : 'border-border text-text hover:border-accent/40'}`}
-                >
-                  {PLAN_LABELS[p]}
-                </button>
-              ))}
+          <div className="grid gap-4">
+            <div>
+              <p className="text-sm text-muted">You are creating an account with:</p>
+              <p className="break-all text-base font-semibold">{email}</p>
             </div>
-            {error && <p className="text-xs text-red-500">{error}</p>}
-            <Button loading={loading} className="w-full" onClick={handleStripeSignup}>
-              Continue to Payment
-            </Button>
+            <p className="text-[13px] text-faint">This invite code can only be used once. Double-check the email before continuing.</p>
+            {error && <p className="text-xs text-red-400">{error}</p>}
+            <Button onClick={handleInviteSignup} loading={loading} className="w-full">This is correct, create account</Button>
+            <Button variant="ghost" onClick={() => setInviteStep('form')} disabled={loading} className="w-full">Change email</Button>
           </div>
-        )}
+        )
+      ) : (
+        <div className="grid gap-4">
+          <div className="grid gap-2.5">
+            {(['spotlight', 'studio'] as Plan[]).map((p) => {
+              const facts = PLAN_BY_ID[p];
+              const on = selectedPlan === p;
+              return (
+                <label
+                  key={p}
+                  className={`grid cursor-pointer grid-cols-[1fr_auto] gap-x-3 gap-y-1 rounded-xl border px-4 py-3.5 transition-colors ${on ? 'border-accent bg-accent-light' : 'border-border-strong hover:border-muted'}`}
+                >
+                  <input type="radio" name="plan" value={p} checked={on} onChange={() => setSelectedPlan(p)} className="sr-only" />
+                  <b className="text-[15px] font-semibold">{facts.name}</b>
+                  <em className="row-span-2 self-center text-[15px] font-semibold not-italic tabular-nums">{facts.price}/mo</em>
+                  <span className="text-[13px] text-muted">{PLAN_SUMMARY[p]}</span>
+                </label>
+              );
+            })}
+          </div>
+          {error && <p className="text-xs text-red-400">{error}</p>}
+          <Button loading={loading} className="w-full" onClick={handleStripeSignup}>Continue to payment →</Button>
+          <p className="text-[13px] text-faint">Secure checkout by Stripe. Cancel any time from Billing.</p>
+        </div>
+      )}
 
-        <p className="text-xs text-muted text-center mt-6">
-          Already have an account? <Link to="/login" className="text-accent hover:underline">Sign in</Link>
-        </p>
-      </Card>
-    </div>
+      <p className="text-[13px] text-faint">Already have an account? <Link to="/login" className="text-accent">Sign in</Link></p>
+    </AuthLayout>
   );
 }

@@ -1,9 +1,9 @@
 import { FormEvent, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { Navbar } from '../../components/layout/Navbar';
+import { Footer } from '../../components/layout/Footer';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
-import { Reveal } from '../../components/landing/Reveal';
 import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../lib/supabase';
 import type { SupportTopic } from '../../types';
@@ -19,37 +19,16 @@ const topics: { value: SupportTopic; label: string }[] = [
   { value: 'bug', label: 'Report a bug' },
 ];
 
-const faqs: { q: string; a: string; to?: string; cta?: string }[] = [
-  {
-    q: 'How do I sign in on my Apple TV?',
-    a: 'Open Moonlit on the TV, note the six-character code it shows, then enter it on the activation page from any browser.',
-    to: '/activate',
-    cta: 'Link a device',
-  },
-  {
-    q: 'Can I add profiles for the rest of the house?',
-    a: 'Yes. Every account carries its own set of profiles, each with its own sources and PIN.',
-    to: '/profiles',
-    cta: 'Manage profiles',
-  },
-  {
-    q: 'How do I change or cancel my plan?',
-    a: 'Plans are managed from your billing page — switch tiers or cancel at any time and keep access until the period ends.',
-    to: '/billing',
-    cta: 'Open billing',
-  },
-  {
-    q: 'Which devices can I watch on?',
-    a: 'Moonlit runs in any modern browser today, with native macOS, iOS, Apple TV and Windows apps on the way.',
-    to: '/download',
-    cta: 'See downloads',
-  },
+const helps: { title: string; body: string; to: string; cta: string }[] = [
+  { title: 'Playback and devices', body: 'Stuttering, subtitles out of sync, a title that will not start.', to: '/download', cta: 'Get the latest apps' },
+  { title: 'Account and profiles', body: 'Sign-in links, passwords, adding a profile, kids mode.', to: '/profiles', cta: 'Manage profiles' },
+  { title: 'Billing and plans', body: 'Invoices, changing plans, cancelling.', to: '/billing', cta: 'Open billing' },
+  { title: 'Sign in on Apple TV', body: 'Open Moonlit on the TV, note the code it shows, then enter it here.', to: '/activate', cta: 'Link a device' },
 ];
 
 const isValidEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
 
 export default function SupportPage() {
-  const navigate = useNavigate();
   const { session, activeProfile } = useAuth();
 
   const [name, setName] = useState(activeProfile?.name ?? '');
@@ -119,199 +98,82 @@ export default function SupportPage() {
     setMessage('');
   }
 
+  const fieldClass = 'h-[46px] w-full rounded-[10px] border border-border-strong bg-bg2 px-3.5 text-[15px] text-text outline-none transition-[border-color,box-shadow] focus:border-accent focus:shadow-[0_0_0_3px_rgba(255,122,61,.12)]';
+
   return (
     <div className="min-h-screen bg-bg">
       <Navbar />
 
-      {/* HEADER */}
-      <section className="mx-auto max-w-7xl px-5 pb-8 pt-16">
-        <Reveal>
-          <p className="mb-3 font-mono text-[11px] uppercase tracking-[0.28em] text-accent">Support</p>
-          <h1 className="font-display text-[clamp(40px,6vw,80px)] font-extrabold uppercase leading-[1.02]">
-            Stuck? Talk<br />to a human.
-          </h1>
-          <p className="mt-5 max-w-xl text-[17px] text-muted">
-            Account trouble, a payment question, or something that simply will not play — send it over and
-            we will get back to you by email, usually within a day.
+      <div className="mx-auto max-w-[1240px] px-5 pb-24 pt-[calc(var(--nav-h)+72px)] md:px-8 md:pt-[calc(var(--nav-h)+110px)]">
+        <div className="mb-14 grid max-w-[720px] gap-4">
+          <p className="text-xs font-semibold uppercase tracking-[.12em] text-accent">Support</p>
+          <h1 className="text-[clamp(40px,6vw,72px)] font-semibold leading-[1.05]">How can we help?</h1>
+          <p className="max-w-[36em] text-lg text-muted">
+            A person reads every message. Tell us what happened and on which device, and we will get back to you by email. Prefer your own mail app? Write to{' '}
+            <a href={`mailto:${SUPPORT_EMAIL}`} className="text-accent">{SUPPORT_EMAIL}</a>.
           </p>
-          <div className="mt-7 flex flex-wrap gap-3">
-            <a
-              href={`mailto:${SUPPORT_EMAIL}`}
-              className="inline-flex items-center justify-center gap-2 rounded-full bg-accent px-6 py-3 text-base font-semibold text-[#2a1206] shadow-glow transition-colors hover:bg-accent-2"
-            >
-              Email {SUPPORT_EMAIL}
-            </a>
-            <Button variant="ghost" size="lg" className="rounded-full" onClick={() => navigate('/download')}>
-              Get the apps
-            </Button>
+        </div>
+
+        <div className="grid gap-10 lg:grid-cols-[1fr_1.5fr] lg:gap-[72px]">
+          <div className="grid content-start gap-3.5">
+            {helps.map((h) => (
+              <div key={h.title} className="grid gap-1.5 rounded-2xl border border-border bg-surface p-[22px]">
+                <b className="text-base font-semibold">{h.title}</b>
+                <p className="text-[14.5px] text-muted">{h.body}</p>
+                <Link to={h.to} className="text-sm font-medium text-accent">{h.cta} →</Link>
+              </div>
+            ))}
           </div>
-        </Reveal>
-      </section>
 
-      {/* CONTACT FORM + SIDEBAR */}
-      <section className="mx-auto max-w-7xl px-5 py-10">
-        <div className="grid gap-5 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
-          <Reveal>
-            <div className="h-full rounded-2xl border border-border bg-surface p-7 md:p-9">
-              <h2 className="font-display text-2xl font-extrabold uppercase">Send a message</h2>
-              <p className="mt-2 text-sm text-muted">
-                The more you can tell us — device, plan, what you were doing — the faster we can fix it.
-              </p>
+          <div className="rounded-3xl border border-border bg-surface p-7">
+            <h2 className="text-2xl font-semibold tracking-tight">Send a message</h2>
 
-              {sent ? (
-                <div className="mt-7 rounded-2xl border border-accent/40 bg-accent-light p-7 text-center">
-                  <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-accent/20">
-                    <svg className="h-6 w-6 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                  </div>
-                  <h3 className="font-display text-xl font-extrabold uppercase">Message sent</h3>
-                  <p className="mt-2 text-sm text-muted">
-                    We have it. Look for a reply at <span className="text-text">{email}</span>.
-                  </p>
-                  <Button variant="ghost" className="mt-5 rounded-full" onClick={() => setSent(false)}>
-                    Send another
-                  </Button>
+            {sent ? (
+              <div className="mt-6 rounded-xl border border-accent/40 bg-accent-light p-6">
+                <h3 className="text-base font-semibold">Message sent</h3>
+                <p className="mt-1 text-[14.5px] text-muted">
+                  We have it. Look for a reply at <span className="text-text">{email}</span>. If it is about playback, the title and the device help us reproduce it.
+                </p>
+                <Button variant="ghost" size="sm" className="mt-4" onClick={() => setSent(false)}>Send another</Button>
+              </div>
+            ) : (
+              <form className="mt-6 grid gap-4" onSubmit={handleSubmit} noValidate>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Input id="support-name" label="Your name" placeholder="Ada Lovelace" autoComplete="name" value={name} error={errors.name} onChange={(e) => setName(e.target.value)} />
+                  <Input id="support-email" type="email" label="Email" placeholder="you@example.com" autoComplete="email" value={email} error={errors.email} onChange={(e) => setEmail(e.target.value)} />
                 </div>
-              ) : (
-                <form className="mt-7 flex flex-col gap-4" onSubmit={handleSubmit} noValidate>
-                  <Input
-                    id="support-name"
-                    label="Your name"
-                    placeholder="Ada Lovelace"
-                    value={name}
-                    error={errors.name}
-                    onChange={(e) => setName(e.target.value)}
+
+                <div className="grid gap-1.5">
+                  <label htmlFor="support-topic" className="text-[13.5px] font-medium text-muted">Topic</label>
+                  <select id="support-topic" value={topic} onChange={(e) => setTopic(e.target.value as SupportTopic)} className={fieldClass}>
+                    {topics.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+                  </select>
+                </div>
+
+                <div className="grid gap-1.5">
+                  <label htmlFor="support-message" className="text-[13.5px] font-medium text-muted">Message</label>
+                  <textarea
+                    id="support-message"
+                    rows={6}
+                    placeholder="What happened, and on which device?"
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
+                    className={`${fieldClass} h-auto min-h-[140px] resize-y py-3 ${errors.message ? '!border-red-400' : ''}`}
                   />
-                  <Input
-                    id="support-email"
-                    type="email"
-                    label="Email"
-                    placeholder="you@example.com"
-                    value={email}
-                    error={errors.email}
-                    onChange={(e) => setEmail(e.target.value)}
-                  />
+                  {errors.message && <p className="text-xs text-red-400">{errors.message}</p>}
+                </div>
 
-                  <div className="flex flex-col gap-1">
-                    <label htmlFor="support-topic" className="text-sm font-medium text-text">Topic</label>
-                    <select
-                      id="support-topic"
-                      value={topic}
-                      onChange={(e) => setTopic(e.target.value as SupportTopic)}
-                      className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-colors focus:border-accent"
-                    >
-                      {topics.map((t) => (
-                        <option key={t.value} value={t.value}>{t.label}</option>
-                      ))}
-                    </select>
-                  </div>
+                {sendError && <p className="text-sm text-red-400">{sendError}</p>}
 
-                  <div className="flex flex-col gap-1">
-                    <label htmlFor="support-message" className="text-sm font-medium text-text">Message</label>
-                    <textarea
-                      id="support-message"
-                      rows={6}
-                      placeholder="What happened, and on which device?"
-                      value={message}
-                      onChange={(e) => setMessage(e.target.value)}
-                      className={`w-full rounded-lg border bg-surface px-3 py-2 text-sm text-text outline-none transition-colors placeholder:text-muted
-                        ${errors.message ? 'border-red-400 focus:border-red-500' : 'border-border focus:border-accent'}`}
-                    />
-                    {errors.message && <p className="text-xs text-red-500">{errors.message}</p>}
-                  </div>
-
-                  {sendError && <p className="text-sm text-red-400">{sendError}</p>}
-
-                  <div className="flex flex-wrap items-center gap-3 pt-1">
-                    <Button type="submit" size="lg" className="rounded-full" loading={submitting}>
-                      Send message
-                    </Button>
-                    <span className="font-mono text-[11px] uppercase tracking-widest text-faint">
-                      Replies within 1 business day
-                    </span>
-                  </div>
-                </form>
-              )}
-            </div>
-          </Reveal>
-
-          <Reveal delay={100}>
-            <div className="flex h-full flex-col gap-5">
-              <div className="rounded-2xl border border-border bg-surface p-7">
-                <div className="font-mono text-[10px] uppercase tracking-widest text-faint">Email</div>
-                <a href={`mailto:${SUPPORT_EMAIL}`} className="mt-2 block font-display text-xl font-extrabold text-accent break-words">
-                  {SUPPORT_EMAIL}
-                </a>
-                <p className="mt-3 text-sm text-muted">
-                  Prefer your own mail app? Write to us directly — same inbox, same people.
-                </p>
-              </div>
-
-              <div className="rounded-2xl border border-border bg-surface p-7">
-                <div className="font-mono text-[10px] uppercase tracking-widest text-faint">Billing</div>
-                <div className="mt-2 font-display text-xl font-extrabold uppercase">Plans & payments</div>
-                <p className="mt-3 text-sm text-muted">
-                  Upgrades, downgrades and cancellations all live on your billing page.
-                </p>
-                <Link
-                  to="/billing"
-                  className="mt-4 inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-widest text-accent"
-                >
-                  Open billing →
-                </Link>
-              </div>
-
-              <div className="rounded-2xl border border-border bg-surface p-7">
-                <div className="font-mono text-[10px] uppercase tracking-widest text-faint">Devices</div>
-                <div className="mt-2 font-display text-xl font-extrabold uppercase">Link a TV</div>
-                <p className="mt-3 text-sm text-muted">
-                  Got a code on screen? Enter it here and the TV signs in to your account.
-                </p>
-                <Link
-                  to="/activate"
-                  className="mt-4 inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-widest text-accent"
-                >
-                  Activate a device →
-                </Link>
-              </div>
-            </div>
-          </Reveal>
+                <Button type="submit" loading={submitting} className="w-full">Send message</Button>
+                <p className="text-[13px] text-faint">We reply to the email above, usually within a business day. Nothing is shared outside the support team.</p>
+              </form>
+            )}
+          </div>
         </div>
-      </section>
+      </div>
 
-      {/* FAQ */}
-      <section className="mx-auto max-w-7xl px-5 py-16">
-        <Reveal>
-          <p className="mb-3 font-mono text-[11px] uppercase tracking-[0.28em] text-accent">Before you write</p>
-          <h2 className="font-display text-[clamp(32px,5vw,60px)] font-extrabold uppercase">Common questions</h2>
-        </Reveal>
-
-        <div className="mt-10 grid gap-5 md:grid-cols-2">
-          {faqs.map((f, i) => (
-            <Reveal key={f.q} delay={i * 80}>
-              <div className="flex h-full flex-col rounded-2xl border border-border bg-surface p-7">
-                <h3 className="font-display text-xl font-extrabold">{f.q}</h3>
-                <p className="mt-3 flex-1 text-sm text-muted">{f.a}</p>
-                {f.to && f.cta && (
-                  <Link
-                    to={f.to}
-                    className="mt-5 inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-widest text-accent"
-                  >
-                    {f.cta} →
-                  </Link>
-                )}
-              </div>
-            </Reveal>
-          ))}
-        </div>
-
-        <Reveal delay={120}>
-          <p className="mt-10 text-center font-mono text-xs text-faint">
-            Still stuck? Send the form above — real people read every message.
-          </p>
-        </Reveal>
-      </section>
+      <Footer />
     </div>
   );
 }
