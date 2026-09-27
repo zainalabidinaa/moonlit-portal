@@ -146,13 +146,15 @@ interface Props {
 
 export function WidgetGrid({ items, folders, activeTab, mode, onSelectCollection, onOpenBrowseHub, onOpenPresetItem, onAddWidget, onDeleteCard, onReorderCard, onSetExpandFolders, onOpenFolderSelection, onToggleGenreHub, onToggleSourceArt, onSplitFolders }: Props) {
   const [dragKey, setDragKey] = useState<string | null>(null);
+  const tabLabel = activeTab[0].toUpperCase() + activeTab.slice(1);
 
   return (
     <div>
-      <div className="grid gap-3.5 [grid-template-columns:repeat(auto-fill,minmax(200px,1fr))]">
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         {items.map((item, index) => (
           <WidgetCard
             key={item.key}
+            index={index}
             item={item}
             childFolders={item.kind === 'collection' ? folders.filter((f) => f.collection_id === item.collection.id && !f.parent_folder_id) : []}
             mode={mode}
@@ -181,19 +183,19 @@ export function WidgetGrid({ items, folders, activeTab, mode, onSelectCollection
           />
         ))}
         <button
+          type="button"
           onClick={onAddWidget}
-          className="flex min-h-[178px] flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-border text-sm text-muted transition-colors hover:border-accent hover:text-accent"
+          className="grid min-h-[210px] place-items-center rounded-2xl border border-dashed border-border-strong p-5 text-center font-medium text-muted transition-colors hover:border-accent hover:text-text"
         >
-          <span className="text-2xl leading-none">+</span>
-          <span>Add Widget</span>
+          <span><span className="block text-[26px] font-light leading-none text-faint">+</span><span className="mt-2 block">Add a widget to {tabLabel}</span></span>
         </button>
       </div>
 
       {items.length === 0 && (
-        <p className="mt-2 text-sm text-faint">
+        <p className="mt-4 text-sm text-faint">
           {mode === 'preset'
-            ? `No widgets in this preset's ${activeTab[0].toUpperCase() + activeTab.slice(1)} list yet — add one below.`
-            : `No widgets assigned to ${activeTab[0].toUpperCase() + activeTab.slice(1)} yet — add one, or edit an existing widget's Tab visibility in its Collection settings.`}
+            ? `No widgets in this preset's ${tabLabel} list yet. Add one above.`
+            : `No widgets assigned to ${tabLabel} yet. Add one, or edit an existing widget's Tab visibility in its Collection settings.`}
         </p>
       )}
     </div>
@@ -205,10 +207,87 @@ const BROWSE_HUB_LABELS: Record<'genre' | 'language', string> = {
   language: 'Browse by Language',
 };
 
+const HUB_PREVIEW: Record<'genre' | 'language', { label: string; bg: string }[]> = {
+  genre: [{ label: 'Thriller', bg: '#3a2f5c' }, { label: 'Sci-fi', bg: '#2f4a5c' }, { label: 'Drama', bg: '#5c2f3a' }, { label: 'Comedy', bg: '#2f5c3d' }],
+  language: [{ label: 'Korean', bg: '#3a2f5c' }, { label: 'Japanese', bg: '#2f4a5c' }, { label: 'French', bg: '#5c2f3a' }, { label: 'Spanish', bg: '#2f5c3d' }],
+};
+
+type Tone = 'collection' | 'hub' | 'filtering' | 'generic' | 'warn';
+const TONE: Record<Tone, string> = {
+  collection: 'border-cyan/35 text-cyan',
+  hub: 'border-magenta/35 text-magenta',
+  filtering: 'border-accent/40 text-accent',
+  generic: 'border-amber-300/35 text-amber-200',
+  warn: 'border-fuchsia-400/40 text-fuchsia-300',
+};
+
+const iconBtn = 'grid h-7 w-7 place-items-center rounded-full text-muted transition-colors hover:bg-surface-2 hover:text-text disabled:pointer-events-none disabled:opacity-30';
+const footBtn = 'h-7 rounded-full border border-border-strong px-2.5 text-xs font-medium text-muted transition-colors hover:text-text';
+const removeBtn = 'h-7 rounded-full border border-border-strong px-2.5 text-xs font-medium text-muted transition-colors hover:border-red-400/50 hover:text-red-400';
+const pill = (on: boolean) =>
+  `h-7 rounded-full border px-2.5 text-[11.5px] font-medium transition-colors ${on ? 'border-accent/50 bg-accent-light text-accent' : 'border-border-strong text-muted hover:text-text'}`;
+
+/** The one card chrome every widget kind shares: position, kind, reorder on top; body; actions below. */
+function CardShell({
+  index, kind, tone, badge, onDragStart, onDrop, onMoveUp, onMoveDown, children, footer,
+}: {
+  index: number;
+  kind: string;
+  tone: Tone;
+  badge?: React.ReactNode;
+  onDragStart: () => void;
+  onDrop: () => void;
+  onMoveUp?: () => void;
+  onMoveDown?: () => void;
+  children: React.ReactNode;
+  footer: React.ReactNode;
+}) {
+  return (
+    <div
+      draggable
+      onDragStart={onDragStart}
+      onDragOver={(e) => e.preventDefault()}
+      onDrop={onDrop}
+      className="group grid grid-rows-[auto_1fr_auto] overflow-hidden rounded-2xl border border-border bg-surface transition-[transform,border-color] duration-300 hover:-translate-y-0.5 hover:border-border-strong"
+    >
+      <div className="flex items-center gap-2.5 px-4 pt-3.5">
+        <span className="w-5 font-mono text-[11px] text-faint">{String(index + 1).padStart(2, '0')}</span>
+        <span className={`rounded-[5px] border px-1.5 py-0.5 font-mono text-[10.5px] tracking-[.06em] ${TONE[tone]}`}>{kind}</span>
+        {badge}
+        <span className="ml-auto flex items-center gap-0.5">
+          <button type="button" onClick={(e) => { e.stopPropagation(); onMoveUp?.(); }} disabled={!onMoveUp} title="Move earlier" aria-label="Move earlier" className={iconBtn}>↑</button>
+          <button type="button" onClick={(e) => { e.stopPropagation(); onMoveDown?.(); }} disabled={!onMoveDown} title="Move later" aria-label="Move later" className={iconBtn}>↓</button>
+          <span className="cursor-grab px-1 text-base tracking-[-2px] text-faint" title="Drag to reorder" aria-hidden="true">⋮⋮</span>
+        </span>
+      </div>
+      <div className="min-w-0 px-4 pb-1 pt-2.5">{children}</div>
+      <div className="mt-3 flex items-center justify-between gap-2 border-t border-border px-4 py-3">{footer}</div>
+    </div>
+  );
+}
+
+function CardTitle({ title, subtitle, onClick, clickTitle }: { title: string; subtitle: string; onClick?: () => void; clickTitle?: string }) {
+  return (
+    <button type="button" onClick={onClick} disabled={!onClick} title={clickTitle} className="block w-full min-w-0 text-left disabled:cursor-default">
+      <b className="block truncate text-[15px] font-semibold text-text">{title}</b>
+      <small className="mt-0.5 block truncate text-[12.5px] text-muted">{subtitle}</small>
+    </button>
+  );
+}
+
+function tileWidthClass(shape: string | null | undefined): string {
+  switch (shape) {
+    case 'landscape': return 'w-[104px]';
+    case 'square': return 'w-[66px]';
+    default: return 'w-11';
+  }
+}
+
 function WidgetCard({
-  item, childFolders, mode, isHomeTab, onClick, onDelete, onDragStart, onDrop, onMoveUp, onMoveDown,
+  index, item, childFolders, mode, isHomeTab, onClick, onDelete, onDragStart, onDrop, onMoveUp, onMoveDown,
   onSetExpandFolders, onOpenFolderSelection, onToggleGenreHub, onToggleSourceArt, onSplitFolders, onOpenFolder,
 }: {
+  index: number;
   item: WidgetCardItem;
   childFolders: Folder[];
   mode: 'all' | 'preset';
@@ -238,50 +317,80 @@ function WidgetCard({
         : childFolders)
     : [];
   const sourcePosters = useFolderPreviewPosters(effectiveFolders.length === 1 ? effectiveFolders[0].id : null);
+  const shell = { index, onDragStart, onDrop, onMoveUp, onMoveDown };
 
   if (item.kind === 'browseHub') {
     return (
-      <BrowseHubCard
-        hub={item.hub}
-        onClick={onClick}
-        onDelete={onDelete}
-        onDragStart={onDragStart}
-        onDrop={onDrop}
-        onMoveUp={onMoveUp}
-        onMoveDown={onMoveDown}
-      />
+      <CardShell
+        {...shell}
+        kind="Browse hub"
+        tone="hub"
+        footer={
+          <>
+            <span className="text-xs text-faint">Hub · hardcoded UI</span>
+            <span className="flex gap-1.5">
+              <button type="button" onClick={onClick} className={footBtn}>Edit tiles</button>
+              <button type="button" onClick={() => { if (confirm(`Remove "${BROWSE_HUB_LABELS[item.hub]}" from this preset's Home list?`)) onDelete(); }} className={removeBtn}>Remove</button>
+            </span>
+          </>
+        }
+      >
+        <CardTitle title={BROWSE_HUB_LABELS[item.hub]} subtitle="Tiles open a room for each one" onClick={onClick} clickTitle="Edit tile names" />
+        <div className="mt-3 flex gap-1.5 overflow-hidden">
+          {HUB_PREVIEW[item.hub].map((t) => (
+            <span key={t.label} className="grid aspect-[16/10] w-[72px] flex-none place-items-center rounded-md text-[11px] font-semibold text-white" style={{ background: `linear-gradient(140deg, ${t.bg}, #111)` }}>{t.label}</span>
+          ))}
+        </div>
+      </CardShell>
     );
   }
 
   if (item.kind === 'filtering') {
     return (
-      <FilteringCard
-        title={item.title}
-        query={item.query}
-        onClick={onClick}
-        onDelete={onDelete}
-        onDragStart={onDragStart}
-        onDrop={onDrop}
-        onMoveUp={onMoveUp}
-        onMoveDown={onMoveDown}
-      />
+      <CardShell
+        {...shell}
+        kind="Filtering"
+        tone="filtering"
+        footer={
+          <>
+            <span className="text-xs text-faint">TMDB · live</span>
+            <span className="flex gap-1.5">
+              <button type="button" onClick={onClick} className={footBtn}>Edit</button>
+              <button type="button" onClick={() => { if (confirm(`Remove "${item.title}" from this preset's list? The widget itself stays on the curator's device.`)) onDelete(); }} className={removeBtn}>Remove</button>
+            </span>
+          </>
+        }
+      >
+        <CardTitle title={item.title} subtitle={filteringSummary(item.query)} onClick={onClick} />
+        <span className="mt-3 grid h-[66px] place-items-center rounded-md border border-dashed border-border text-xs text-faint">Titles load live from TMDB</span>
+      </CardShell>
     );
   }
 
   if (item.kind === 'generic') {
+    const dsKind = (item.presetItem.data_source as { kind?: string }).kind;
+    const label = dsKind === 'addonCatalog' ? 'Add-on catalog' : dsKind === 'collectionsRow' ? 'Collections row' : 'App widget';
     return (
-      <GenericPresetCard
-        title={item.title}
-        subtitle={item.subtitle}
-        accent={item.accent ?? false}
-        adminOnly={item.adminOnly ?? false}
-        onClick={onClick}
-        onDelete={onDelete}
-        onDragStart={onDragStart}
-        onDrop={onDrop}
-        onMoveUp={onMoveUp}
-        onMoveDown={onMoveDown}
-      />
+      <CardShell
+        {...shell}
+        kind={label}
+        tone="generic"
+        badge={item.adminOnly ? (
+          <span className="rounded-[5px] border border-red-400/40 bg-red-400/10 px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wide text-red-300" title="This widget depends on an add-on. Users never see add-on sources, so it will be empty for them.">Admin-only</span>
+        ) : undefined}
+        footer={
+          <>
+            <span className="text-xs text-faint">Edited on-device</span>
+            <span className="flex gap-1.5">
+              <button type="button" onClick={onClick} className={footBtn}>Details</button>
+              <button type="button" onClick={() => { if (confirm(`Remove "${item.title}" from this preset's list? The widget itself stays on the curator's device.`)) onDelete(); }} className={removeBtn}>Remove</button>
+            </span>
+          </>
+        }
+      >
+        <CardTitle title={item.title} subtitle={item.subtitle} onClick={onClick} />
+        <span className="mt-3 grid h-[66px] place-items-center rounded-md border border-dashed border-border text-xs text-faint">Published from the app</span>
+      </CardShell>
     );
   }
 
@@ -290,14 +399,11 @@ function WidgetCard({
   // version used by the hook call, which must run before the early returns).
   const cardItem: CollectionCardItem = item;
   const totalFolderCount = childFolders.length;
-  // `effectiveFolders` (the widget's own folder selection) is computed above,
-  // before the early returns, so the poster hook can run unconditionally.
   const folderCount = effectiveFolders.length;
   // Per-placement folder controls: only meaningful in "preset" mode (the
   // flag lives on the preset item, not the collection itself) and only when
   // the widget actually spans 2+ folders — a single-folder widget (a split
-  // child) has nothing to choose, switch or split, and showing the controls
-  // made it read as if it still contained the whole collection.
+  // child) has nothing to choose, switch or split.
   const canChooseFolders = mode === 'preset' && item.presetItemId != null
     && totalFolderCount >= 2 && folderCount > 1;
   const genreHubOn = item.genreHub === true;
@@ -305,258 +411,146 @@ function WidgetCard({
   const folderSelectionLabel = folderCount === totalFolderCount
     ? (totalFolderCount === 1 ? '1 folder' : `${totalFolderCount} folders`)
     : `${folderCount} of ${totalFolderCount} folders`;
-  // In "preset" mode the item's own placement style is the more useful
-  // label (it's what the real on-device "Your Widgets" screen shows —
-  // Row Classic / Hero / Card Stack / Row Numbered). "All widgets" mode has
-  // no style (it's not a property of the collection itself), so it falls
-  // back to the structural description instead. A folder widget the admin
-  // has given folder controls shows its mode + selection instead.
-  //
-  // "Hardcoded UI" is only true of Home's genre/language tile strip
-  // (MacHomeView's homeGenres/homeLanguages, a one-off SwiftUI view with no
-  // tie to `collections` at all). A Movies/Series widget with
-  // display_section === 'hub' renders through the same generic
-  // CatalogRepository.displayRows group-tile path as everything else, so it
-  // gets the plain folder-count label instead of the misleading one.
+  // "Hardcoded UI" is only true of Home's genre/language tile strip; a
+  // Movies/Series hub renders through the generic group-tile path.
   const subtitle = canChooseFolders
     ? genreHubOn
       ? `Genre hub · ${sourceArtOn ? 'Source art · ' : ''}${folderSelectionLabel}`
       : folderCount === 1
         ? `Folder · content row · ${folderSelectionLabel}`
         : `${item.expandFolders ? 'Rows' : 'Hub'} · ${folderSelectionLabel}`
-    : item.style
-    ? STYLE_LABELS[item.style] ?? item.style
     : collection.display_section === 'hub' ? (isHomeTab ? 'Hub · hardcoded UI' : `Hub · ${folderCount} folders`)
     : collection.display_section === 'rows' ? 'Rows'
     : folderCount >= 2 ? `Hub · ${folderCount} folders`
     : folderCount === 1 ? 'Folder · content row' : 'Empty';
+  const styleLabel = item.style ? STYLE_LABELS[item.style] ?? item.style : mode === 'all' ? 'All widgets' : 'Row Classic';
 
   const isFolderWidget = folderCount >= 2;
-  const hubTiles = isFolderWidget ? effectiveFolders.slice(0, 4) : [];
-  // Before (or without) source posters, a single-folder widget shows that
-  // folder's own artwork — otherwise every split child would fall back to
-  // the same collection backdrop and read as a duplicate.
+  const hubTiles = isFolderWidget ? effectiveFolders.slice(0, 5) : [];
+  // A single-folder widget shows that folder's own artwork, so split
+  // children don't all read as the same collection backdrop.
   const singleFolderArt = !isFolderWidget && effectiveFolders.length === 1
     ? effectiveFolders[0].cover_image ?? effectiveFolders[0].hero_backdrop
     : null;
+  const confirmRemove = mode === 'preset'
+    ? `Remove "${collection.name}" from this preset's list? The widget itself is untouched.`
+    : `Delete the "${collection.name}" widget entirely? This removes it everywhere, including from any preset that references it.`;
 
   return (
-    <div
-      draggable
-      onDragStart={onDragStart}
-      onDragOver={(e) => e.preventDefault()}
-      onDrop={onDrop}
-      className="group relative overflow-hidden rounded-2xl border border-border bg-bg2 transition-all hover:-translate-y-1 hover:border-accent"
-    >
-      <button onClick={onClick} className="relative block w-full text-left">
-        {isFolderWidget ? (
-          <div className="grid grid-cols-2 gap-0.5 bg-border">
-            {hubTiles.map((f) => (
-              // Each tile opens ITS folder in the editor — clicking the card
-              // as a whole only ever reached the collection root, so a
-              // specific folder could not be opened from here at all.
-              <button
-                key={f.id}
-                onClick={(e) => { e.stopPropagation(); onOpenFolder?.(f.id); }}
-                title={`Open ${f.name}`}
-                className="block w-full p-0"
-              >
-                <HubTile folder={f} />
-              </button>
-            ))}
-            {Array.from({ length: Math.max(0, 4 - hubTiles.length) }).map((_, i) => (
-              <div key={`pad-${i}`} className={`${tileAspectClass(hubTiles[0]?.tile_shape)} w-full bg-surface-2`} />
-            ))}
-          </div>
-        ) : sourcePosters.length > 0 ? (
-          <div className="grid grid-cols-2 gap-0.5 bg-border">
-            {[0, 1, 2, 3].map((i) => (
-              <FallbackPosterImg key={i} pool={sourcePosters} slot={i} totalSlots={4} className="aspect-[2/3] w-full object-cover" />
-            ))}
-          </div>
-        ) : singleFolderArt ? (
-          <img src={singleFolderArt} alt="" className="aspect-square w-full object-cover" />
-        ) : collection.backdrop_image ? (
-          <img src={collection.backdrop_image} alt="" className="aspect-square w-full object-cover" />
-        ) : (
-          <div className="aspect-square w-full bg-surface-2" />
-        )}
-        <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg,rgba(8,8,10,.8) 0%,rgba(8,8,10,.35) 32%,transparent 60%)' }} />
-        {collection.status === 'draft' && (
-          <span className="absolute right-2.5 top-2.5 rounded-full bg-fuchsia-500/85 px-2 py-0.5 font-mono text-[9.5px] font-semibold uppercase tracking-wide text-[#1a0512]">
-            Draft
+    <CardShell
+      {...shell}
+      kind={isFolderWidget ? 'Hub' : 'Collection'}
+      tone="collection"
+      badge={collection.status === 'draft' ? (
+        <span className="rounded-[5px] border border-fuchsia-400/40 bg-fuchsia-400/10 px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wide text-fuchsia-300">Draft</span>
+      ) : undefined}
+      footer={
+        <>
+          <span className="text-xs text-faint">{styleLabel}</span>
+          <span className="flex gap-1.5">
+            <button type="button" onClick={onClick} className={footBtn}>Edit</button>
+            <button type="button" onClick={() => { if (confirm(confirmRemove)) onDelete(); }} title={mode === 'preset' ? 'Remove from this preset' : 'Delete widget'} className={removeBtn}>{mode === 'preset' ? 'Remove' : 'Delete'}</button>
           </span>
-        )}
-        <div className="absolute inset-x-0 top-0 p-3">
-          <p className="truncate text-[15px] font-semibold text-white">{item.presetTitle || collection.name}</p>
-          <p className="mt-0.5 text-[12px] text-white/60">{subtitle}</p>
-          {canChooseFolders && (
-            <span className="mt-1.5 flex flex-wrap gap-1">
-              <button
-                onClick={(e) => { e.stopPropagation(); onOpenFolderSelection?.(cardItem); }}
-                title="Choose which folders this widget shows"
-                className="rounded-full bg-black/50 px-2 py-0.5 text-[10px] font-semibold text-white/85 transition-colors hover:bg-black/75"
-              >
-                Choose folders
-              </button>
-              <button
-                onClick={(e) => { e.stopPropagation(); onToggleGenreHub?.(cardItem, !genreHubOn); }}
-                title={genreHubOn
-                  ? 'Rendering through the app’s hardcoded genre UI — click to turn off'
-                  : 'Render through the app’s hardcoded genre UI (editorial genre tiles + genre rooms), using these folders as genres'}
-                className={`rounded-full px-2 py-0.5 text-[10px] font-semibold transition-colors ${genreHubOn ? 'bg-accent text-[#1a0b04]' : 'bg-black/50 text-white/85 hover:bg-black/75'}`}
-              >
-                {genreHubOn ? 'Genre hub ✓' : 'Genre hub'}
-              </button>
-              {genreHubOn && (
-                <button
-                  onClick={(e) => { e.stopPropagation(); onToggleSourceArt?.(cardItem, !sourceArtOn); }}
-                  title={sourceArtOn
-                    ? 'Tiles preview each folder’s own sources — click for the default TMDB genre art'
-                    : 'Show each folder’s own source artwork on the genre tiles (needed for genres TMDB art can’t resolve, e.g. Arabic names) instead of the default TMDB genre art'}
-                  className={`rounded-full px-2 py-0.5 text-[10px] font-semibold transition-colors ${sourceArtOn ? 'bg-accent text-[#1a0b04]' : 'bg-black/50 text-white/85 hover:bg-black/75'}`}
-                >
-                  {sourceArtOn ? 'Source art ✓' : 'Source art'}
-                </button>
-              )}
-              {!genreHubOn && (
-                <button
-                  onClick={(e) => { e.stopPropagation(); onSplitFolders?.(cardItem); }}
-                  title="Replace this widget with one widget per folder"
-                  className="rounded-full bg-black/50 px-2 py-0.5 text-[10px] font-semibold text-white/85 transition-colors hover:bg-black/75"
-                >
-                  Split folders
-                </button>
-              )}
+        </>
+      }
+    >
+      <CardTitle title={item.presetTitle || collection.name} subtitle={subtitle} onClick={onClick} />
+
+      <div className="mt-3 flex gap-1.5 overflow-hidden">
+        {isFolderWidget ? (
+          hubTiles.map((f) => (
+            // Each tile opens ITS folder in the editor.
+            <button
+              key={f.id}
+              type="button"
+              onClick={() => onOpenFolder?.(f.id)}
+              title={`Open ${f.name}`}
+              className={`${tileWidthClass(f.tile_shape)} flex-none overflow-hidden rounded ring-1 ring-transparent transition hover:ring-accent`}
+            >
+              <HubTile folder={f} />
+            </button>
+          ))
+        ) : sourcePosters.length > 0 ? (
+          [0, 1, 2, 3, 4].map((i) => (
+            <span key={i} className="block w-11 flex-none overflow-hidden rounded">
+              <FallbackPosterImg pool={sourcePosters} slot={i} totalSlots={5} className="aspect-[2/3] w-full object-cover" />
             </span>
+          ))
+        ) : singleFolderArt || collection.backdrop_image ? (
+          <img src={(singleFolderArt || collection.backdrop_image) as string} alt="" className="h-[66px] w-[118px] flex-none rounded object-cover" />
+        ) : (
+          <span className="grid h-[66px] w-full place-items-center rounded-md border border-dashed border-border text-xs text-faint">No artwork yet</span>
+        )}
+      </div>
+
+      {canChooseFolders && (
+        <div className="mt-3 flex flex-wrap items-center gap-1.5">
+          <button type="button" onClick={() => onOpenFolderSelection?.(cardItem)} title="Choose which folders this widget shows" className={pill(false)}>
+            Choose folders
+          </button>
+          <button
+            type="button"
+            onClick={() => onToggleGenreHub?.(cardItem, !genreHubOn)}
+            aria-pressed={genreHubOn}
+            title={genreHubOn
+              ? 'Rendering through the app’s hardcoded genre UI — click to turn off'
+              : 'Render through the app’s hardcoded genre UI (editorial genre tiles + genre rooms), using these folders as genres'}
+            className={pill(genreHubOn)}
+          >
+            Genre hub
+          </button>
+          {genreHubOn ? (
+            <button
+              type="button"
+              onClick={() => onToggleSourceArt?.(cardItem, !sourceArtOn)}
+              aria-pressed={sourceArtOn}
+              title={sourceArtOn
+                ? 'Tiles preview each folder’s own sources — click for the default TMDB genre art'
+                : 'Show each folder’s own source artwork on the genre tiles (needed for genres TMDB art can’t resolve, e.g. Arabic names) instead of the default TMDB genre art'}
+              className={pill(sourceArtOn)}
+            >
+              Source art
+            </button>
+          ) : (
+            <>
+              <button type="button" onClick={() => onSplitFolders?.(cardItem)} title="Replace this widget with one widget per folder" className={pill(false)}>
+                Split folders
+              </button>
+              <span className="ml-auto inline-flex rounded-full border border-border-strong p-0.5 text-[11.5px] font-medium">
+                <button
+                  type="button"
+                  onClick={() => { if (cardItem.expandFolders) onSetExpandFolders?.(cardItem, false); }}
+                  aria-pressed={!cardItem.expandFolders}
+                  title="Show the folders as one hub of tiles"
+                  className={`h-6 rounded-full px-2.5 transition-colors ${cardItem.expandFolders ? 'text-muted hover:text-text' : 'bg-surface-2 text-text'}`}
+                >
+                  Folders
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (cardItem.expandFolders) return;
+                    onSetExpandFolders?.(cardItem, true);
+                    // Switching to Rows opens the picker so "all or a few" is a
+                    // deliberate choice — Apply with everything on keeps All.
+                    onOpenFolderSelection?.(cardItem);
+                  }}
+                  aria-pressed={!!cardItem.expandFolders}
+                  title="Give every selected folder its own content row"
+                  className={`h-6 rounded-full px-2.5 transition-colors ${cardItem.expandFolders ? 'bg-surface-2 text-text' : 'text-muted hover:text-text'}`}
+                >
+                  Rows
+                </button>
+              </span>
+            </>
           )}
         </div>
-      </button>
-      {canChooseFolders && !genreHubOn && (
-        <div className="absolute bottom-2.5 left-1/2 z-[2] -translate-x-1/2" onClick={(e) => e.stopPropagation()}>
-          <div className="flex overflow-hidden rounded-full border border-white/15 bg-black/55 text-[11px] font-semibold">
-            <button
-              onClick={() => { if (cardItem.expandFolders) onSetExpandFolders?.(cardItem, false); }}
-              title="Show the folders as one hub of tiles"
-              className={`px-2.5 py-1 transition-colors ${cardItem.expandFolders ? 'text-white/70 hover:text-white' : 'bg-accent text-[#1a0b04]'}`}
-            >
-              Folders
-            </button>
-            <button
-              onClick={() => {
-                if (cardItem.expandFolders) return;
-                onSetExpandFolders?.(cardItem, true);
-                // Switching to Rows opens the picker so "all or a few" is a
-                // deliberate choice — Apply with everything on keeps All.
-                onOpenFolderSelection?.(cardItem);
-              }}
-              title="Give every selected folder its own content row"
-              className={`px-2.5 py-1 transition-colors ${cardItem.expandFolders ? 'bg-accent text-[#1a0b04]' : 'text-white/70 hover:text-white'}`}
-            >
-              Rows
-            </button>
-          </div>
-        </div>
       )}
-      <div className="absolute bottom-2.5 left-2.5 z-[2] flex gap-1.5">
-        <button
-          onClick={(e) => { e.stopPropagation(); onMoveUp?.(); }}
-          disabled={!onMoveUp}
-          title="Move earlier"
-          className="flex h-7 w-7 items-center justify-center rounded-full bg-black/55 text-white transition-colors hover:bg-black/75 disabled:cursor-not-allowed disabled:opacity-30"
-        >
-          ↑
-        </button>
-        <button
-          onClick={(e) => { e.stopPropagation(); onMoveDown?.(); }}
-          disabled={!onMoveDown}
-          title="Move later"
-          className="flex h-7 w-7 items-center justify-center rounded-full bg-black/55 text-white transition-colors hover:bg-black/75 disabled:cursor-not-allowed disabled:opacity-30"
-        >
-          ↓
-        </button>
-      </div>
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          const msg = mode === 'preset'
-            ? `Remove "${collection.name}" from this preset's list? The widget itself is untouched.`
-            : `Delete the "${collection.name}" widget entirely? This removes it everywhere, including from any preset that references it.`;
-          if (confirm(msg)) onDelete();
-        }}
-        title={mode === 'preset' ? 'Remove from this preset' : 'Delete widget'}
-        className="absolute bottom-2.5 right-2.5 z-[2] flex h-7 w-7 items-center justify-center rounded-full bg-black/55 text-white transition-colors hover:bg-black/75"
-      >
-        🗑
-      </button>
-    </div>
+    </CardShell>
   );
 }
 
-// "Browse by Genre"/"Browse by Language" are a hardcoded SwiftUI tile strip
-// on-device (MacHomeView's homeGenres/homeLanguages), not a real collection —
-// this card exists purely so admins can drag/reorder them alongside other
-// Home widgets; there's nothing to click through to.
-function BrowseHubCard({
-  hub, onClick, onDelete, onDragStart, onDrop, onMoveUp, onMoveDown,
-}: {
-  hub: 'genre' | 'language';
-  onClick?: () => void;
-  onDelete: () => void;
-  onDragStart: () => void;
-  onDrop: () => void;
-  onMoveUp?: () => void;
-  onMoveDown?: () => void;
-}) {
-  return (
-    <div
-      draggable
-      onDragStart={onDragStart}
-      onDragOver={(e) => e.preventDefault()}
-      onDrop={onDrop}
-      className="group relative flex aspect-square flex-col justify-between overflow-hidden rounded-2xl border border-border bg-bg2 p-3 transition-all hover:-translate-y-1 hover:border-accent"
-    >
-      <button onClick={onClick} className="block w-full text-left" title="Edit tile names">
-        <p className="truncate text-[15px] font-semibold text-white">{BROWSE_HUB_LABELS[hub]}</p>
-        <p className="mt-0.5 text-[12px] text-white/60">Hub · hardcoded UI</p>
-      </button>
-      <div className="flex items-center justify-between">
-        <div className="flex gap-1.5">
-          <button
-            onClick={(e) => { e.stopPropagation(); onMoveUp?.(); }}
-            disabled={!onMoveUp}
-            title="Move earlier"
-            className="flex h-7 w-7 items-center justify-center rounded-full bg-black/55 text-white transition-colors hover:bg-black/75 disabled:cursor-not-allowed disabled:opacity-30"
-          >
-            ↑
-          </button>
-          <button
-            onClick={(e) => { e.stopPropagation(); onMoveDown?.(); }}
-            disabled={!onMoveDown}
-            title="Move later"
-            className="flex h-7 w-7 items-center justify-center rounded-full bg-black/55 text-white transition-colors hover:bg-black/75 disabled:cursor-not-allowed disabled:opacity-30"
-          >
-            ↓
-          </button>
-        </div>
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            if (confirm(`Remove "${BROWSE_HUB_LABELS[hub]}" from this preset's Home list?`)) onDelete();
-          }}
-          title="Remove from this preset"
-          className="flex h-7 w-7 items-center justify-center rounded-full bg-black/55 text-white transition-colors hover:bg-black/75"
-        >
-          🗑
-        </button>
-      </div>
-    </div>
-  );
-}
-
-// A "Filtering" widget the app published into this preset via "Save &
-// Publish" — a real TMDB-query-backed row on-device. The portal can see,
-// reorder, and remove it; authoring/editing its filters stays on-device.
+// A "Filtering" widget's query, summarized for the card subtitle.
 const FILTER_SUMMARY_SORTS: Record<string, string> = {
   'popularity.desc': 'Popular',
   'vote_average.desc': 'Top Rated',
@@ -591,143 +585,6 @@ function filteringSummary(query: string): string {
   const limit = params.get('limit');
   if (limit) parts.push(`max ${limit}`);
   return parts.length ? parts.join(' · ') : 'TMDB filter';
-}
-
-function FilteringCard({
-  title, query, onClick, onDelete, onDragStart, onDrop, onMoveUp, onMoveDown,
-}: {
-  title: string;
-  query: string;
-  onClick?: () => void;
-  onDelete: () => void;
-  onDragStart: () => void;
-  onDrop: () => void;
-  onMoveUp?: () => void;
-  onMoveDown?: () => void;
-}) {
-  return (
-    <div
-      draggable
-      onDragStart={onDragStart}
-      onDragOver={(e) => e.preventDefault()}
-      onDrop={onDrop}
-      className="group relative flex aspect-square flex-col justify-between overflow-hidden rounded-2xl border border-border bg-bg2 p-3 transition-all hover:-translate-y-1 hover:border-accent"
-    >
-      <div
-        className="pointer-events-none absolute inset-0 opacity-[0.16]"
-        style={{ background: 'radial-gradient(120% 90% at 85% 0%, #d9a94f 0%, transparent 55%)' }}
-      />
-      <button onClick={onClick} className="relative block w-full text-left" disabled={!onClick}>
-        <p className="truncate text-[15px] font-semibold text-white">{title}</p>
-        <p className="mt-0.5 truncate text-[12px] text-white/60">Filtering · {filteringSummary(query)}</p>
-      </button>
-      <div className="relative flex items-center justify-between">
-        <div className="flex gap-1.5">
-          <button
-            onClick={(e) => { e.stopPropagation(); onMoveUp?.(); }}
-            disabled={!onMoveUp}
-            title="Move earlier"
-            className="flex h-7 w-7 items-center justify-center rounded-full bg-black/55 text-white transition-colors hover:bg-black/75 disabled:cursor-not-allowed disabled:opacity-30"
-          >
-            ↑
-          </button>
-          <button
-            onClick={(e) => { e.stopPropagation(); onMoveDown?.(); }}
-            disabled={!onMoveDown}
-            title="Move later"
-            className="flex h-7 w-7 items-center justify-center rounded-full bg-black/55 text-white transition-colors hover:bg-black/75 disabled:cursor-not-allowed disabled:opacity-30"
-          >
-            ↓
-          </button>
-        </div>
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            if (confirm(`Remove "${title}" from this preset's list? The widget itself stays on the curator's device.`)) onDelete();
-          }}
-          title="Remove from this preset"
-          className="flex h-7 w-7 items-center justify-center rounded-full bg-black/55 text-white transition-colors hover:bg-black/75"
-        >
-          🗑
-        </button>
-      </div>
-    </div>
-  );
-}
-
-// A preset item the app/import published that has no dedicated portal
-// editor yet (external-catalog widgets, Collections Rows). Same chrome as the
-// Filtering card: title + subtitle, reorder/remove, edited on-device.
-function GenericPresetCard({
-  title, subtitle, accent, adminOnly, onClick, onDelete, onDragStart, onDrop, onMoveUp, onMoveDown,
-}: {
-  title: string;
-  subtitle: string;
-  accent: boolean;
-  adminOnly: boolean;
-  onClick?: () => void;
-  onDelete: () => void;
-  onDragStart: () => void;
-  onDrop: () => void;
-  onMoveUp?: () => void;
-  onMoveDown?: () => void;
-}) {
-  return (
-    <div
-      draggable
-      onDragStart={onDragStart}
-      onDragOver={(e) => e.preventDefault()}
-      onDrop={onDrop}
-      className="group relative flex aspect-square flex-col justify-between overflow-hidden rounded-2xl border border-border bg-bg2 p-3 transition-all hover:-translate-y-1 hover:border-accent"
-    >
-      <div
-        className="pointer-events-none absolute inset-0"
-        style={{ background: accent ? 'radial-gradient(120% 90% at 85% 0%, #d9a94f 0%, transparent 55%)' : 'radial-gradient(120% 90% at 85% 0%, #6b7a8c 0%, transparent 55%)', opacity: 0.14 }}
-      />
-      <button onClick={onClick} className="relative block w-full text-left" disabled={!onClick}>
-        <p className="truncate text-[15px] font-semibold text-white">{title}</p>
-        <p className="mt-0.5 truncate text-[12px] text-white/60">{subtitle}</p>
-        {adminOnly && (
-          <span
-            className="mt-1.5 inline-block rounded bg-red-500/15 px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wide text-red-400"
-            title="This widget depends on an add-on. Users never see add-on sources, so it will be empty for them."
-          >
-            Admin-only add-on
-          </span>
-        )}
-      </button>
-      <div className="relative flex items-center justify-between">
-        <div className="flex gap-1.5">
-          <button
-            onClick={(e) => { e.stopPropagation(); onMoveUp?.(); }}
-            disabled={!onMoveUp}
-            title="Move earlier"
-            className="flex h-7 w-7 items-center justify-center rounded-full bg-black/55 text-white transition-colors hover:bg-black/75 disabled:cursor-not-allowed disabled:opacity-30"
-          >
-            ↑
-          </button>
-          <button
-            onClick={(e) => { e.stopPropagation(); onMoveDown?.(); }}
-            disabled={!onMoveDown}
-            title="Move later"
-            className="flex h-7 w-7 items-center justify-center rounded-full bg-black/55 text-white transition-colors hover:bg-black/75 disabled:cursor-not-allowed disabled:opacity-30"
-          >
-            ↓
-          </button>
-        </div>
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            if (confirm(`Remove "${title}" from this preset's list? The widget itself stays on the curator's device.`)) onDelete();
-          }}
-          title="Remove from this preset"
-          className="flex h-7 w-7 items-center justify-center rounded-full bg-black/55 text-white transition-colors hover:bg-black/75"
-        >
-          🗑
-        </button>
-      </div>
-    </div>
-  );
 }
 
 // Lowercase — must match `PosterShape`'s raw values in MoonlitCore

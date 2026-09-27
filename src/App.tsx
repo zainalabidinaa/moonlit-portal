@@ -15,6 +15,7 @@ import CloudPage from './routes/cloud/CloudPage';
 import AuthConfirmPage from './routes/public/AuthConfirmPage';
 import CatalogSourcesPage from './routes/admin/CatalogSourcesPage';
 import MyCollectionsPage from './routes/user/MyCollectionsPage';
+import MyWidgetsPage from './routes/user/MyWidgetsPage';
 import BillingPage from './routes/user/BillingPage';
 import CatalogPage from './routes/admin/CatalogPage';
 import HomePresetsPage from './routes/admin/HomePresetsPage';
@@ -61,6 +62,7 @@ export default function App() {
           <Route path="/profiles" element={<UserRoute><ProfilesPage /></UserRoute>} />
           <Route path="/addons" element={<Navigate to="/profiles" replace />} />
           <Route path="/my-collections" element={<UserRoute><MyCollectionsPage /></UserRoute>} />
+          <Route path="/my-widgets" element={<UserRoute><MyWidgetsPage /></UserRoute>} />
           <Route path="/billing" element={<AuthRoute><BillingPage /></AuthRoute>} />
 
           {/* Admin */}

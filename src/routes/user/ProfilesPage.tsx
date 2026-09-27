@@ -6,6 +6,8 @@ import { ProfileCard } from '../../components/profiles/ProfileCard';
 import { ProfileEditor } from '../../components/profiles/ProfileEditor';
 import { Badge } from '../../components/ui/Badge';
 import { PLAN_LABELS, profileLimitFor } from '../../lib/plans';
+import { MAC_DOWNLOAD_URL, MAC_VERSION, TESTFLIGHT_URL } from '../../lib/releases';
+import { AppleIcon, GlobeIcon, PhoneIcon, TvIcon } from '../../components/landing/PlatformIcons';
 
 export default function ProfilesPage() {
   const { profiles, activeProfile, setActiveProfile, user, isOwner, loading, role } = useAuth();
@@ -20,7 +22,8 @@ export default function ProfilesPage() {
 
   function handleSelectProfile(p: typeof profiles[0]) {
     setActiveProfile(p);
-    navigate('/my-collections');
+    // Straight to that profile's own Home rows when the plan includes them.
+    if (role === 'spotlight' || role === 'studio') navigate('/my-widgets');
   }
 
   function handleSaved() {
@@ -109,13 +112,31 @@ export default function ProfilesPage() {
           </div>
         )}
 
-        {role === 'spotlight' && atLimit && (
+        {role === 'spotlight' && isOwner && limit !== null && profiles.length >= limit - 1 && (
           <div className="grid gap-3.5 rounded-2xl border border-accent/35 bg-[linear-gradient(135deg,rgba(255,122,61,.12),transparent_60%)] bg-surface p-[22px]">
             <b className="text-base font-semibold">Need more than four profiles?</b>
             <p className="text-sm text-muted">Studio removes the profile limit and adds four simultaneous streams plus your own sources.</p>
             <Link to="/pricing" className="inline-flex h-[38px] w-fit items-center rounded-full border border-border-strong bg-white/[.06] px-4 text-sm font-semibold hover:bg-white/10">Compare plans</Link>
           </div>
         )}
+        <div className="rounded-2xl border border-border bg-surface p-7">
+          <h2 className="text-lg font-semibold">Watch on your devices</h2>
+          <p className="mt-1 text-sm text-muted">Every profile here is on each device you sign in to, with the same library and progress.</p>
+          <div className="mt-3">
+            {[
+              { icon: <AppleIcon className="h-5 w-5" />, name: 'Mac', note: `Moonlit for Mac ${MAC_VERSION}`, action: <a href={MAC_DOWNLOAD_URL} className="text-accent">Download</a> },
+              { icon: <PhoneIcon className="h-5 w-5" />, name: 'iPhone and iPad', note: 'Public beta on TestFlight', action: <a href={TESTFLIGHT_URL} target="_blank" rel="noreferrer noopener" className="text-accent">Join the beta</a> },
+              { icon: <GlobeIcon className="h-5 w-5" />, name: 'Web', note: 'Right here in the browser', action: <span className="text-faint">Signed in</span> },
+              { icon: <TvIcon className="h-5 w-5" />, name: 'Apple TV', note: 'Enter the code the TV shows', action: <Link to="/activate" className="text-accent">Link a TV</Link> },
+            ].map((d) => (
+              <div key={d.name} className="grid grid-cols-[24px_1fr_auto] items-center gap-3 border-b border-border py-3.5 text-[14.5px] last:border-0">
+                <span className="text-text">{d.icon}</span>
+                <span><b className="font-semibold">{d.name}</b><span className="ml-2 text-muted">{d.note}</span></span>
+                <span className="text-sm font-medium">{d.action}</span>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
 
       {(editingProfile || creatingNew) && user && (

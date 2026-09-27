@@ -14,7 +14,7 @@ import type { NativeSourceRow } from '../../lib/addSource';
 
 export default function MyCollectionsPage() {
   const { role, activeProfile } = useAuth();
-  const eligible = role === 'studio' || role === 'admin';
+  const eligible = role === 'studio';
 
   const [collections, setCollections] = useState<Collection[]>([]);
   const [folders, setFolders] = useState<Folder[]>([]);

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { Navbar } from './Navbar';
+import { Footer } from './Footer';
 import { FirstProfileGate } from '../profiles/FirstProfileGate';
 import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../lib/supabase';
@@ -102,13 +103,14 @@ export function AppShell({ children, wide = true }: { children: React.ReactNode;
       <Navbar />
       <div className="h-[var(--nav-h)]" aria-hidden="true" />
       {isAdminArea ? (
-        <div className="mx-auto grid w-full max-w-[1240px] flex-1 gap-6 px-5 py-10 md:px-8 lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-10 lg:py-14">
+        <div className="mx-auto grid w-full max-w-[1240px] flex-1 gap-6 px-5 pb-20 pt-12 md:px-8 lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-10 lg:pt-[72px]">
           <AdminSidebar counts={counts} />
           <main className="min-w-0">{children}</main>
         </div>
       ) : (
-        <main className={`mx-auto w-full flex-1 px-5 py-10 md:px-8 ${wide ? 'max-w-[1240px]' : 'max-w-3xl'}`}>{children}</main>
+        <main className={`mx-auto w-full flex-1 px-5 pb-20 pt-12 md:px-8 md:pt-[72px] ${wide ? 'max-w-[1240px]' : 'max-w-3xl'}`}>{children}</main>
       )}
+      <Footer />
       <FirstProfileGate />
     </div>
   );

@@ -8,21 +8,17 @@ import { Button } from '../ui/Button';
 
 const AVATAR_COLORS = ['#ff7a3d', '#4f7cff', '#2fbf8f', '#c65cff', '#f2d27a', '#ff5c8a'];
 
+/** The Moonlit app icon (the clapperboard), same art as the Mac and iOS apps. */
 export function Logo({ className = 'h-7 w-7' }: { className?: string }) {
   return (
-    <svg viewBox="0 0 512 512" className={className} aria-hidden="true">
-      <defs>
-        <linearGradient id="moonlit-moon" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#FF8A35" />
-          <stop offset="100%" stopColor="#FF6A2B" />
-        </linearGradient>
-      </defs>
-      <circle cx="256" cy="256" r="240" fill="#151517" />
-      <path
-        d="M336 96C280 108 240 160 240 220C240 280 280 340 336 352C304 376 264 388 220 388C140 388 76 324 76 244C76 164 140 100 220 100C264 100 304 112 336 96Z"
-        fill="url(#moonlit-moon)"
-      />
-    </svg>
+    <img
+      src="/moonlit-icon-96.png"
+      alt=""
+      aria-hidden="true"
+      width={28}
+      height={28}
+      className={`${className} flex-none rounded-[22%] shadow-[0_2px_8px_rgba(0,0,0,.5)]`}
+    />
   );
 }
 
@@ -42,7 +38,8 @@ export function Navbar({ transparent = false }: NavbarProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const isAdmin = role === 'admin';
-  const isStudio = role === 'studio' || isAdmin;
+  const isStudio = role === 'studio';
+  // Personal Home widgets: Spotlight and Studio. Admin edits the shared presets instead.
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
 
@@ -72,6 +69,7 @@ export function Navbar({ transparent = false }: NavbarProps) {
       <NavLink to="/download" className={navClass}>Download</NavLink>
       {!session && <NavLink to="/pricing" className={navClass}>Pricing</NavLink>}
       {session && <NavLink to="/profiles" className={navClass}>Profiles</NavLink>}
+      {session && (role === 'spotlight' || isStudio) && <NavLink to="/my-widgets" className={navClass}>My widgets</NavLink>}
       {session && isStudio && <NavLink to="/my-collections" className={navClass}>My collections</NavLink>}
       {session && isAdmin && <NavLink to="/admin/home-presets" className={navClass}>Widgets</NavLink>}
       {session && isOwner && <NavLink to="/billing" className={navClass}>Billing</NavLink>}
