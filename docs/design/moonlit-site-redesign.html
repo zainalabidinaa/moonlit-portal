@@ -632,6 +632,47 @@ html[data-role]:not([data-role="out"]) .signout { display: inline-flex; }
 .folder small { display: block; color: var(--faint); font-size: 12px; }
 .folder .src-n { font-family: var(--mono); font-size: 11px; color: var(--muted); }
 
+/* widgets */
+.seg { display: inline-flex; padding: 4px; border-radius: 999px; background: var(--bg-2); border: 1px solid var(--line); }
+.seg button { height: 34px; padding: 0 16px; border-radius: 999px; border: 0; background: transparent; font-size: 14px; font-weight: 500; color: var(--muted); }
+.seg button[aria-selected="true"] { background: var(--surface-2); color: var(--text); }
+.wbar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; margin: 8px 0 18px; }
+.preset { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.preset .sel { display: inline-flex; align-items: center; gap: 8px; height: 38px; padding: 0 12px 0 14px; border-radius: 10px; border: 1px solid var(--line-2); background: var(--bg-2); font-size: 14px; font-weight: 500; }
+.preset .sel svg { width: 14px; height: 14px; color: var(--faint); }
+.tog { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
+.tog i { width: 34px; height: 20px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--line-2); position: relative; display: inline-block; transition: background .2s; }
+.tog i::after { content: ""; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: #fff; transition: transform .2s var(--ease); }
+.tog.on i { background: var(--accent); border-color: transparent; }
+.tog.on i::after { transform: translateX(14px); }
+.wgrid { display: grid; gap: 12px; grid-template-columns: 1fr; }
+@media (min-width: 720px) { .wgrid { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 1100px) { .wgrid { grid-template-columns: repeat(3, 1fr); } }
+.wc { position: relative; display: grid; grid-template-rows: auto 1fr auto; border-radius: var(--r); border: 1px solid var(--line); background: var(--surface); overflow: hidden; transition: border-color .2s, transform .3s var(--ease); }
+.wc:hover { border-color: var(--line-2); transform: translateY(-2px); }
+.wc.off { opacity: .55; }
+.wc .wh { display: flex; align-items: center; gap: 10px; padding: 12px 14px 0; }
+.wc .n { font-family: var(--mono); font-size: 11px; color: var(--faint); width: 20px; }
+.wc .kind { font-family: var(--mono); font-size: 10.5px; letter-spacing: .06em; padding: 3px 7px; border-radius: 5px; border: 1px solid var(--line-2); color: var(--muted); }
+.wc .kind.collection { color: #6fdc9a; border-color: rgba(111,220,154,.35); }
+.wc .kind.hub { color: #b9c2ff; border-color: rgba(185,194,255,.35); }
+.wc .kind.filtering { color: var(--accent); border-color: rgba(255,122,61,.4); }
+.wc .kind.addon { color: #f2d27a; border-color: rgba(242,210,122,.35); }
+.wc .kind.row { color: #d9a3ff; border-color: rgba(217,163,255,.35); }
+.wc .drag { margin-left: auto; color: var(--faint); cursor: grab; font-size: 16px; letter-spacing: -2px; }
+.wc .wb { padding: 10px 14px 4px; }
+.wc .wb b { display: block; font-size: 15px; font-weight: 600; }
+.wc .wb small { display: block; color: var(--muted); font-size: 12.5px; margin-top: 2px; }
+.wc .wstrip { display: flex; gap: 6px; padding: 10px 14px 0; overflow: hidden; }
+.wc .wstrip img { width: 44px; aspect-ratio: 2 / 3; object-fit: cover; border-radius: 4px; flex: none; }
+.wc .wstrip .hubtile { width: 72px; aspect-ratio: 16 / 10; border-radius: 6px; flex: none; display: grid; place-items: center; font-size: 11px; font-weight: 600; color: #fff; }
+.wc .wf { display: flex; justify-content: space-between; align-items: center; padding: 12px 14px; border-top: 1px solid var(--line); margin-top: 12px; }
+.wc .wf .mini-btn { height: 28px; padding: 0 10px; border-radius: 999px; border: 1px solid var(--line-2); background: transparent; font-size: 12px; font-weight: 500; color: var(--muted); }
+.wc .wf .mini-btn + .mini-btn { margin-left: 6px; }
+.wc.addw { display: grid; place-items: center; min-height: 200px; border-style: dashed; background: transparent; color: var(--muted); font-weight: 500; gap: 8px; text-align: center; padding: 20px; cursor: pointer; }
+.wc.addw span { font-size: 26px; font-weight: 300; color: var(--faint); display: block; }
+.wnote { margin-top: 18px; color: var(--faint); font-size: 13px; }
+
 /* admin */
 .admin-layout { display: grid; gap: 24px; }
 @media (min-width: 960px) { .admin-layout { grid-template-columns: 220px minmax(0, 1fr); gap: 40px; align-items: start; } }
@@ -689,6 +730,7 @@ html[data-role]:not([data-role="out"]) .signout { display: inline-flex; }
       <a href="#pricing" data-nav="pricing" data-auth="out">Pricing</a>
       <a href="#profiles" data-nav="profiles" data-auth="in">Profiles</a>
       <a href="#my-collections" data-nav="my-collections" data-auth="studio">My collections</a>
+      <a href="#widgets" data-nav="widgets" data-auth="studio">Widgets</a>
       <a href="#billing" data-nav="billing" data-auth="in">Billing</a>
       <a href="#support" data-nav="support">Support</a>
       <a href="#admin" data-nav="admin" data-auth="admin">Admin</a>
@@ -708,6 +750,7 @@ html[data-role]:not([data-role="out"]) .signout { display: inline-flex; }
   <a href="#pricing" data-nav="pricing" data-auth="out">Pricing</a>
   <a href="#profiles" data-nav="profiles" data-auth="in">Profiles</a>
   <a href="#my-collections" data-nav="my-collections" data-auth="studio">My collections</a>
+  <a href="#widgets" data-nav="widgets" data-auth="studio">Widgets</a>
   <a href="#billing" data-nav="billing" data-auth="in">Billing</a>
   <a href="#support" data-nav="support">Support</a>
   <a href="#admin" data-nav="admin" data-auth="admin">Admin</a>
@@ -1122,7 +1165,7 @@ html[data-role]:not([data-role="out"]) .signout { display: inline-flex; }
             <tr><td>Full curated catalog</td><td class="y">✓</td><td class="featured-col y">✓</td><td class="y">✓</td></tr>
             <tr><td>Simultaneous streams</td><td>1</td><td class="featured-col">2</td><td>4</td></tr>
             <tr><td>Maximum quality</td><td>4K HDR</td><td class="featured-col">4K HDR</td><td>4K HDR</td></tr>
-            <tr><td>Profiles</td><td>1</td><td class="featured-col">Up to 4</td><td>Unlimited</td></tr>
+            <tr><td>Profiles</td><td>Up to 4</td><td class="featured-col">Up to 4</td><td>Unlimited</td></tr>
             <tr><td>Mac, iPhone, iPad and web</td><td class="y">✓</td><td class="featured-col y">✓</td><td class="y">✓</td></tr>
             <tr><td>Add your own sources and catalog</td><td>—</td><td class="featured-col">—</td><td class="y">✓</td></tr>
             <tr><td>Priority stream warm-up</td><td>—</td><td class="featured-col">—</td><td class="y">✓</td></tr>
@@ -1270,12 +1313,25 @@ html[data-role]:not([data-role="out"]) .signout { display: inline-flex; }
   </div>
 </section>
 
+<!-- ═══════════════════════ WIDGETS (Studio / admin) ═══════════════════════ -->
+<section class="page" data-page="widgets">
+  <div class="wrap" style="padding: calc(var(--nav-h) + 56px) 20px 96px">
+    <div class="acct-head" style="margin-bottom: 8px"><div><h1>Widgets</h1><p id="w-sub"></p></div><a class="btn btn-primary btn-sm" href="#widgets">Add widget</a></div>
+    <div class="wbar">
+      <div class="preset" id="w-preset"></div>
+      <div class="seg" role="tablist" aria-label="App tab"><button type="button" role="tab" data-wtab="home" aria-selected="true">Home</button><button type="button" role="tab" data-wtab="movies" aria-selected="false">Movies</button><button type="button" role="tab" data-wtab="series" aria-selected="false">Series</button></div>
+    </div>
+    <div class="wgrid" id="w-grid"></div>
+    <p class="wnote" id="w-note"></p>
+  </div>
+</section>
+
 <!-- ═══════════════════════ ADMIN ═══════════════════════ -->
 <section class="page" data-page="admin">
   <div class="wrap admin-layout" style="padding: calc(var(--nav-h) + 56px) 20px 96px">
     <nav class="aside" aria-label="Admin">
       <span class="grp">Catalog</span>
-      <a href="#admin">Widgets</a><a href="#admin">Collections</a><a href="#admin">Sources</a><a href="#admin">Add-ons</a><a href="#admin">Templates</a><a href="#admin">Tab visibility</a>
+      <a href="#widgets" data-nav="widgets">Widgets</a><a href="#admin">Collections</a><a href="#admin">Sources</a><a href="#admin">Add-ons</a><a href="#admin">Templates</a><a href="#admin">Tab visibility</a>
       <span class="grp">People</span>
       <a href="#admin" aria-current="page">Users <i>128</i></a><a href="#admin">Invites <i>6 unused</i></a><a href="#admin">Support <i>3 open</i></a>
     </nav>
@@ -1503,7 +1559,7 @@ html[data-role]:not([data-role="out"]) .signout { display: inline-flex; }
   /* ── plans (shared facts, rendered twice) ── */
   var check = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
   var plans = [
-    { n: 'Friends & Family', p: 'By invitation', word: true, who: 'For people invited by a Moonlit admin.', f: ['Shared household catalog', 'Your own profile and library', 'Every device', 'No billing'], cta: 'I have an invite code', to: 'signup', ghost: true },
+    { n: 'Friends & Family', p: 'By invitation', word: true, who: 'For people invited by a Moonlit admin.', f: ['Shared household catalog', 'Up to 4 profiles', 'Every device', 'No billing'], cta: 'I have an invite code', to: 'signup', ghost: true },
     { n: 'Spotlight', p: '$9.99', unit: 'per month', who: 'For a household that just wants to watch.', f: ['Full curated catalog', '2 streams at once, up to 4K HDR', 'Up to 4 profiles', 'Mac, iPhone, iPad and web'], cta: 'Choose Spotlight', to: 'signup', featured: true },
     { n: 'Studio', p: '$14.99', unit: 'per month', who: 'For power users who want more control.', f: ['Everything in Spotlight', '4 streams at once in 4K HDR', 'Unlimited profiles', 'Add your own sources and catalog', 'Priority stream warm-up and early features'], cta: 'Choose Studio', to: 'signup', ghost: true }
   ];
@@ -1528,8 +1584,9 @@ html[data-role]:not([data-role="out"]) .signout { display: inline-flex; }
   function route() {
     var h = (location.hash || '#home').slice(1);
     var role = document.documentElement.getAttribute('data-role') || 'out';
-    if (role === 'out' && ['profiles','billing','my-collections','admin'].indexOf(h) >= 0) h = 'signin';
+    if (role === 'out' && ['profiles','billing','my-collections','admin','widgets'].indexOf(h) >= 0) h = 'signin';
     if (h === 'admin' && role !== 'admin') h = 'profiles';
+    if (h === 'widgets' && role !== 'admin' && role !== 'studio') h = role === 'out' ? 'signin' : 'profiles';
     var found = false;
     pages.forEach(function (p) { var on = p.getAttribute('data-page') === h; if (on) found = true; p.setAttribute('data-active', String(on)); });
     if (!found) { pages.forEach(function (p) { p.setAttribute('data-active', String(p.getAttribute('data-page') === 'home')); }); h = 'home'; }
@@ -1573,7 +1630,7 @@ html[data-role]:not([data-role="out"]) .signout { display: inline-flex; }
   function av(i) { return AV[avk[i % Math.max(avk.length, 1)]] || ''; }
   var ROLES = {
     out: null,
-    ff: { label: 'Friends & Family', cls: 'ff', name: 'Mia', email: 'mia@example.com', avatar: av(3), profiles: [{ n: 'Mia', a: av(3) }], limit: 1, expires: '14 Mar 2027', invitedBy: "Jordan's household" },
+    ff: { label: 'Friends & Family', cls: 'ff', name: 'Mia', email: 'mia@example.com', avatar: av(3), profiles: [{ n: 'Mia', a: av(3) }, { n: 'Leo', a: av(6), kid: true }], limit: 4, expires: '14 Mar 2027', invitedBy: "Jordan's household" },
     spotlight: { label: 'Spotlight', cls: 'spotlight', name: 'Jordan', email: 'jordan@example.com', avatar: av(0), profiles: [{ n: 'Jordan', a: av(0) }, { n: 'Sam', a: av(1) }, { n: 'Mia', a: av(4), kid: true }], limit: 4, price: '$9.99', renews: '27 Oct 2026', card: 'Visa ending 4242', streams: 2 },
     studio: { label: 'Studio', cls: 'studio', name: 'Ada', email: 'ada@example.com', avatar: av(2), profiles: [{ n: 'Ada', a: av(2) }, { n: 'Ben', a: av(5) }, { n: 'Noor', a: av(6) }, { n: 'Kai', a: av(1) }, { n: 'Lou', a: av(4), kid: true }], limit: null, price: '$14.99', renews: '3 Oct 2026', card: 'Mastercard ending 0199', streams: 4 },
     admin: { label: 'Admin', cls: 'admin', name: 'Zain', email: 'zain@trymoonlit.app', avatar: av(5), profiles: [{ n: 'Zain', a: av(5) }, { n: 'Guest', a: av(7) }], limit: null, admin: true }
@@ -1591,7 +1648,8 @@ html[data-role]:not([data-role="out"]) .signout { display: inline-flex; }
     }
     document.querySelectorAll('.getm, .hero .btn-primary, .band .btn-primary').forEach(function (a) { if (a.classList.contains('getm')) return; a.textContent = u ? 'Open Moonlit' : 'Start watching'; if (u) a.setAttribute('href', '#profiles'); else a.setAttribute('href', '#signup'); a.setAttribute('data-nav', u ? 'profiles' : 'signup'); });
     renderAccount(u);
-    if (!u && ['profiles','billing','my-collections','admin'].indexOf((location.hash || '').slice(1)) >= 0) location.hash = '#signin';
+    renderWidgets();
+    if (!u && ['profiles','billing','my-collections','admin','widgets'].indexOf((location.hash || '').slice(1)) >= 0) location.hash = '#signin';
     if (u && ['signin','signup'].indexOf((location.hash || '').slice(1)) >= 0) location.hash = '#profiles';
   }
   roleBtns.forEach(function (b) { b.addEventListener('click', function () { setRole(b.getAttribute('data-role-btn'), true); }); });
@@ -1643,6 +1701,75 @@ html[data-role]:not([data-role="out"]) .signout { display: inline-flex; }
       return '<tr><td class="em">' + r[0] + '</td><td><span class="role ' + r[1] + '">' + r[1].replace('_', ' & ') + '</span></td><td class="' + (expSoon ? 'warn' : 'dim') + '">' + r[2] + '</td><td class="' + (r[3] === 'No' ? 'dim' : 'ok') + '">' + r[3] + '</td><td>' + r[4] + '</td><td class="' + (r[5].indexOf('Now') === 0 ? 'ok' : 'dim') + '">' + r[5] + '</td><td class="dim">' + r[6] + '</td><td><button class="mini-btn" type="button">Edit</button><button class="mini-btn" type="button">Grant</button></td></tr>';
     }).join('');
   }
+  /* ── widgets page ── */
+  var WK = { collection: 'Collection', hub: 'Browse hub', filtering: 'Filtering', addon: 'Add-on catalog', row: 'Collections row' };
+  var WIDGETS = {
+    admin: {
+      home: [
+        { k: 'collection', n: 'Signature picks', s: 'Collection · 18 titles · hero rail', ks: ['movie693134','tv95396','movie872585','movie792307'], on: true },
+        { k: 'filtering', n: 'Trending this week', s: 'Movies & series · sorted by popularity · last 7 days', ks: ['tv126308','movie940721','tv136315','movie361743'], on: true },
+        { k: 'hub', n: 'Genres', s: 'Browse hub · 14 genre folders · tiles use folder art', hub: ['Thriller','Sci-fi','Drama','Comedy'], on: true },
+        { k: 'collection', n: 'Neo-noir nights', s: 'Collection · 24 titles', ks: ['movie64690','movie335984','movie949','movie6977'], on: true },
+        { k: 'hub', n: 'Languages', s: 'Browse hub · 9 language folders', hub: ['Korean','Japanese','French','Spanish'], on: true },
+        { k: 'collection', n: 'Prestige TV', s: 'Collection · 31 shows', ks: ['tv76331','tv1396','tv87108','tv100088'], on: true },
+        { k: 'addon', n: 'New on Moonlit', s: 'Add-on catalog · Cinemeta · new releases', ks: ['movie666277','movie508883','tv94605','movie545611'], on: true },
+        { k: 'row', n: 'All collections', s: 'Collections row · every active collection', ks: ['movie129','movie843','movie157336','movie862'], on: false }
+      ],
+      movies: [
+        { k: 'filtering', n: 'Top rated films', s: 'Movies · rating ≥ 8.0 · 500+ votes', ks: ['movie155','movie27205','movie496243','movie129'], on: true },
+        { k: 'collection', n: 'Oscars, the 2020s', s: 'Collection · 15 titles', ks: ['movie545611','movie792307','movie872585','movie666277'], on: true },
+        { k: 'collection', n: 'Big science fiction', s: 'Collection · 20 titles', ks: ['movie693134','movie329865','movie335984','movie157336'], on: true },
+        { k: 'collection', n: 'Korean cinema', s: 'Collection · 18 titles', ks: ['movie496243','movie705996','movie11423','movie670'], on: true },
+        { k: 'collection', n: 'Studio Ghibli, complete', s: 'Collection · 22 films', ks: ['movie129','movie128','movie508883','movie372058'], on: true },
+        { k: 'hub', n: 'Genres', s: 'Browse hub · films only', hub: ['Horror','Action','Romance','Animation'], on: true }
+      ],
+      series: [
+        { k: 'filtering', n: 'Airing this week', s: 'Series · next air date within 7 days', ks: ['tv136315','tv95480','tv100088','tv83867'], on: true },
+        { k: 'collection', n: 'Prestige TV', s: 'Collection · 31 shows', ks: ['tv76331','tv95396','tv1396','tv126308'], on: true },
+        { k: 'collection', n: 'Slow burn', s: 'Collection · 14 shows', ks: ['tv95480','tv60059','tv1104','tv46648'], on: true },
+        { k: 'collection', n: 'Animation for grown-ups', s: 'Collection · 16 titles', ks: ['tv94605','movie149','movie128','movie569094'], on: true },
+        { k: 'addon', n: 'Popular series', s: 'Add-on catalog · Cinemeta · popular', ks: ['tv66732','tv93405','tv82856','tv1399'], on: false }
+      ]
+    },
+    studio: {
+      home: [
+        { k: 'collection', n: 'Friday horror', s: 'My collection · 14 titles', ks: ['movie694','movie348','movie762504','movie146233'], on: true },
+        { k: 'collection', n: 'Denis Villeneuve', s: 'My collection · 8 titles', ks: ['movie693134','movie329865','movie273481','movie438631'], on: true },
+        { k: 'filtering', n: 'Unwatched 4K', s: 'My sources · 2160p · not yet watched', ks: ['movie940721','movie361743','movie414906','movie76341'], on: true },
+        { k: 'collection', n: 'Comfort rewatch', s: 'My collection · 22 titles', ks: ['movie120467','movie346648','movie313369','movie862'], on: false }
+      ],
+      movies: [
+        { k: 'collection', n: 'Denis Villeneuve', s: 'My collection · 8 titles', ks: ['movie693134','movie329865','movie273481','movie438631'], on: true },
+        { k: 'filtering', n: 'Unwatched 4K', s: 'My sources · 2160p · not yet watched', ks: ['movie940721','movie361743','movie414906','movie76341'], on: true }
+      ],
+      series: [
+        { k: 'addon', n: 'My IPTV catch-up', s: 'Add-on catalog · your server', ks: ['tv95480','tv60622','tv62560','tv1920'], on: true }
+      ]
+    }
+  };
+  var wtab = 'home';
+  var hubColors = ['#3a2f5c','#2f4a5c','#5c2f3a','#2f5c3d'];
+  function renderWidgets() {
+    var role = document.documentElement.getAttribute('data-role') || 'out';
+    var set = WIDGETS[role === 'admin' ? 'admin' : 'studio'];
+    var isAdmin = role === 'admin';
+    var grid = document.getElementById('w-grid'); if (!grid) return;
+    var list = set[wtab] || [];
+    grid.innerHTML = list.map(function (w, i) {
+      var strip = w.hub ? w.hub.map(function (h, j) { return '<span class="hubtile" style="background:linear-gradient(140deg,' + hubColors[j % 4] + ',#111)">' + h + '</span>'; }).join('')
+        : w.ks.filter(function (k) { return P[k]; }).map(function (k) { return '<img src="' + P[k] + '" alt="">'; }).join('');
+      return '<div class="wc' + (w.on ? '' : ' off') + '"><div class="wh"><span class="n">' + (i + 1 < 10 ? '0' : '') + (i + 1) + '</span><span class="kind ' + w.k + '">' + WK[w.k] + '</span><span class="drag" title="Drag to reorder">⋮⋮</span></div><div class="wb"><b>' + esc(w.n) + '</b><small>' + esc(w.s) + '</small></div><div class="strip">' + strip + '</div><div class="wf"><span class="tog' + (w.on ? ' on' : '') + '"><i></i>' + (w.on ? 'Active' : 'Hidden') + '</span><span><button class="mini-btn" type="button">Edit</button><button class="mini-btn" type="button">Remove</button></span></div></div>';
+    }).join('') + '<div class="wc addw"><div><span>+</span>Add a widget to ' + wtab.charAt(0).toUpperCase() + wtab.slice(1) + '</div></div>';
+    document.getElementById('w-sub').textContent = isAdmin ? 'Rows and hubs on the app\'s Home, Movies and Series tabs for every Spotlight and Friends & Family account. Drag to reorder. Changes publish to every device.'
+      : 'Your own rows on top of Moonlit\'s. They show on the ' + (ROLES.studio.profiles.length) + ' profiles on your account and sync to Mac, iPhone and the web.';
+    document.getElementById('w-preset').innerHTML = isAdmin
+      ? '<span class="sel">Signature <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg></span><span class="tog on"><i></i>Active · visible to Spotlight and Friends &amp; Family</span><a class="btn btn-ghost btn-sm" href="#widgets">Import widgets</a>'
+      : '<span class="sel">My home <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg></span><span class="tog on"><i></i>Show above Moonlit\'s rows</span>';
+    document.getElementById('w-note').textContent = isAdmin ? 'A widget lives on one tab at a time. Filtering widgets published from the app with Save & Publish appear here and are edited on-device.'
+      : 'Moonlit\'s Signature rows follow your widgets. Studio widgets never change what other households see.';
+  }
+  document.querySelectorAll('[data-wtab]').forEach(function (b) { b.addEventListener('click', function () { wtab = b.getAttribute('data-wtab'); document.querySelectorAll('[data-wtab]').forEach(function (x) { x.setAttribute('aria-selected', String(x === b)); }); renderWidgets(); }); });
+
   var savedRole = 'out'; try { savedRole = localStorage.getItem('moonlit-role') || 'out'; } catch (e) {}
   setRole(savedRole, false);
 
