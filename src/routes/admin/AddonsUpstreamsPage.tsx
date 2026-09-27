@@ -180,7 +180,7 @@ export default function AddonsUpstreamsPage() {
 
   return (
     <AppShell>
-      <div className="max-w-2xl mx-auto">
+      <div className="max-w-2xl">
         <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
           <div>
             <p className={adminKicker}>Catalog</p>

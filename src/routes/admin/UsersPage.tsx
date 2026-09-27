@@ -462,7 +462,7 @@ export default function UsersPage() {
 
   return (
     <AppShell>
-      <div className="max-w-6xl mx-auto">
+      <div>
         <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
           <div>
             <p className={adminKicker}>People</p>

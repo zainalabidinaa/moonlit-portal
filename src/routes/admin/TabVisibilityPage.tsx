@@ -64,7 +64,7 @@ export default function TabVisibilityPage() {
 
   return (
     <AppShell>
-      <div className="max-w-3xl mx-auto">
+      <div className="max-w-3xl">
         <p className={adminKicker}>Catalog</p>
         <h1 className={`mt-2 ${adminTitle}`}>Tab visibility</h1>
         <p className={`${adminLede} mb-8`}>
