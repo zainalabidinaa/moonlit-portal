@@ -190,6 +190,58 @@ p { margin: 0; }
 .chip { font-family: var(--mono); font-size: 10.5px; padding: 2px 7px; border-radius: 5px; border: 1px solid var(--line-2); color: #ddd; background: rgba(0,0,0,.35); }
 .chip.hot { background: var(--accent); color: var(--accent-ink); border-color: transparent; font-weight: 500; }
 
+/* option C · still frame, full bleed */
+.hero-still { min-height: clamp(600px, 84vh, 820px); display: flex; align-items: flex-end; }
+.hero-still .bg { position: absolute; inset: 0; }
+.hero-still .bg img { width: 100%; height: 100%; object-fit: cover; object-position: 68% 30%; }
+.hero-still .bg::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, rgba(8,8,10,.92) 0%, rgba(8,8,10,.55) 38%, rgba(8,8,10,.05) 70%), linear-gradient(0deg, var(--bg) 0%, rgba(8,8,10,.4) 30%, transparent 60%); }
+.hblur { position: absolute; top: 0; bottom: 0; left: 0; width: 60%; pointer-events: none; z-index: 2; }
+.hblur i { position: absolute; inset: 0; backdrop-filter: blur(var(--b)); -webkit-backdrop-filter: blur(var(--b)); mask-image: linear-gradient(to right, #000 var(--t), transparent var(--f)); -webkit-mask-image: linear-gradient(to right, #000 var(--t), transparent var(--f)); }
+.hblur i:nth-child(1) { --b: 2px;  --t: 55%; --f: 100%; }
+.hblur i:nth-child(2) { --b: 5px;  --t: 40%; --f: 85%; }
+.hblur i:nth-child(3) { --b: 10px; --t: 25%; --f: 70%; }
+.hblur i:nth-child(4) { --b: 20px; --t: 10%; --f: 55%; }
+.hero-still .hero-content { position: relative; z-index: 4; width: 100%; padding-top: calc(var(--nav-h) + 90px); padding-bottom: 56px; display: grid; gap: 28px; align-items: end; }
+@media (min-width: 960px) { .hero-still .hero-content { grid-template-columns: 1fr auto; padding-bottom: 88px; } }
+.hero-still h1 { max-width: 12em; }
+.film-tag { display: inline-flex; align-items: center; gap: 10px; padding: 8px 12px 8px 8px; border-radius: 999px; background: rgba(14,14,17,.55); border: 1px solid var(--line-2); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); font-size: 13px; color: #ddd; white-space: nowrap; justify-self: start; }
+@media (min-width: 960px) { .film-tag { justify-self: end; } }
+.film-tag img { width: 26px; aspect-ratio: 2 / 3; object-fit: cover; border-radius: 4px; }
+.film-tag b { font-weight: 600; color: #fff; }
+.film-tag .chip { margin-left: 2px; }
+
+/* option D · framed still under centered copy */
+.hero-frame { padding: calc(var(--nav-h) + 64px) 0 0; }
+.hero-frame .hero-content { position: relative; z-index: 4; text-align: center; display: grid; justify-items: center; }
+.hero-frame h1 { max-width: 14em; }
+.hero-frame .lede { margin-inline: auto; }
+.hero-frame .hero-actions, .hero-frame .hero-meta { justify-content: center; }
+.frame-wrap { position: relative; width: 100%; margin-top: 48px; }
+.frame-glow { position: absolute; inset: 10% 8% -10%; z-index: 0; pointer-events: none; }
+.frame-glow img { width: 100%; height: 100%; object-fit: cover; filter: blur(70px) saturate(1.4); opacity: .5; }
+.frame { position: relative; z-index: 1; aspect-ratio: 16 / 9; border-radius: var(--r-lg); overflow: hidden; border: 1px solid rgba(255,255,255,.14); box-shadow: 0 60px 120px -40px rgba(0,0,0,1), inset 0 1px 0 rgba(255,255,255,.12); background: #000; }
+@media (min-width: 760px) { .frame { aspect-ratio: 21 / 9; } }
+.frame img.still { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 35%; }
+.frame .shade { position: absolute; inset: 0; background: linear-gradient(0deg, rgba(8,8,10,.85), transparent 45%); }
+.frame .film-tag { position: absolute; left: 18px; bottom: 18px; }
+.frame .play { position: absolute; right: 18px; bottom: 18px; display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px 0 12px; border-radius: 999px; background: #fff; color: #000; font-weight: 600; font-size: 13.5px; }
+.frame-fade { position: absolute; left: 0; right: 0; bottom: 0; height: 40%; background: linear-gradient(to bottom, transparent, var(--bg)); z-index: 2; pointer-events: none; }
+.hero-frame .pblur { display: none; }
+
+/* option E · copy left, app window right */
+.hero-app { padding: calc(var(--nav-h) + 56px) 0 48px; }
+.hero-app .hero-content { position: relative; z-index: 4; display: grid; gap: 40px; align-items: center; }
+@media (min-width: 1000px) { .hero-app .hero-content { grid-template-columns: .9fr 1.1fr; gap: 56px; padding-top: 24px; padding-bottom: 24px; } }
+.hero-app h1 { max-width: 12em; }
+.app-stage { position: relative; min-width: 0; }
+.app-stage .glow { position: absolute; inset: -20% -10%; z-index: 0; pointer-events: none; }
+.app-stage .glow img { width: 100%; height: 100%; object-fit: cover; filter: blur(80px) saturate(1.4); opacity: .45; }
+.app-stage .mac { position: relative; z-index: 1; max-width: none; }
+.app-stage .mac .app-hero { height: 240px; }
+@media (min-width: 760px) { .app-stage .mac .app-hero { height: 300px; } }
+.hero-app .pblur { display: none; }
+.hero-app .tonight { margin-top: 28px; }
+
 /* hero option switch (review aid, remove before shipping) */
 .hero-switch { position: absolute; right: 16px; bottom: 16px; z-index: 6; display: flex; gap: 4px; padding: 4px; border-radius: 999px; background: rgba(14,14,17,.7); border: 1px solid var(--line-2); backdrop-filter: blur(12px); font-size: 12px; }
 .hero-switch span { padding: 6px 4px 6px 10px; color: var(--faint); }
@@ -559,8 +611,103 @@ footer { border-top: 1px solid var(--line); padding-block: 56px 40px; background
 <main>
 <!-- ═══════════════════════ HOME ═══════════════════════ -->
 <section class="page" data-page="home" data-active="true">
+  <!-- HERO OPTION C · still frame, full bleed -->
+  <div class="hero hero-still" data-hero="still" data-on="true">
+    <div class="bg" aria-hidden="true"><img id="still-bg" alt=""></div>
+    <div class="hblur" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+    <div class="pblur" aria-hidden="true" style="height:30%"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+    <div class="wrap hero-content">
+      <div class="intro">
+      <p class="kicker">Curated streaming for the whole household</p>
+      <h1>Your own streaming service, already set up.</h1>
+      <p class="lede">Collections picked by people, real 4K playback, and a profile for everyone at home. Open Moonlit on Mac, iPhone or the web and press play.</p>
+      <div class="hero-actions">
+        <a class="btn btn-primary btn-lg" href="#signup" data-nav="signup">Start watching <span class="arr">→</span></a>
+        <a class="btn btn-ghost btn-lg" href="#catalog" data-nav="catalog">Browse the catalog</a>
+      </div>
+      <div class="hero-meta">
+        <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>From $9.99 a month</span>
+        <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>No ads, cancel anytime</span>
+        <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Up to 4 profiles</span>
+      </div>
+      </div>
+      <div class="film-tag intro" id="still-tag"><img id="still-tag-img" alt=""><span>Now streaming</span><b id="still-tag-title"></b><span class="chip hot">4K</span><span class="chip">Dolby Vision</span></div>
+    </div>
+    <div class="hero-switch" role="group" aria-label="Hero option"><span>Hero</span><button type="button" data-hero-btn="still" aria-pressed="true">C · Still</button><button type="button" data-hero-btn="frame" aria-pressed="false">D · Frame</button><button type="button" data-hero-btn="app" aria-pressed="false">E · App</button><button type="button" data-hero-btn="wall" aria-pressed="false">A · Wall</button><button type="button" data-hero-btn="flow" aria-pressed="false">B · Flow</button></div>
+  </div>
+
+  <!-- HERO OPTION D · framed still -->
+  <div class="hero hero-frame" data-hero="frame" data-on="false">
+    <div class="wrap hero-content intro">
+      <p class="kicker">Curated streaming for the whole household</p>
+      <h1>Your own streaming service, already set up.</h1>
+      <p class="lede">Collections picked by people, real 4K playback, and a profile for everyone at home. Open Moonlit on Mac, iPhone or the web and press play.</p>
+      <div class="hero-actions">
+        <a class="btn btn-primary btn-lg" href="#signup" data-nav="signup">Start watching <span class="arr">→</span></a>
+        <a class="btn btn-ghost btn-lg" href="#catalog" data-nav="catalog">Browse the catalog</a>
+      </div>
+      <div class="hero-meta">
+        <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>From $9.99 a month</span>
+        <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>No ads, cancel anytime</span>
+        <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Up to 4 profiles</span>
+      </div>
+      <div class="frame-wrap">
+        <div class="frame-glow" aria-hidden="true"><img id="frame-glow" alt=""></div>
+        <div class="frame">
+          <img class="still" id="frame-img" alt="">
+          <div class="shade"></div>
+          <div class="film-tag"><img id="frame-tag-img" alt=""><span>Now streaming</span><b id="frame-tag-title"></b><span class="chip hot">4K</span></div>
+          <span class="play"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>Watch in Moonlit</span>
+        </div>
+        <div class="frame-fade"></div>
+      </div>
+    </div>
+    <div class="hero-switch" role="group" aria-label="Hero option"><span>Hero</span><button type="button" data-hero-btn="still" aria-pressed="false">C · Still</button><button type="button" data-hero-btn="frame" aria-pressed="true">D · Frame</button><button type="button" data-hero-btn="app" aria-pressed="false">E · App</button><button type="button" data-hero-btn="wall" aria-pressed="false">A · Wall</button><button type="button" data-hero-btn="flow" aria-pressed="false">B · Flow</button></div>
+  </div>
+
+  <!-- HERO OPTION E · copy left, app right -->
+  <div class="hero hero-app" data-hero="app" data-on="false">
+    <div class="wrap hero-content">
+      <div class="intro">
+      <p class="kicker">Curated streaming for the whole household</p>
+      <h1>Your own streaming service, already set up.</h1>
+      <p class="lede">Collections picked by people, real 4K playback, and a profile for everyone at home. Open Moonlit on Mac, iPhone or the web and press play.</p>
+      <div class="hero-actions">
+        <a class="btn btn-primary btn-lg" href="#signup" data-nav="signup">Start watching <span class="arr">→</span></a>
+        <a class="btn btn-ghost btn-lg" href="#catalog" data-nav="catalog">Browse the catalog</a>
+      </div>
+      <div class="hero-meta">
+        <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>From $9.99 a month</span>
+        <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>No ads, cancel anytime</span>
+        <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Up to 4 profiles</span>
+      </div>
+        <div class="tonight" data-tonight>
+          <div class="stack"><img alt=""><img alt=""><img alt=""></div>
+          <div><div class="tl"><i></i>Tonight's collection</div><div class="tn"></div><div class="tm"></div></div>
+        </div>
+      </div>
+      <div class="app-stage intro">
+        <div class="glow" aria-hidden="true"><img id="app-glow" alt=""></div>
+        <div class="mac">
+          <div class="bar"><i style="background:#ff5f57"></i><i style="background:#febc2e"></i><i style="background:#28c840"></i><span class="url">trymoonlit.app</span></div>
+          <div class="app-hero">
+            <img id="app-hero-img" alt="">
+            <div class="shade"></div>
+            <div class="app-nav"><span class="on">Home</span><span>Movies</span><span>Series</span><span>Live</span><span>Library</span><span class="av"></span></div>
+            <div class="copy"><small>Featured tonight</small><strong>Dune: Part Two</strong><div class="m"><span class="btnm">▶ Play</span><span class="chip hot">4K</span><span class="chip">DV</span><span>2024 · Sci-fi · 2h 46m</span></div></div>
+          </div>
+          <div class="app-rows">
+            <div><div class="rt">Continue watching <small>JORDAN</small></div><div class="mini" id="app-row1"></div></div>
+            <div><div class="rt">Neo-noir nights <small>COLLECTION · 24</small></div><div class="mini" id="app-row2"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="hero-switch" role="group" aria-label="Hero option"><span>Hero</span><button type="button" data-hero-btn="still" aria-pressed="false">C · Still</button><button type="button" data-hero-btn="frame" aria-pressed="false">D · Frame</button><button type="button" data-hero-btn="app" aria-pressed="true">E · App</button><button type="button" data-hero-btn="wall" aria-pressed="false">A · Wall</button><button type="button" data-hero-btn="flow" aria-pressed="false">B · Flow</button></div>
+  </div>
+
   <!-- HERO OPTION A · poster wall -->
-  <div class="hero hero-wall" data-hero="wall" data-on="true">
+  <div class="hero hero-wall" data-hero="wall" data-on="false">
     <div class="wall3d" aria-hidden="true"><div class="g" id="wall3d"></div></div>
     <div class="scrim"></div>
     <div class="pblur-top"></div>
@@ -583,7 +730,7 @@ footer { border-top: 1px solid var(--line); padding-block: 56px 40px; background
         <div><div class="tl"><i></i>Tonight's collection</div><div class="tn"></div><div class="tm"></div></div>
       </div>
     </div>
-    <div class="hero-switch" role="group" aria-label="Hero option"><span>Hero</span><button type="button" data-hero-btn="wall" aria-pressed="true">A · Wall</button><button type="button" data-hero-btn="flow" aria-pressed="false">B · Coverflow</button></div>
+    <div class="hero-switch" role="group" aria-label="Hero option"><span>Hero</span><button type="button" data-hero-btn="still" aria-pressed="false">C · Still</button><button type="button" data-hero-btn="frame" aria-pressed="false">D · Frame</button><button type="button" data-hero-btn="app" aria-pressed="false">E · App</button><button type="button" data-hero-btn="wall" aria-pressed="true">A · Wall</button><button type="button" data-hero-btn="flow" aria-pressed="false">B · Flow</button></div>
   </div>
 
   <!-- HERO OPTION B · coverflow carousel -->
@@ -614,7 +761,7 @@ footer { border-top: 1px solid var(--line); padding-block: 56px 40px; background
         <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Up to 4 profiles</span>
       </div>
     </div>
-    <div class="hero-switch" role="group" aria-label="Hero option"><span>Hero</span><button type="button" data-hero-btn="wall" aria-pressed="false">A · Wall</button><button type="button" data-hero-btn="flow" aria-pressed="true">B · Coverflow</button></div>
+    <div class="hero-switch" role="group" aria-label="Hero option"><span>Hero</span><button type="button" data-hero-btn="still" aria-pressed="false">C · Still</button><button type="button" data-hero-btn="frame" aria-pressed="false">D · Frame</button><button type="button" data-hero-btn="app" aria-pressed="false">E · App</button><button type="button" data-hero-btn="wall" aria-pressed="false">A · Wall</button><button type="button" data-hero-btn="flow" aria-pressed="true">B · Flow</button></div>
   </div>
 
   <div class="strip">
@@ -1022,6 +1169,7 @@ footer { border-top: 1px solid var(--line); padding-block: 56px 40px; background
   function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;'); }
   var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+  function setImg(id, src) { var el = document.getElementById(id); if (el && src) el.src = src; }
   /* ── hero option switch ── */
   var heroes = document.querySelectorAll('.hero[data-hero]');
   function setHero(name, save) {
@@ -1031,7 +1179,12 @@ footer { border-top: 1px solid var(--line); padding-block: 56px 40px; background
   }
   document.querySelectorAll('[data-hero-btn]').forEach(function (b) { b.addEventListener('click', function () { setHero(b.getAttribute('data-hero-btn'), true); }); });
   var savedHero = null; try { savedHero = localStorage.getItem('moonlit-hero'); } catch (e) {}
-  if (savedHero === 'flow' || savedHero === 'wall') setHero(savedHero, false);
+  if (['still','frame','app','wall','flow'].indexOf(savedHero) >= 0) setHero(savedHero, false);
+
+  /* ── still heroes: images ── */
+  setImg('still-bg', H['movie693134']); setImg('still-tag-img', P['movie693134']); var stt = document.getElementById('still-tag-title'); if (stt) stt.textContent = t('movie693134');
+  setImg('frame-img', H['movie335984']); setImg('frame-glow', H['movie335984']); setImg('frame-tag-img', P['movie335984']); var ftt = document.getElementById('frame-tag-title'); if (ftt) ftt.textContent = t('movie335984');
+  setImg('app-hero-img', H['movie693134']); setImg('app-glow', H['movie693134']);
 
   /* ── option A: 3D poster wall ── */
   var wallEl = document.getElementById('wall3d');
@@ -1107,7 +1260,6 @@ footer { border-top: 1px solid var(--line); padding-block: 56px 40px; background
   fillRail('rail-a', railA); fillRail('rail-b', railB);
 
   /* ── player + band + app mock images ── */
-  function setImg(id, src) { var el = document.getElementById(id); if (el && src) el.src = src; }
   setImg('player-img', H['movie693134'] || B['movie693134']);
   setImg('band-img', H['movie157336']);
   setImg('mac-hero', H['movie335984']);
@@ -1141,6 +1293,8 @@ footer { border-top: 1px solid var(--line); padding-block: 56px 40px; background
   miniRow('mac-row2', ['tv76331','tv1396','tv87108','tv100088','tv60059','tv95480','tv1104']);
   miniRow('phone-row1', ['tv95396','movie872585','tv136315','movie693134'], true);
   miniRow('phone-row2', ['movie940721','movie666277','tv94605','movie508883']);
+  miniRow('app-row1', ['tv95396','movie872585','tv136315','movie693134','tv126308','movie792307','tv83867'], true);
+  miniRow('app-row2', ['movie64690','movie335984','movie949','movie6977','movie273481','movie146233','movie705996']);
   miniRow('dl-row', ['movie693134','movie792307','tv126308','movie940721','movie666277','tv136315','movie508883']);
 
   /* ── collections ── */
