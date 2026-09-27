@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { authedFetchJson, SessionExpiredError } from '../../lib/authed-fetch';
 import { supabase } from '../../lib/supabase';
@@ -7,7 +7,7 @@ import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { DeleteUserModal } from '../../components/admin/DeleteUserModal';
 import { ServerAccessCell } from '../../components/admin/ServerAccessCell';
-import { FilterChip, StatTile, adminKicker, adminLede, adminSelect, adminTh, adminTitle } from '../../components/admin/AdminUI';
+import { StatTile, adminKicker, adminLede, adminSelect, adminTh, adminTitle } from '../../components/admin/AdminUI';
 import { grantExpiry, matchesServerFilter, serverAccessState, type ServerAccessFilter, type ServerAccessSource } from '../../lib/serverAccess';
 import { lastActiveStatus, lastActiveLabel, formatRelativeTime, parseUserAgent, type ActiveStatus } from '../../lib/userActivity';
 import type { SessionInfo, ActivityEntry } from '../../lib/userActivity';
@@ -177,13 +177,92 @@ function ActivityDrawer({
   );
 }
 
+function ActiveFilter({ label, onClear }: { label: string; onClear: () => void }) {
+  return (
+    <span className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-accent/40 bg-accent-light pl-2.5 pr-1 text-[13px] text-accent">
+      {label}
+      <button type="button" onClick={onClear} aria-label={`Clear ${label}`} className="grid h-6 w-6 place-items-center rounded-md hover:bg-accent/15">×</button>
+    </span>
+  );
+}
+
+/** One "Filter" button; plan and server-access filters live in its menu. */
+function FilterMenu({
+  roleFilter, serverFilter, roleCounts, serverCounts, onRole, onServer, activeCount,
+}: {
+  roleFilter: UserRole | 'all';
+  serverFilter: ServerAccessFilter;
+  roleCounts: Record<UserRole | 'all', number>;
+  serverCounts: Record<ServerAccessFilter, number>;
+  onRole: (r: UserRole | 'all') => void;
+  onServer: (f: ServerAccessFilter) => void;
+  activeCount: number;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node)) setOpen(false); };
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => { document.removeEventListener('mousedown', onDown); document.removeEventListener('keydown', onKey); };
+  }, [open]);
+
+  const roles: (UserRole | 'all')[] = ['all', 'spotlight', 'studio', 'friends_family', 'admin', 'free', 'restricted'];
+  const option = (on: boolean) =>
+    `flex w-full items-center justify-between gap-3 rounded-lg px-2.5 py-1.5 text-left text-sm transition-colors ${on ? 'bg-accent-light text-accent' : 'text-text hover:bg-surface-2'}`;
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        type="button"
+        onClick={() => setOpen(v => !v)}
+        aria-expanded={open}
+        aria-haspopup="true"
+        className={`inline-flex h-9 items-center gap-2 rounded-lg border px-3 text-sm font-medium transition-colors ${open || activeCount ? 'border-accent/50 text-text' : 'border-border-strong text-muted hover:text-text'}`}
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="h-4 w-4"><path d="M4 6h16M7 12h10M10 18h4" /></svg>
+        Filter
+        {activeCount > 0 && <span className="grid h-5 min-w-5 place-items-center rounded-full bg-accent px-1.5 text-[11px] font-semibold text-[#1a0b04]">{activeCount}</span>}
+      </button>
+      {open && (
+        <div className="absolute left-0 top-11 z-20 grid w-[520px] max-w-[calc(100vw-40px)] grid-cols-2 gap-4 rounded-2xl border border-border-strong bg-surface p-4 shadow-card">
+          <div>
+            <p className="mb-2 px-2.5 text-[11px] font-semibold uppercase tracking-[.08em] text-faint">Plan</p>
+            {roles.map(r => (
+              <button key={r} type="button" onClick={() => onRole(r)} className={option(roleFilter === r)}>
+                {r === 'all' ? 'All plans' : r === 'friends_family' ? 'Friends & Family' : ROLE_LABELS[r]}
+                <span className="font-mono text-[11px] text-faint">{roleCounts[r] ?? 0}</span>
+              </button>
+            ))}
+          </div>
+          <div>
+            <p className="mb-2 px-2.5 text-[11px] font-semibold uppercase tracking-[.08em] text-faint">Server access</p>
+            {SERVER_FILTERS.map(f => (
+              <button key={f.value} type="button" onClick={() => onServer(f.value)} className={option(serverFilter === f.value)}>
+                {f.value === 'all' ? 'Any' : f.label}
+                <span className="font-mono text-[11px] text-faint">{serverCounts[f.value] ?? 0}</span>
+              </button>
+            ))}
+          </div>
+          <div className="col-span-2 flex justify-between border-t border-border pt-3">
+            <button type="button" onClick={() => { onRole('all'); onServer('all'); }} className="text-sm text-muted hover:text-text">Clear filters</button>
+            <button type="button" onClick={() => setOpen(false)} className="text-sm font-semibold text-accent">Done</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function UsersPage() {
   const { session } = useAuth();
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [changingRole, setChangingRole] = useState<string | null>(null);
-  const [changingStreams, setChangingStreams] = useState<string | null>(null);
   const [changingServer, setChangingServer] = useState<string | null>(null);
   const [serverFilter, setServerFilter] = useState<ServerAccessFilter>('all');
   const [roleFilter, setRoleFilter] = useState<UserRole | 'all'>('all');
@@ -278,26 +357,6 @@ export default function UsersPage() {
     }
   }
 
-  async function handleStreamsToggle(userId: string, next: boolean) {
-    setChangingStreams(userId);
-    try {
-      await authedFetchJson(`${import.meta.env.VITE_SUPABASE_FUNCTIONS_URL}/admin-users`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, stream_addons_enabled: next }),
-      });
-      setUsers(prev => prev.map(u => u.user_id === userId ? { ...u, stream_addons_enabled: next } : u));
-    } catch (e) {
-      if (e instanceof SessionExpiredError) {
-        void supabase.auth.signOut({ scope: 'local' });
-        return;
-      }
-      setError((e as Error).message || 'Failed to change streams access');
-      setTimeout(() => setError(''), 4000);
-    } finally {
-      setChangingStreams(null);
-    }
-  }
 
   // Forces a full install_curated_setup() re-run for this user right now —
   // catalogs AND streams — regardless of their current Streams flag. Also
@@ -460,6 +519,11 @@ export default function UsersPage() {
     return new Date(iso).toLocaleDateString();
   }
 
+  const activeFilters = (roleFilter !== 'all' ? 1 : 0) + (serverFilter !== 'all' ? 1 : 0);
+  const serverCounts = Object.fromEntries(
+    SERVER_FILTERS.map(f => [f.value, users.filter(u => matchesServerFilter(serverAccessState(u), f.value)).length])
+  ) as Record<ServerAccessFilter, number>;
+
   return (
     <AppShell>
       <div>
@@ -467,7 +531,7 @@ export default function UsersPage() {
           <div>
             <p className={adminKicker}>People</p>
             <h1 className={`mt-2 ${adminTitle}`}>Users</h1>
-            <p className={adminLede}>Everyone with a Moonlit account, their plan, server access and where they last signed in. Select a row for sessions and recent activity.</p>
+            <p className={adminLede}>Everyone with a Moonlit account. Select a person to change their plan or access, and to see their devices and recent activity.</p>
           </div>
           <Button size="sm" variant="ghost" onClick={() => setReloadKey(k => k + 1)}>Refresh</Button>
         </div>
@@ -485,179 +549,178 @@ export default function UsersPage() {
             <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">
               <StatTile label="Accounts" value={stats.total} note={`${stats.online} active now`} tone={stats.online ? 'ok' : undefined} />
               <StatTile label="Spotlight" value={stats.byRole.spotlight} note={`${stats.newThisMonth} joined in the last 30 days`} />
-              <StatTile label="Studio" value={stats.byRole.studio} note={`${stats.withServer} with server access`} />
+              <StatTile label="Studio" value={stats.byRole.studio} note={`${stats.withServer} accounts with server access`} />
               <StatTile label="Friends & Family" value={stats.byRole.friends_family} note={stats.expiringSoon ? `${stats.expiringSoon} expire within 30 days` : 'None expiring soon'} tone={stats.expiringSoon ? 'warn' : undefined} />
             </div>
 
-            <div className="mb-3 flex flex-wrap items-center gap-2">
-              <label className="relative mr-1">
-                <span className="sr-only">Search by email</span>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-faint"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" strokeLinecap="round" /></svg>
-                <input
-                  type="search"
-                  value={query}
-                  onChange={e => setQuery(e.target.value)}
-                  placeholder="Search by email"
-                  className="h-9 w-64 rounded-full border border-border-strong bg-bg2 pl-9 pr-3 text-sm text-text outline-none placeholder:text-faint focus:border-accent"
+            <div className="overflow-hidden rounded-2xl border border-border bg-surface">
+              <div className="flex flex-wrap items-center gap-2.5 border-b border-border px-4 py-3">
+                <label className="relative">
+                  <span className="sr-only">Search by email</span>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-faint"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" strokeLinecap="round" /></svg>
+                  <input
+                    type="search"
+                    value={query}
+                    onChange={e => setQuery(e.target.value)}
+                    placeholder="Search by email or name"
+                    className="h-9 w-72 rounded-lg border border-border-strong bg-bg2 pl-9 pr-3 text-sm text-text outline-none placeholder:text-faint focus:border-accent"
+                  />
+                </label>
+                <FilterMenu
+                  roleFilter={roleFilter}
+                  serverFilter={serverFilter}
+                  roleCounts={{ all: stats.total, ...stats.byRole }}
+                  serverCounts={serverCounts}
+                  onRole={setRoleFilter}
+                  onServer={setServerFilter}
+                  activeCount={activeFilters}
                 />
-              </label>
-              {(['all', 'spotlight', 'studio', 'friends_family', 'admin', 'free'] as const).map(r => (
-                <FilterChip key={r} on={roleFilter === r} onClick={() => setRoleFilter(r)} count={r === 'all' ? stats.total : stats.byRole[r]}>
-                  {r === 'all' ? 'All roles' : r === 'friends_family' ? 'Friends & Family' : ROLE_LABELS[r]}
-                </FilterChip>
-              ))}
-            </div>
-            <div className="mb-4 flex flex-wrap items-center gap-2">
-              <span className="mr-1 text-xs font-medium text-faint">Server access</span>
-              {SERVER_FILTERS.map(f => (
-                <FilterChip key={f.value} on={serverFilter === f.value} onClick={() => setServerFilter(f.value)}>{f.label}</FilterChip>
-              ))}
+                {roleFilter !== 'all' && (
+                  <ActiveFilter label={`Plan: ${roleFilter === 'friends_family' ? 'Friends & Family' : ROLE_LABELS[roleFilter]}`} onClear={() => setRoleFilter('all')} />
+                )}
+                {serverFilter !== 'all' && (
+                  <ActiveFilter label={`Server: ${SERVER_FILTERS.find(f => f.value === serverFilter)?.label}`} onClear={() => setServerFilter('all')} />
+                )}
+                <span className="ml-auto text-[13px] text-faint">
+                  {visibleUsers.length === users.length ? `${users.length} people` : `${visibleUsers.length} of ${users.length} people`}
+                </span>
+              </div>
+
+              <table className="w-full table-fixed text-sm">
+                <colgroup>
+                  <col className="w-[30%]" />
+                  <col className="w-[12%]" />
+                  <col className="w-[14%]" />
+                  <col className="w-[24%]" />
+                  <col className="w-[15%]" />
+                  <col className="w-[5%]" />
+                </colgroup>
+                <thead>
+                  <tr className="border-b border-border">
+                    <th className={adminTh}>Person</th>
+                    <th className={adminTh}>Plan</th>
+                    <th className={adminTh}>Access ends</th>
+                    <th className={adminTh}>Server access</th>
+                    <th className={adminTh}>Last active</th>
+                    <th className={adminTh}><span className="sr-only">Details</span></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {visibleUsers.map(u => {
+                    const open = expandedUser === u.user_id;
+                    return (
+                      <Fragment key={u.id}>
+                        <tr
+                          className={`cursor-pointer border-b border-border align-middle transition-colors last:border-0 hover:bg-white/[.03] ${open ? 'bg-white/[.03]' : ''}`}
+                          onClick={() => toggleRow(u.user_id)}
+                          aria-expanded={open}
+                        >
+                          <td className="px-4 py-3.5">
+                            <div className="truncate font-medium text-text">{u.email ?? u.user_id.slice(0, 8) + '…'}</div>
+                            <div className="mt-0.5 truncate text-xs text-faint">Joined {new Date(u.created_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}</div>
+                          </td>
+                          <td className="px-4 py-3.5">
+                            {isRoleExpired(u) ? <Badge variant="warning">Expired</Badge> : <Badge variant={ROLE_BADGE[u.role]}>{ROLE_LABELS[u.role]}</Badge>}
+                          </td>
+                          <td className="px-4 py-3.5 text-muted">
+                            {u.role === 'friends_family' ? (u.role_expires_at ? isoToDisplay(u.role_expires_at) : 'Never') : <span className="text-faint">—</span>}
+                          </td>
+                          <td className="px-4 py-3.5" onClick={e => e.stopPropagation()}>
+                            <ServerAccessCell
+                              user={u}
+                              busy={changingServer === u.user_id}
+                              onGrant={(preset) => patchServerAccess(u.user_id, true, grantExpiry(preset))}
+                              onRevoke={() => patchServerAccess(u.user_id, false, null)}
+                            />
+                          </td>
+                          <td className="px-4 py-3.5 whitespace-nowrap">
+                            <LastActiveCell lastActiveAt={u.last_active_at} />
+                          </td>
+                          <td className="px-4 py-3.5 text-right">
+                            <span className={`inline-block h-2 w-2 rotate-45 border-b-[1.5px] border-r-[1.5px] border-muted transition-transform ${open ? '-rotate-[135deg]' : ''}`} aria-hidden="true" />
+                          </td>
+                        </tr>
+                        {open && (
+                          <tr className="border-b border-border last:border-0">
+                            <td colSpan={6} className="bg-bg2 px-5 py-5" onClick={(e) => e.stopPropagation()}>
+                              <div className="grid gap-6 lg:grid-cols-[minmax(0,340px)_minmax(0,1fr)]">
+                                <div className="grid content-start gap-4">
+                                  <p className="text-[11.5px] font-semibold uppercase tracking-[.06em] text-muted">Manage</p>
+                                  <label className="grid gap-1.5">
+                                    <span className="text-xs text-muted">Plan</span>
+                                    <select
+                                      value={u.role}
+                                      onChange={e => handleRoleChange(u.user_id, e.target.value as UserRole)}
+                                      disabled={changingRole === u.user_id}
+                                      className={`${adminSelect} h-9 w-full text-sm`}
+                                    >
+                                      {(Object.keys(ROLE_LABELS) as UserRole[]).map(r => (
+                                        <option key={r} value={r}>{r === 'friends_family' ? 'Friends & Family' : ROLE_LABELS[r]}</option>
+                                      ))}
+                                    </select>
+                                  </label>
+                                  {u.role === 'friends_family' && (
+                                    <label className="grid gap-1.5">
+                                      <span className="text-xs text-muted">Access ends</span>
+                                      <div className="flex gap-2">
+                                        <select
+                                          value={customUsers.has(u.user_id) ? 'custom' : expiryPreset(u.role_expires_at)}
+                                          onChange={e => handleExpiryPreset(u.user_id, e.target.value)}
+                                          disabled={changingExpiry === u.user_id}
+                                          className={`${adminSelect} h-9 flex-1 text-sm`}
+                                        >
+                                          <option value="7d">In 7 days</option>
+                                          <option value="30d">In 30 days</option>
+                                          <option value="90d">In 90 days</option>
+                                          <option value="custom">Custom date…</option>
+                                          <option value="never">Never</option>
+                                        </select>
+                                        {customUsers.has(u.user_id) && (
+                                          <input
+                                            type="datetime-local"
+                                            value={customValues[u.user_id] ?? toDateTimeInput(u.role_expires_at)}
+                                            onChange={e => handleCustomExpiry(u.user_id, e.target.value)}
+                                            className={`${adminSelect} h-9 flex-1 text-sm`}
+                                          />
+                                        )}
+                                      </div>
+                                    </label>
+                                  )}
+                                  <div className="flex flex-wrap gap-2">
+                                    <Button size="sm" variant="ghost" loading={runningSetup === u.user_id} onClick={() => handleRunSetup(u.user_id)}>
+                                      {setupDone === u.user_id ? 'Setup done ✓' : 'Run setup again'}
+                                    </Button>
+                                    {/* Admin accounts can't be deleted from here at all — the
+                                        server rejects it too, but hiding the affordance keeps
+                                        the intent visible before the modal is even opened. */}
+                                    {u.role !== 'admin' && (
+                                      <Button size="sm" variant="ghost" className="hover:!border-red-400/50 hover:!text-red-400" onClick={() => setDeleteTarget(u)}>
+                                        Delete account
+                                      </Button>
+                                    )}
+                                  </div>
+                                </div>
+                                <div className="min-w-0">
+                                  <ActivityDrawer
+                                    loading={activityLoading === u.user_id}
+                                    error={activityError[u.user_id]}
+                                    data={activityByUser[u.user_id]}
+                                  />
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </Fragment>
+                    );
+                  })}
+                  {visibleUsers.length === 0 && (
+                    <tr><td colSpan={6} className="px-4 py-12 text-center text-sm text-faint">No one matches these filters.</td></tr>
+                  )}
+                </tbody>
+              </table>
             </div>
           </>
-        )}
-
-        {!loading && !error && (
-          <div className="overflow-x-auto rounded-2xl border border-border bg-surface">
-            <table className="w-full min-w-[980px] text-sm [&_td]:whitespace-nowrap [&_th]:whitespace-nowrap">
-              <thead>
-                <tr className="border-b border-border">
-                  <th className={adminTh}>Email</th>
-                  <th className={adminTh}>Role</th>
-                  <th className={adminTh}>Expires</th>
-                  <th className={adminTh}>Server access</th>
-                  <th className={adminTh}>Streams</th>
-                  <th className={adminTh}>Last Active</th>
-                  <th className={adminTh}>Joined</th>
-                  <th className="px-4 py-3" />
-                  <th className="px-4 py-3" />
-                  <th className="px-4 py-3" />
-                </tr>
-              </thead>
-              <tbody>
-                {visibleUsers.map(u => (
-                  <Fragment key={u.id}>
-                  <tr
-                    className="cursor-pointer border-b border-border transition-colors last:border-0 hover:bg-white/[.03]"
-                    onClick={() => toggleRow(u.user_id)}
-                  >
-                    <td className="px-4 py-3 font-medium text-text">{u.email ?? u.user_id.slice(0, 8) + '…'}</td>
-                    <td className="px-4 py-3">
-                      {isRoleExpired(u) ? (
-                        <div className="flex items-center gap-1.5">
-                          <Badge variant="warning">Expired</Badge>
-                          <span className="text-xs text-muted">{new Date(u.role_expires_at!).toLocaleDateString()}</span>
-                        </div>
-                      ) : (
-                        <Badge variant={ROLE_BADGE[u.role]}>{ROLE_LABELS[u.role]}</Badge>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      {u.role === 'friends_family' ? (
-                        <div className="flex items-center gap-2">
-                          <select
-                            value={customUsers.has(u.user_id) ? 'custom' : expiryPreset(u.role_expires_at)}
-                            onChange={e => handleExpiryPreset(u.user_id, e.target.value)}
-                            disabled={changingExpiry === u.user_id}
-                            className={adminSelect}
-                          >
-                            <option value="7d">7 days</option>
-                            <option value="30d">30 days</option>
-                            <option value="90d">90 days</option>
-                            <option value="custom">Custom…</option>
-                            <option value="never">Never</option>
-                          </select>
-                          {customUsers.has(u.user_id) && (
-                            <input
-                              type="datetime-local"
-                              value={customValues[u.user_id] ?? toDateTimeInput(u.role_expires_at)}
-                              onChange={e => handleCustomExpiry(u.user_id, e.target.value)}
-                              className={`w-44 ${adminSelect}`}
-                            />
-                          )}
-                        </div>
-                      ) : (
-                        <span className="text-muted/60">{isoToDisplay(u.role_expires_at)}</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 min-w-[190px]">
-                      <ServerAccessCell
-                        user={u}
-                        busy={changingServer === u.user_id}
-                        onGrant={(preset) => patchServerAccess(u.user_id, true, grantExpiry(preset))}
-                        onRevoke={() => patchServerAccess(u.user_id, false, null)}
-                      />
-                    </td>
-                    <td className="px-4 py-3">
-                      <label className="flex items-center gap-1.5 cursor-pointer select-none w-fit">
-                        <input
-                          type="checkbox"
-                          checked={u.stream_addons_enabled}
-                          disabled={changingStreams === u.user_id}
-                          onChange={e => handleStreamsToggle(u.user_id, e.target.checked)}
-                          className="accent-accent"
-                        />
-                        {u.stream_addons_enabled
-                          ? <Badge variant="success">Streams</Badge>
-                          : <span className="text-xs text-muted/60">Catalogs only</span>}
-                      </label>
-                    </td>
-                    <td className="px-4 py-3">
-                      <LastActiveCell lastActiveAt={u.last_active_at} />
-                    </td>
-                    <td className="px-4 py-3 text-muted">{new Date(u.created_at).toLocaleDateString()}</td>
-                    <td className="px-4 py-3">
-                      <select
-                        value={u.role}
-                        onChange={e => handleRoleChange(u.user_id, e.target.value as UserRole)}
-                        disabled={changingRole === u.user_id}
-                        className={adminSelect}
-                      >
-                        {(Object.keys(ROLE_LABELS) as UserRole[]).map(r => (
-                          <option key={r} value={r}>{ROLE_LABELS[r]}</option>
-                        ))}
-                      </select>
-                    </td>
-                    <td className="px-4 py-3">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        loading={runningSetup === u.user_id}
-                        onClick={() => handleRunSetup(u.user_id)}
-                        className="whitespace-nowrap"
-                      >
-                        {setupDone === u.user_id ? 'Done ✓' : 'Run setup'}
-                      </Button>
-                    </td>
-                    <td className="px-4 py-3">
-                      {/* Admin accounts can't be deleted from here at all — the
-                          server rejects it too, but hiding the affordance keeps
-                          the intent visible before the modal is even opened. */}
-                      {u.role !== 'admin' && (
-                        <Button size="sm" variant="ghost" onClick={() => setDeleteTarget(u)}>
-                          Delete
-                        </Button>
-                      )}
-                    </td>
-                  </tr>
-                  {expandedUser === u.user_id && (
-                    <tr className="border-b border-border last:border-0">
-                      <td colSpan={10} className="bg-bg2 px-4 py-4" onClick={(e) => e.stopPropagation()}>
-                        <ActivityDrawer
-                          loading={activityLoading === u.user_id}
-                          error={activityError[u.user_id]}
-                          data={activityByUser[u.user_id]}
-                        />
-                      </td>
-                    </tr>
-                  )}
-                  </Fragment>
-                ))}
-                {visibleUsers.length === 0 && (
-                  <tr><td colSpan={10} className="px-4 py-10 text-center text-sm text-faint">No users match these filters.</td></tr>
-                )}
-              </tbody>
-            </table>
-          </div>
         )}
       </div>
 

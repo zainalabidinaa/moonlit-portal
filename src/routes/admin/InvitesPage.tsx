@@ -7,7 +7,7 @@ import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { Card } from '../../components/ui/Card';
 import type { InviteCode } from '../../types';
-import { adminKicker, adminTitle, adminLede } from '../../components/admin/AdminUI';
+import { adminKicker, adminTitle, adminLede, adminSelect } from '../../components/admin/AdminUI';
 
 // `redeemed_streams` is the redeemer's LIVE profile state, not the code's
 // static `includes_streams` flag — the admin can grant/revoke streams directly
@@ -38,9 +38,6 @@ export default function InvitesPage() {
   const [newCodeDuration, setNewCodeDuration] = useState('30');
   const [newCodeCustomDays, setNewCodeCustomDays] = useState('');
   const [showCustomDuration, setShowCustomDuration] = useState(false);
-  // Whether the code grants stream addons. Off by default: a code should only
-  // carry a stream source when you deliberately say so.
-  const [newCodeIncludesStreams, setNewCodeIncludesStreams] = useState(false);
 
   useEffect(() => {
     if (!session) return;
@@ -106,7 +103,7 @@ export default function InvitesPage() {
       // Redeeming this code stamps profiles.stream_addons_enabled, which makes
       // install_curated_setup() provision stream addons too. See
       // 20260811_invite_code_stream_addons.sql.
-      p_includes_streams: newCodeIncludesStreams,
+      p_includes_streams: false,
     });
     if (!error) { setLastGenerated(code); load(); }
     setGenerating(false);
@@ -173,52 +170,54 @@ export default function InvitesPage() {
             <h1 className={`mt-2 ${adminTitle}`}>Invites</h1>
             <p className={adminLede}>Codes that give someone Friends &amp; Family access. Each works once and can carry an expiry.</p>
           </div>
-          <div className="flex items-center gap-2">
-            <select
-              value={newCodeDuration === 'custom' && showCustomDuration ? 'custom' : newCodeDuration}
-              onChange={e => {
-                setNewCodeDuration(e.target.value);
-                setShowCustomDuration(e.target.value === 'custom');
-              }}
-              className="rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none focus:border-accent"
-            >
-              <option value="7">Role: 7 days</option>
-              <option value="30">Role: 30 days</option>
-              <option value="90">Role: 90 days</option>
-              <option value="custom">Role: Custom…</option>
-              <option value="never">Role: Never</option>
-            </select>
-            {newCodeDuration === 'custom' && showCustomDuration && (
-              <input
-                type="number"
-                placeholder="Days"
-                value={newCodeCustomDays}
-                onChange={e => setNewCodeCustomDays(e.target.value)}
-                className="w-20 rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none focus:border-accent"
-              />
-            )}
-            <input
-              type="datetime-local"
-              value={newCodeExpiresAt}
-              onChange={e => setNewCodeExpiresAt(e.target.value)}
-              placeholder="Code expires (optional)"
-              className="rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none focus:border-accent"
-            />
-            <Button size="sm" variant="ghost" onClick={() => setNewCodeExpiresAt('')}>Never</Button>
-            <label
-              className="flex items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text cursor-pointer select-none"
-              title="Grants the redeemer your stream addons on top of the usual catalogs and metadata"
-            >
-              <input
-                type="checkbox"
-                checked={newCodeIncludesStreams}
-                onChange={e => setNewCodeIncludesStreams(e.target.checked)}
-                className="accent-accent"
-              />
-              Stream addons
+        </div>
+
+        <div className="mb-6 rounded-2xl border border-border bg-surface p-5">
+          <p className="mb-4 text-[11.5px] font-semibold uppercase tracking-[.06em] text-muted">New invite</p>
+          <div className="flex flex-wrap items-end gap-4">
+            <label className="grid gap-1.5">
+              <span className="text-xs text-muted">Access lasts</span>
+              <div className="flex gap-2">
+                <select
+                  value={newCodeDuration === 'custom' && showCustomDuration ? 'custom' : newCodeDuration}
+                  onChange={e => {
+                    setNewCodeDuration(e.target.value);
+                    setShowCustomDuration(e.target.value === 'custom');
+                  }}
+                  className={`${adminSelect} h-10 w-40 text-sm`}
+                >
+                  <option value="7">7 days</option>
+                  <option value="30">30 days</option>
+                  <option value="90">90 days</option>
+                  <option value="custom">Custom…</option>
+                  <option value="never">No end date</option>
+                </select>
+                {newCodeDuration === 'custom' && showCustomDuration && (
+                  <input
+                    type="number"
+                    placeholder="Days"
+                    value={newCodeCustomDays}
+                    onChange={e => setNewCodeCustomDays(e.target.value)}
+                    className={`${adminSelect} h-10 w-24 text-sm`}
+                  />
+                )}
+              </div>
             </label>
-            <Button onClick={handleGenerate} loading={generating}>Generate Code</Button>
-            <Button variant="danger" onClick={handleDeleteAll} loading={deleting} disabled={codes.length === 0}>Delete All</Button>
+            <label className="grid gap-1.5">
+              <span className="text-xs text-muted">Code expires <span className="text-faint">(optional)</span></span>
+              <div className="flex gap-2">
+                <input
+                  type="datetime-local"
+                  value={newCodeExpiresAt}
+                  onChange={e => setNewCodeExpiresAt(e.target.value)}
+                  className={`${adminSelect} h-10 w-56 text-sm`}
+                />
+                {newCodeExpiresAt && (
+                  <button type="button" onClick={() => setNewCodeExpiresAt('')} className="text-sm text-muted hover:text-text">Clear</button>
+                )}
+              </div>
+            </label>
+            <Button onClick={handleGenerate} loading={generating} className="ml-auto">Generate code</Button>
           </div>
         </div>
 
@@ -235,15 +234,20 @@ export default function InvitesPage() {
         {loading ? (
           <p className="text-muted text-sm">Loading…</p>
         ) : (
-          <div className="overflow-hidden rounded-xl border border-border bg-surface">
+          <div className="overflow-hidden rounded-2xl border border-border bg-surface">
+            <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
+              <span className="text-[13px] text-faint">{codes.length === 1 ? '1 code' : `${codes.length} codes`}</span>
+              <Button size="sm" variant="ghost" onClick={handleDeleteAll} loading={deleting} disabled={codes.length === 0} className="hover:!border-red-400/50 hover:!text-red-400">
+                Delete all codes
+              </Button>
+            </div>
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-border bg-bg">
+                <tr className="border-b border-border">
                   <th className="px-4 py-3 text-left text-[11.5px] font-semibold uppercase tracking-[.06em] text-muted">Code</th>
                   <th className="px-4 py-3 text-left text-[11.5px] font-semibold uppercase tracking-[.06em] text-muted">Status</th>
                   <th className="px-4 py-3 text-left text-[11.5px] font-semibold uppercase tracking-[.06em] text-muted">Used by</th>
                   <th className="px-4 py-3 text-left text-[11.5px] font-semibold uppercase tracking-[.06em] text-muted">Role duration</th>
-                  <th className="px-4 py-3 text-left text-[11.5px] font-semibold uppercase tracking-[.06em] text-muted">Addons</th>
                   <th className="px-4 py-3 text-left text-[11.5px] font-semibold uppercase tracking-[.06em] text-muted">Code expires</th>
                   <th className="px-4 py-3 text-left text-[11.5px] font-semibold uppercase tracking-[.06em] text-muted">Created</th>
                   <th className="px-4 py-3" />
@@ -268,15 +272,6 @@ export default function InvitesPage() {
                     </td>
                     <td className="px-4 py-3 text-muted">{durationDisplay(c.role_duration_days)}</td>
                     <td className="px-4 py-3">
-                      {/* Redeemed codes show the user's CURRENT entitlement (can
-                          diverge from what the code originally granted — see the
-                          Users page toggle); unredeemed codes preview what
-                          redeeming would grant. */}
-                      {(c.redeemed_streams ?? c.includes_streams)
-                        ? <Badge variant="success">Streams</Badge>
-                        : <span className="text-muted/60">Catalogs only</span>}
-                    </td>
-                    <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         <input
                           type="datetime-local"
@@ -298,6 +293,9 @@ export default function InvitesPage() {
                     </td>
                   </tr>
                 ))}
+                {codes.length === 0 && (
+                  <tr><td colSpan={7} className="px-4 py-12 text-center text-sm text-faint">No invite codes yet. Generate one above.</td></tr>
+                )}
               </tbody>
             </table>
           </div>

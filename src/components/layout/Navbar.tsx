@@ -31,9 +31,11 @@ function navClass({ isActive }: { isActive: boolean }) {
 interface NavbarProps {
   /** Start transparent over a hero and turn solid after the page scrolls. */
   transparent?: boolean;
+  /** Match the wider admin layout so the logo lines up with its sidebar. */
+  wide?: boolean;
 }
 
-export function Navbar({ transparent = false }: NavbarProps) {
+export function Navbar({ transparent = false, wide = false }: NavbarProps) {
   const { session, role, isOwner, activeProfile } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -63,12 +65,12 @@ export function Navbar({ transparent = false }: NavbarProps) {
   const avatarUrl = activeProfile?.avatar_id != null ? AVATAR_URLS[activeProfile.avatar_id] : undefined;
   const avatarBg = activeProfile?.avatar_color ?? AVATAR_COLORS[(activeProfile?.profile_index ?? 0) % AVATAR_COLORS.length];
 
-  const links = (
+  const links = (mobile: boolean) => (
     <>
       <NavLink to="/catalog" className={navClass}>Catalog</NavLink>
       <NavLink to="/download" className={navClass}>Download</NavLink>
       {!session && <NavLink to="/pricing" className={navClass}>Pricing</NavLink>}
-      {session && <NavLink to="/profiles" className={navClass}>Profiles</NavLink>}
+      {session && mobile && <NavLink to="/profiles" className={navClass}>Profiles</NavLink>}
       {session && (role === 'spotlight' || isStudio) && <NavLink to="/my-widgets" className={navClass}>My widgets</NavLink>}
       {session && isStudio && <NavLink to="/my-collections" className={navClass}>My collections</NavLink>}
       {session && isAdmin && <NavLink to="/admin/home-presets" className={navClass}>Widgets</NavLink>}
@@ -87,14 +89,14 @@ export function Navbar({ transparent = false }: NavbarProps) {
           solid ? 'border-border bg-bg/75 backdrop-blur-xl backdrop-saturate-150' : 'border-transparent bg-transparent'
         }`}
       >
-        <div className="mx-auto flex h-[var(--nav-h)] max-w-[1240px] items-center gap-6 px-5 md:px-8">
+        <div className={`mx-auto flex h-[var(--nav-h)] items-center gap-6 px-5 md:px-8 ${wide ? 'max-w-[1600px]' : 'max-w-[1240px]'}`}>
           <Link to="/" className="flex flex-none items-center gap-2.5 text-[19px] font-bold tracking-tight">
             <Logo />
             Moonlit
           </Link>
 
           <nav className="mx-auto hidden items-center gap-0.5 lg:flex" aria-label="Primary">
-            {links}
+            {links(false)}
           </nav>
 
           <div className="ml-auto flex items-center gap-2 lg:ml-0">
@@ -154,7 +156,7 @@ export function Navbar({ transparent = false }: NavbarProps) {
           aria-label="Mobile"
         >
           <div className="flex flex-col [&>a]:border-b [&>a]:border-border [&>a]:py-3 [&>a]:text-lg [&>a]:rounded-none [&>a]:px-2 [&>a:last-child]:border-0">
-            {links}
+            {links(true)}
             {!session && <NavLink to="/login" className={navClass}>Sign in</NavLink>}
           </div>
         </nav>

@@ -7,10 +7,10 @@ const columns: { title: string; links: { label: string; to: string }[] }[] = [
   { title: 'Help', links: [{ label: 'Support', to: '/support' }, { label: 'Link a TV', to: '/activate' }, { label: 'Release notes', to: '/download#release-notes' }] },
 ];
 
-export function Footer() {
+export function Footer({ wide = false }: { wide?: boolean } = {}) {
   return (
     <footer className="border-t border-border bg-bg pb-10 pt-14">
-      <div className="mx-auto max-w-[1240px] px-5 md:px-8">
+      <div className={`mx-auto px-5 md:px-8 ${wide ? 'max-w-[1600px]' : 'max-w-[1240px]'}`}>
         <div className="grid gap-9 md:grid-cols-[1.4fr_1fr_1fr_1fr]">
           <div>
             <Link to="/" className="flex items-center gap-2.5 text-[19px] font-bold tracking-tight">

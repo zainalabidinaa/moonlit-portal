@@ -7,7 +7,8 @@ import { ProfileEditor } from '../../components/profiles/ProfileEditor';
 import { Badge } from '../../components/ui/Badge';
 import { PLAN_LABELS, profileLimitFor } from '../../lib/plans';
 import { MAC_DOWNLOAD_URL, MAC_VERSION, TESTFLIGHT_URL } from '../../lib/releases';
-import { AppleIcon, GlobeIcon, PhoneIcon, TvIcon } from '../../components/landing/PlatformIcons';
+import { AppleIcon, PhoneIcon, TvIcon } from '../../components/landing/PlatformIcons';
+import { AccountActivity } from '../../components/profiles/AccountActivity';
 
 export default function ProfilesPage() {
   const { profiles, activeProfile, setActiveProfile, user, isOwner, loading, role } = useAuth();
@@ -43,8 +44,8 @@ export default function ProfilesPage() {
   const expires = activeProfile?.role_expires_at ? new Date(activeProfile.role_expires_at) : null;
 
   return (
-    <AppShell wide={false}>
-      <div className="grid gap-6">
+    <AppShell>
+      <div className="mx-auto grid max-w-[1040px] gap-6">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <h1 className="text-[34px] font-semibold tracking-tight">Who's watching?</h1>
@@ -119,23 +120,13 @@ export default function ProfilesPage() {
             <Link to="/pricing" className="inline-flex h-[38px] w-fit items-center rounded-full border border-border-strong bg-white/[.06] px-4 text-sm font-semibold hover:bg-white/10">Compare plans</Link>
           </div>
         )}
-        <div className="rounded-2xl border border-border bg-surface p-7">
-          <h2 className="text-lg font-semibold">Watch on your devices</h2>
-          <p className="mt-1 text-sm text-muted">Every profile here is on each device you sign in to, with the same library and progress.</p>
-          <div className="mt-3">
-            {[
-              { icon: <AppleIcon className="h-5 w-5" />, name: 'Mac', note: `Moonlit for Mac ${MAC_VERSION}`, action: <a href={MAC_DOWNLOAD_URL} className="text-accent">Download</a> },
-              { icon: <PhoneIcon className="h-5 w-5" />, name: 'iPhone and iPad', note: 'Public beta on TestFlight', action: <a href={TESTFLIGHT_URL} target="_blank" rel="noreferrer noopener" className="text-accent">Join the beta</a> },
-              { icon: <GlobeIcon className="h-5 w-5" />, name: 'Web', note: 'Right here in the browser', action: <span className="text-faint">Signed in</span> },
-              { icon: <TvIcon className="h-5 w-5" />, name: 'Apple TV', note: 'Enter the code the TV shows', action: <Link to="/activate" className="text-accent">Link a TV</Link> },
-            ].map((d) => (
-              <div key={d.name} className="grid grid-cols-[24px_1fr_auto] items-center gap-3 border-b border-border py-3.5 text-[14.5px] last:border-0">
-                <span className="text-text">{d.icon}</span>
-                <span><b className="font-semibold">{d.name}</b><span className="ml-2 text-muted">{d.note}</span></span>
-                <span className="text-sm font-medium">{d.action}</span>
-              </div>
-            ))}
-          </div>
+        <AccountActivity />
+
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-2xl border border-border px-5 py-3.5 text-sm">
+          <span className="font-medium text-muted">Add a device</span>
+          <a href={MAC_DOWNLOAD_URL} className="inline-flex items-center gap-1.5 text-text hover:text-accent"><AppleIcon className="h-4 w-4" />Moonlit for Mac {MAC_VERSION}</a>
+          <a href={TESTFLIGHT_URL} target="_blank" rel="noreferrer noopener" className="inline-flex items-center gap-1.5 text-text hover:text-accent"><PhoneIcon className="h-4 w-4" />iPhone and iPad beta</a>
+          <Link to="/activate" className="inline-flex items-center gap-1.5 text-text hover:text-accent"><TvIcon className="h-4 w-4" />Link a TV</Link>
         </div>
       </div>
 

@@ -16,8 +16,6 @@ const groups: { title: string; sections: Section[] }[] = [
       { label: 'Collections', to: '/admin/catalog' },
       { label: 'Sources', to: '/admin/sources' },
       { label: 'Add-ons', to: '/admin/addons' },
-      { label: 'Templates', to: '/admin/templates' },
-      { label: 'Tab visibility', to: '/admin/tab-visibility' },
     ],
   },
   {
@@ -100,17 +98,17 @@ export function AppShell({ children, wide = true }: { children: React.ReactNode;
 
   return (
     <div className="flex min-h-screen flex-col bg-bg">
-      <Navbar />
+      <Navbar wide={isAdminArea} />
       <div className="h-[var(--nav-h)]" aria-hidden="true" />
       {isAdminArea ? (
-        <div className="mx-auto grid w-full max-w-[1240px] flex-1 gap-6 px-5 pb-20 pt-12 md:px-8 lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-10 lg:pt-[72px]">
+        <div className="mx-auto grid w-full max-w-[1600px] flex-1 gap-6 px-5 pb-20 pt-12 md:px-8 lg:grid-cols-[200px_minmax(0,1fr)] lg:gap-10 lg:pt-[72px]">
           <AdminSidebar counts={counts} />
           <main className="min-w-0">{children}</main>
         </div>
       ) : (
         <main className={`mx-auto w-full flex-1 px-5 pb-20 pt-12 md:px-8 md:pt-[72px] ${wide ? 'max-w-[1240px]' : 'max-w-3xl'}`}>{children}</main>
       )}
-      <Footer />
+      <Footer wide={isAdminArea} />
       <FirstProfileGate />
     </div>
   );

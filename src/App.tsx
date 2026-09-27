@@ -19,11 +19,9 @@ import MyWidgetsPage from './routes/user/MyWidgetsPage';
 import BillingPage from './routes/user/BillingPage';
 import CatalogPage from './routes/admin/CatalogPage';
 import HomePresetsPage from './routes/admin/HomePresetsPage';
-import TemplatesPage from './routes/admin/TemplatesPage';
 import UsersPage from './routes/admin/UsersPage';
 import InvitesPage from './routes/admin/InvitesPage';
 import SupportRequestsPage from './routes/admin/SupportRequestsPage';
-import TabVisibilityPage from './routes/admin/TabVisibilityPage';
 import CardGeneratorPage from './routes/tools/CardGeneratorPage';
 import { ErrorBoundary } from './components/layout/ErrorBoundary';
 
@@ -73,11 +71,11 @@ export default function App() {
           <Route path="/admin/catalog" element={<AdminRoute><CatalogPage /></AdminRoute>} />
           <Route path="/admin/sources" element={<AdminRoute><CatalogSourcesPage /></AdminRoute>} />
           <Route path="/admin/addons" element={<AdminRoute><AddonsUpstreamsPage /></AdminRoute>} />
-          <Route path="/admin/templates" element={<AdminRoute><TemplatesPage /></AdminRoute>} />
+          <Route path="/admin/templates" element={<Navigate to="/admin/home-presets" replace />} />
           <Route path="/admin/users" element={<AdminRoute><UsersPage /></AdminRoute>} />
           <Route path="/admin/invites" element={<AdminRoute><InvitesPage /></AdminRoute>} />
           <Route path="/admin/support" element={<AdminRoute><SupportRequestsPage /></AdminRoute>} />
-          <Route path="/admin/tab-visibility" element={<AdminRoute><TabVisibilityPage /></AdminRoute>} />
+          <Route path="/admin/tab-visibility" element={<Navigate to="/admin/home-presets" replace />} />
 
           <Route path="/tools/card-generator" element={<CardGeneratorPage />} />
           <Route path="*" element={<div className="min-h-screen bg-bg flex items-center justify-center"><p className="text-muted">Page not found</p></div>} />
