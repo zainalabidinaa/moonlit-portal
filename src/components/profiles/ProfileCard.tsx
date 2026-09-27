@@ -1,6 +1,7 @@
 import type { Profile } from '../../types';
+import { AVATAR_URLS } from './ProfileEditor';
 
-const AVATAR_COLORS = ['#6d28d9', '#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#ec4899'];
+const AVATAR_COLORS = ['#ff7a3d', '#4f7cff', '#2fbf8f', '#c65cff', '#f2d27a', '#ff5c8a'];
 
 interface ProfileCardProps {
   profile: Profile;
@@ -15,33 +16,40 @@ interface ProfileCardProps {
    *  has, including a solo one, since it's just "is this profile row the
    *  first one," true or false either way. */
   isOwnerProfile: boolean;
+  /** The profile currently in use on this device. */
+  isActive?: boolean;
 }
 
-export function ProfileCard({ profile, onSelect, onEdit, editable, isOwnerProfile }: ProfileCardProps) {
+export function ProfileCard({ profile, onSelect, onEdit, editable, isOwnerProfile, isActive }: ProfileCardProps) {
   const bg = profile.avatar_color ?? AVATAR_COLORS[profile.profile_index % AVATAR_COLORS.length];
+  const avatar = profile.avatar_id != null ? AVATAR_URLS[profile.avatar_id] : undefined;
   const initials = profile.name.slice(0, 2).toUpperCase();
 
   return (
-    <div className="flex flex-col items-center gap-2 group cursor-pointer" onClick={editable ? onEdit : onSelect}>
-      <div
-        className="w-24 h-24 rounded-2xl flex items-center justify-center text-2xl font-bold text-white transition-all group-hover:ring-4 group-hover:ring-accent/40 relative"
-        style={{ backgroundColor: bg }}
-      >
-        {initials}
-        {editable && (
-          <div className="absolute inset-0 bg-black/40 rounded-2xl flex items-center justify-center">
-            <span className="text-white text-lg">&#9998;</span>
-          </div>
-        )}
-      </div>
-      <div className="flex items-center gap-1.5">
-        <p className="text-sm font-medium text-text">{profile.name}</p>
-        {isOwnerProfile && (
-          <span className="rounded-full bg-accent-light px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-accent">
-            Owner
+    <button
+      type="button"
+      onClick={editable ? onEdit : onSelect}
+      className={`group grid cursor-pointer justify-items-center gap-2.5 rounded-2xl border bg-surface px-2.5 py-[18px] text-center transition-[transform,border-color] duration-300 ease-out hover:-translate-y-1 hover:border-border-strong ${
+        isActive ? 'border-accent/50' : 'border-border'
+      }`}
+    >
+      <span className="relative block h-[72px] w-[72px]">
+        {avatar ? (
+          <img src={avatar} alt="" className="h-full w-full rounded-full object-cover" />
+        ) : (
+          <span className="grid h-full w-full place-items-center rounded-full text-xl font-semibold text-white" style={{ backgroundColor: bg }}>
+            {initials}
           </span>
         )}
-      </div>
-    </div>
+        {editable && (
+          <span className="absolute inset-0 grid place-items-center rounded-full bg-black/50 text-lg text-white">&#9998;</span>
+        )}
+      </span>
+      <b className="text-sm font-semibold">
+        {profile.name}
+        {profile.pin_enabled && <span className="ml-1.5 rounded bg-accent-light px-1.5 py-px font-mono text-[9.5px] text-accent">PIN</span>}
+      </b>
+      <small className="font-mono text-[10px] tracking-[.06em] text-faint">{isOwnerProfile ? 'OWNER' : 'PROFILE'}</small>
+    </button>
   );
 }

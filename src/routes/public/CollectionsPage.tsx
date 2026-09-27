@@ -1,8 +1,11 @@
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { fetchAllRows } from '../../lib/fetchAllRows';
 import { Navbar } from '../../components/layout/Navbar';
+import { Footer } from '../../components/layout/Footer';
+import { SectionHead } from '../../components/landing/SectionHead';
+import { useTrending, posterUrl } from '../../hooks/useTrending';
 import type { Collection, Folder, FolderCatalog } from '../../types';
 
 interface FolderWithSources extends Folder {
@@ -16,169 +19,77 @@ interface CollectionWithFolders extends Collection {
 
 function catalogLabel(c: FolderCatalog): string {
   const id = c.catalog_id;
-  if (id.startsWith('trakt.list.')) return `Trakt list`;
-  if (id.startsWith('tmdb.collection.')) return `TMDB collection`;
+  if (id.startsWith('trakt.list.')) return 'Trakt list';
+  if (id.startsWith('tmdb.collection.')) return 'TMDB collection';
   if (id.startsWith('tmdb.trending_')) return `TMDB trending ${c.media_type}s`;
-  if (id.startsWith('tmdb.discover.')) return `TMDB discover`;
-  if (id.startsWith('tmdb.top_')) return `TMDB top`;
-  if (id.startsWith('mdblist.')) return `MDBList`;
+  if (id.startsWith('tmdb.discover.')) return 'TMDB discover';
+  if (id.startsWith('tmdb.top_')) return 'TMDB top';
+  if (id.startsWith('mdblist.')) return 'MDBList';
   return id.split('.').slice(0, 2).join('.');
 }
 
-function mediaTypeIcon(mt: string) {
-  return mt === 'series' ? '📺' : '🎬';
-}
-
-function FolderCard({ folder, index }: { folder: FolderWithSources; index: number }) {
-  const [expanded, setExpanded] = useState(false);
-  const img = folder.hero_backdrop ?? folder.cover_image;
-
-  return (
-    <div className="overflow-hidden rounded-2xl border border-border bg-surface transition-all">
-      <button
-        onClick={() => setExpanded((v) => !v)}
-        className="relative flex w-full flex-col text-left"
-      >
-        {/* Hero image */}
-        <div className="relative h-[120px] overflow-hidden bg-bg2">
-          {img ? (
-            <img src={img} alt="" className="h-full w-full object-cover" />
-          ) : (
-            <div className="flex h-full items-center justify-center">
-              <span className="font-mono text-[11px] text-faint">no image</span>
-            </div>
-          )}
-          <div
-            className="absolute inset-0"
-            style={{ background: 'linear-gradient(0deg,rgba(13,6,4,.88),transparent 55%)' }}
-          />
-          <div className="absolute right-2 top-2 flex gap-1.5">
-            <span className="rounded-full bg-bg/70 px-2 py-0.5 font-mono text-[9px] tracking-wide text-muted backdrop-blur">
-              #{index + 1}
-            </span>
-            {folder.tile_shape && (
-              <span className="rounded-full bg-bg/70 px-2 py-0.5 font-mono text-[9px] uppercase tracking-wide text-faint backdrop-blur">
-                {folder.tile_shape}
-              </span>
-            )}
-          </div>
-          {folder.sourceCount > 0 && (
-            <div className="absolute left-3 bottom-3">
-              <span className="rounded-full bg-accent/20 px-2.5 py-1 font-mono text-[10px] text-accent">
-                {folder.sourceCount} source{folder.sourceCount !== 1 ? 's' : ''}
-              </span>
-            </div>
-          )}
-        </div>
-
-        <div className="flex items-center justify-between p-3">
-          <span className="truncate text-[13px] font-semibold">{folder.name}</span>
-          <span className="ml-2 flex-none text-faint">{expanded ? '▲' : '▼'}</span>
-        </div>
-      </button>
-
-      {expanded && folder.catalogs.length > 0 && (
-        <div className="border-t border-border px-3 pb-3">
-          <div className="mt-2 flex flex-col gap-1.5">
-            {folder.catalogs.map((c) => (
-              <div key={c.id} className="flex items-center gap-2 rounded-xl bg-bg2 px-3 py-2">
-                <span className="text-sm">{mediaTypeIcon(c.media_type)}</span>
-                <div className="min-w-0 flex-1">
-                  <span className="block truncate font-mono text-[11px] text-text">{catalogLabel(c)}</span>
-                  <span className="block truncate font-mono text-[9px] text-faint">{c.catalog_id}{c.genre ? ` · ${c.genre}` : ''}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
+type Filter = 'all' | 'grouped' | 'rows';
 
 function CollectionCard({ col }: { col: CollectionWithFolders }) {
   const [open, setOpen] = useState(false);
   const isGrouped = col.folders.length > 1;
-  const heroImg = col.backdrop_image ?? col.folders[0]?.hero_backdrop ?? col.folders[0]?.cover_image;
+  const cover = col.backdrop_image ?? col.folders.find((f) => f.hero_backdrop)?.hero_backdrop ?? col.folders.find((f) => f.cover_image)?.cover_image;
+  const sources = col.folders.reduce((s, f) => s + f.sourceCount, 0);
 
   return (
-    <div className="overflow-hidden rounded-3xl border border-border bg-surface">
-      {/* Collection hero */}
-      <button onClick={() => setOpen((v) => !v)} className="relative w-full text-left">
-        <div className="relative h-[200px] overflow-hidden bg-bg2">
-          {heroImg ? (
-            <img src={heroImg} alt="" className="h-full w-full object-cover" />
-          ) : (
-            <div className="flex h-full items-center justify-center bg-bg2">
-              <span className="font-mono text-[11px] text-faint">no backdrop</span>
-            </div>
-          )}
-          <div
-            className="absolute inset-0"
-            style={{ background: 'linear-gradient(160deg,rgba(200,148,26,.08),transparent 40%),linear-gradient(0deg,rgba(13,6,4,.96),transparent 50%)' }}
-          />
-
-          {/* Badges */}
-          <div className="absolute right-4 top-4 flex gap-2">
-            {isGrouped && (
-              <span className="rounded-full border border-accent/40 bg-accent/15 px-3 py-1 font-mono text-[10px] text-accent">
-                {col.folders.length} groups
-              </span>
-            )}
-            <span className="rounded-full border border-border bg-bg/70 px-3 py-1 font-mono text-[10px] text-muted backdrop-blur">
-              {col.folders.reduce((s, f) => s + f.sourceCount, 0)} sources
-            </span>
-          </div>
-
-          {/* Title */}
-          <div className="absolute inset-x-5 bottom-5">
-            <h3 className="font-display text-2xl font-extrabold uppercase leading-tight">{col.name}</h3>
-            {isGrouped && (
-              <p className="mt-0.5 font-mono text-[11px] text-muted">
-                {col.folders.map((f) => f.name).slice(0, 4).join(' · ')}{col.folders.length > 4 ? ` +${col.folders.length - 4} more` : ''}
-              </p>
-            )}
-          </div>
+    <div className="overflow-hidden rounded-2xl border border-border bg-surface">
+      <button type="button" onClick={() => setOpen((v) => !v)} className="group relative block aspect-[16/10] w-full overflow-hidden text-left">
+        {cover ? (
+          <img src={cover} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover transition-transform duration-1000 ease-out group-hover:scale-105" />
+        ) : (
+          <div className="absolute inset-0 bg-surface-2" />
+        )}
+        <div className="absolute inset-0 bg-[linear-gradient(0deg,rgba(8,8,10,.92),rgba(8,8,10,.2)_60%,transparent)]" />
+        <span className="absolute right-2.5 top-2.5 rounded-full border border-white/15 bg-black/55 px-2 py-1 font-mono text-[10.5px]">
+          {isGrouped ? `${col.folders.length} groups` : `${sources} source${sources === 1 ? '' : 's'}`}
+        </span>
+        <div className="absolute inset-x-3.5 bottom-3">
+          <strong className="block text-[17px] font-semibold tracking-tight">{col.name}</strong>
+          <small className="mt-0.5 block truncate text-xs text-muted">
+            {isGrouped ? col.folders.slice(0, 3).map((f) => f.name).join(' · ') : 'Curated row'}
+          </small>
         </div>
       </button>
 
-      {/* Expand toggle bar */}
       <button
+        type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center justify-between border-t border-border px-5 py-3 text-sm text-muted transition-colors hover:text-text"
+        className="flex w-full items-center justify-between border-t border-border px-4 py-2.5 text-[13px] font-medium text-muted transition-colors hover:text-text"
       >
-        <span className="font-mono text-[11px] uppercase tracking-wide">
-          {open ? 'Hide' : 'Show'} {isGrouped ? `${col.folders.length} groups` : 'folder'}
-        </span>
-        <span>{open ? '▲' : '▼'}</span>
+        <span>{open ? 'Hide' : 'Show'} {isGrouped ? 'groups' : 'sources'}</span>
+        <span className={`h-2 w-2 rotate-45 border-b-[1.5px] border-r-[1.5px] border-muted transition-transform ${open ? '-rotate-[135deg]' : ''}`} />
       </button>
 
-      {/* Expanded folder grid */}
       {open && (
-        <div className="border-t border-border p-5">
-          {isGrouped ? (
-            <div className="grid gap-3.5 [grid-template-columns:repeat(auto-fill,minmax(200px,1fr))]">
-              {col.folders.map((f, i) => (
-                <FolderCard key={f.id} folder={f} index={i} />
-              ))}
-            </div>
-          ) : (
-            // Single folder — show sources inline
-            <div className="flex flex-col gap-2">
-              {col.folders[0]?.catalogs.map((c) => (
-                <div key={c.id} className="flex items-center gap-3 rounded-xl bg-bg2 px-4 py-3">
-                  <span className="text-base">{mediaTypeIcon(c.media_type)}</span>
-                  <div>
-                    <span className="block font-mono text-[12px] text-text">{catalogLabel(c)}</span>
-                    <span className="block font-mono text-[10px] text-faint">{c.catalog_id}{c.genre ? ` · ${c.genre}` : ''}</span>
+        <div className="grid gap-2 border-t border-border p-4">
+          {isGrouped
+            ? col.folders.map((f) => (
+                <div key={f.id} className="grid grid-cols-[44px_1fr_auto] items-center gap-3 rounded-xl border border-border bg-bg2 p-2">
+                  <div className="aspect-[2/3] overflow-hidden rounded-md bg-surface-2">
+                    {(f.cover_image ?? f.hero_backdrop) && <img src={f.cover_image ?? f.hero_backdrop ?? ''} alt="" loading="lazy" className="h-full w-full object-cover" />}
+                  </div>
+                  <div className="min-w-0">
+                    <b className="block truncate text-sm font-semibold">{f.name}</b>
+                    <small className="block truncate text-xs text-faint">{f.catalogs.map(catalogLabel).slice(0, 2).join(' · ') || 'No sources configured'}</small>
+                  </div>
+                  <span className="font-mono text-[11px] text-muted">{f.sourceCount} src</span>
+                </div>
+              ))
+            : (col.folders[0]?.catalogs ?? []).map((c) => (
+                <div key={c.id} className="flex items-center gap-3 rounded-xl border border-border bg-bg2 px-3 py-2.5">
+                  <span className="font-mono text-[10.5px] uppercase text-faint">{c.media_type}</span>
+                  <div className="min-w-0">
+                    <span className="block truncate text-sm font-medium">{catalogLabel(c)}</span>
+                    <span className="block truncate font-mono text-[11px] text-faint">{c.catalog_id}{c.genre ? ` · ${c.genre}` : ''}</span>
                   </div>
                 </div>
               ))}
-              {col.folders[0]?.sourceCount === 0 && (
-                <p className="font-mono text-[11px] text-faint">No sources configured</p>
-              )}
-            </div>
-          )}
+          {!isGrouped && (col.folders[0]?.sourceCount ?? 0) === 0 && <p className="text-sm text-faint">No sources configured</p>}
         </div>
       )}
     </div>
@@ -186,10 +97,11 @@ function CollectionCard({ col }: { col: CollectionWithFolders }) {
 }
 
 export default function CollectionsPage() {
-  const navigate = useNavigate();
   const [collections, setCollections] = useState<CollectionWithFolders[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [filter, setFilter] = useState<Filter>('all');
+  const trending = useTrending();
 
   useEffect(() => {
     async function load() {
@@ -202,14 +114,11 @@ export default function CollectionsPage() {
 
         if (!cols) { setError('Could not load collections.'); return; }
 
-        const folderList: Folder[] = folders;
-        const catalogList: FolderCatalog[] = catalogs;
-
         const enriched: CollectionWithFolders[] = (cols as Collection[]).map((col) => {
-          const colFolders = folderList
+          const colFolders = folders
             .filter((f) => f.collection_id === col.id)
             .map((f) => {
-              const fc = catalogList.filter((c) => c.folder_id === f.id);
+              const fc = catalogs.filter((c) => c.folder_id === f.id);
               return { ...f, sourceCount: fc.length, catalogs: fc };
             });
           return { ...col, folders: colFolders };
@@ -225,110 +134,85 @@ export default function CollectionsPage() {
     load();
   }, []);
 
-  const totalFolders = collections.reduce((s, c) => s + c.folders.length, 0);
-  const totalSources = collections.reduce((s, c) => s + c.folders.reduce((sf, f) => sf + f.sourceCount, 0), 0);
-  const multiGroupCollections = collections.filter((c) => c.folders.length > 1);
+  const shown = useMemo(
+    () => collections.filter((c) => (filter === 'all' ? true : filter === 'grouped' ? c.folders.length > 1 : c.folders.length <= 1)),
+    [collections, filter]
+  );
+  const totalGroups = collections.reduce((s, c) => s + c.folders.length, 0);
+
+  const chips: { id: Filter; label: string }[] = [
+    { id: 'all', label: 'All' },
+    { id: 'grouped', label: 'Grouped collections' },
+    { id: 'rows', label: 'Featured rows' },
+  ];
 
   return (
     <div className="min-h-screen bg-bg">
       <Navbar />
 
-      {/* Header */}
-      <section className="mx-auto max-w-7xl px-5 pb-8 pt-16">
-        <p className="mb-3 font-mono text-[11px] uppercase tracking-[0.28em] text-accent">trymoonlit.app</p>
-        <h1 className="font-display text-[clamp(40px,6vw,80px)] font-extrabold uppercase leading-[1.02]">
-          The Catalog
-        </h1>
-        <p className="mt-4 max-w-xl text-[17px] text-muted">
-          {loading
-            ? 'Loading collections…'
-            : `${collections.length} collections · ${totalFolders} groups · ${totalSources} catalog sources`}
-        </p>
+      <div className="mx-auto max-w-[1240px] px-5 pb-24 pt-[calc(var(--nav-h)+72px)] md:px-8 md:pt-[calc(var(--nav-h)+110px)]">
+        <div className="mb-10 grid max-w-[720px] gap-4">
+          <p className="text-xs font-semibold uppercase tracking-[.12em] text-accent">The catalog</p>
+          <h1 className="text-[clamp(40px,6vw,72px)] font-semibold leading-[1.05]">Every collection on Moonlit.</h1>
+          <p className="max-w-[36em] text-lg text-muted">
+            {loading ? 'Loading collections…' : `${collections.length} collections and ${totalGroups} groups, put together by curators with their own artwork. Open one in the app and start at the top.`}
+          </p>
+        </div>
 
-        {!loading && !error && (
-          <div className="mt-6 flex flex-wrap gap-2.5">
-            {[
-              { n: collections.length, l: 'Collections' },
-              { n: multiGroupCollections.length, l: 'Grouped collections' },
-              { n: totalFolders, l: 'Total groups' },
-              { n: totalSources, l: 'Catalog sources' },
-            ].map((s) => (
-              <div key={s.l} className="rounded-full border border-border bg-surface px-4 py-2 text-center">
-                <span className="font-display text-lg font-extrabold text-accent">{s.n}</span>
-                <span className="ml-2 font-mono text-[11px] text-muted">{s.l}</span>
-              </div>
+        {!loading && !error && collections.length > 0 && (
+          <div className="mb-7 flex flex-wrap gap-2" role="group" aria-label="Filter collections">
+            {chips.map((c) => (
+              <button
+                key={c.id}
+                type="button"
+                aria-pressed={filter === c.id}
+                onClick={() => setFilter(c.id)}
+                className={`h-9 rounded-full border px-3.5 text-sm font-medium transition-colors ${filter === c.id ? 'border-transparent bg-text text-[#0a0a0c]' : 'border-border-strong text-muted hover:text-text'}`}
+              >
+                {c.label}
+              </button>
             ))}
           </div>
         )}
-      </section>
 
-      {/* Content */}
-      <section className="mx-auto max-w-7xl px-5 pb-24">
-        {loading && (
-          <div className="flex items-center justify-center py-24">
-            <div className="font-mono text-[13px] text-muted">Loading collections…</div>
-          </div>
-        )}
         {error && (
-          <div className="rounded-2xl border border-red-400/30 bg-red-400/10 px-6 py-5 font-mono text-[12px] text-red-400">
-            {error} — <span className="underline cursor-pointer" onClick={() => navigate('/login')}>Sign in</span> if collections require authentication.
+          <div className="rounded-2xl border border-red-400/30 bg-red-400/10 px-6 py-5 text-sm text-red-300">
+            {error}. <Link to="/login" className="underline">Sign in</Link> if collections require authentication.
           </div>
         )}
 
         {!loading && !error && (
-          <>
-            {/* Multi-group collections first */}
-            {multiGroupCollections.length > 0 && (
-              <div className="mb-12">
-                <div className="mb-6 flex items-center gap-3">
-                  <h2 className="font-display text-xl font-extrabold uppercase">Grouped collections</h2>
-                  <span className="rounded-full bg-accent/15 px-2.5 py-1 font-mono text-[10px] text-accent">{multiGroupCollections.length}</span>
-                </div>
-                <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-                  {multiGroupCollections.map((col) => (
-                    <CollectionCard key={col.id} col={col} />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Single-folder collections */}
-            {collections.filter((c) => c.folders.length <= 1).length > 0 && (
-              <div>
-                <div className="mb-6 flex items-center gap-3">
-                  <h2 className="font-display text-xl font-extrabold uppercase">Featured rows</h2>
-                  <span className="rounded-full bg-surface px-2.5 py-1 font-mono text-[10px] text-muted border border-border">
-                    {collections.filter((c) => c.folders.length <= 1).length}
-                  </span>
-                </div>
-                <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-                  {collections
-                    .filter((c) => c.folders.length <= 1)
-                    .map((col) => <CollectionCard key={col.id} col={col} />)}
-                </div>
-              </div>
-            )}
-
-            {collections.length === 0 && (
-              <div className="flex flex-col items-center justify-center py-24 text-center">
-                <p className="font-mono text-sm text-faint">No collections found.</p>
-                <p className="mt-2 text-xs text-faint">Collections are managed by your Moonlit admin.</p>
-              </div>
-            )}
-          </>
+          <div className="grid gap-3.5 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
+            {shown.map((col) => <CollectionCard key={col.id} col={col} />)}
+          </div>
         )}
-      </section>
 
-      {/* Footer */}
-      <footer className="border-t border-border py-10 text-center">
-        <div className="font-display text-3xl font-extrabold tracking-tight">MOONLIT</div>
-        <div className="mt-3 flex flex-wrap justify-center gap-5 text-sm text-muted">
-          <button onClick={() => navigate('/')}>Home</button>
-          <button onClick={() => navigate('/pricing')}>Pricing</button>
-          <button onClick={() => navigate('/login')}>Sign in</button>
-        </div>
-        <p className="mt-3 font-mono text-xs text-faint">© 2026 Moonlit</p>
-      </footer>
+        {!loading && !error && collections.length === 0 && (
+          <div className="py-24 text-center">
+            <p className="text-sm text-faint">No collections found.</p>
+            <p className="mt-2 text-xs text-faint">Collections are managed by your Moonlit admin.</p>
+          </div>
+        )}
+
+        {trending.length > 0 && (
+          <div className="mt-20">
+            <SectionHead kicker="Trending now" title="What households are watching this week." className="mb-9" />
+            <div className="grid grid-cols-3 gap-3 sm:grid-cols-5 lg:grid-cols-8">
+              {trending.map((t) => {
+                const src = posterUrl(t);
+                return src ? (
+                  <div key={`${t.media_type}-${t.id}`} className="group relative aspect-[2/3] overflow-hidden rounded-[10px] bg-surface-2 transition-transform duration-500 hover:-translate-y-1.5">
+                    <img src={src} alt={t.title} loading="lazy" className="h-full w-full object-cover" />
+                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 to-transparent px-2.5 pb-2.5 pt-7 text-xs font-semibold opacity-0 transition-opacity group-hover:opacity-100">{t.title}</div>
+                  </div>
+                ) : null;
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+
+      <Footer />
     </div>
   );
 }

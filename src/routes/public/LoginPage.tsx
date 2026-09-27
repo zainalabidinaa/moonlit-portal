@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
-import { Card } from '../../components/ui/Card';
+import { AuthLayout } from '../../components/layout/AuthLayout';
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -86,79 +86,67 @@ export default function LoginPage() {
     if (updateErr) { setError(updateErr.message); return; }
     setRecoveryMode(false);
     recoveryTokens.current = null;
-    setSuccess('Password updated — sign in with your new password.');
+    setSuccess('Password updated. Sign in with your new password.');
+  }
+
+  const quote = 'Five apps, forty minutes of scrolling, and everyone settles. Moonlit is the fix we wanted for our own living room.';
+
+  if (recoveryMode) {
+    return (
+      <AuthLayout quote={quote} attribution="Why we built it">
+        <h1 className="text-[34px] font-semibold tracking-tight">Set a new password.</h1>
+        <p className="-mt-2.5 text-[15px] text-muted">Choose a new password for your account.</p>
+        <form onSubmit={handleNewPassword} className="grid gap-4">
+          <Input id="new-password" label="New password" type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} required autoComplete="new-password" />
+          {error && <p className="text-xs text-red-400">{error}</p>}
+          <Button type="submit" loading={newPasswordLoading} disabled={!newPassword.trim()} className="w-full">Set password</Button>
+        </form>
+      </AuthLayout>
+    );
   }
 
   return (
-    recoveryMode ? (
-      <div className="min-h-screen bg-bg flex items-center justify-center p-4">
-        <Card className="w-full max-w-sm p-8">
-          <h1 className="text-2xl font-bold text-text mb-1">Set new password</h1>
-          <p className="text-sm text-muted mb-6">Choose a new password for your account</p>
-          <form onSubmit={handleNewPassword} className="flex flex-col gap-4">
-            <Input id="new-password" label="New Password" type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} required autoComplete="new-password" />
-            {error && <p className="text-xs text-red-500">{error}</p>}
-            <Button type="submit" loading={newPasswordLoading} disabled={!newPassword.trim()} className="w-full">Set Password</Button>
-          </form>
-        </Card>
-      </div>
-    ) : (
-    <div className="min-h-screen bg-bg flex items-center justify-center p-4">
-      <Card className="w-full max-w-sm p-8">
-        <h1 className="text-2xl font-bold text-text mb-1">Welcome back</h1>
-        <p className="text-sm text-muted mb-6">Sign in to your Moonlit account</p>
+    <AuthLayout quote={quote} attribution="Why we built it">
+      <h1 className="text-[34px] font-semibold tracking-tight">Welcome back.</h1>
+      <p className="-mt-2.5 text-[15px] text-muted">Sign in to manage profiles, billing and your library.</p>
 
-        {magicSent ? (
-          <p className="text-sm text-green-600 bg-green-50 rounded-lg p-3">
-            Check your email — we sent a magic link.
-          </p>
-        ) : (
-          <>
-            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-              <Input id="email" label="Email" type="email" value={email} onChange={e => setEmail(e.target.value)} required autoComplete="email" />
-              <Input id="password" label="Password" type="password" value={password} onChange={e => setPassword(e.target.value)} required autoComplete="current-password" />
-              <div className="text-right">
-                <button type="button" onClick={() => { setShowReset(!showReset); setResetSent(false); setError(''); }} className="text-xs text-accent hover:underline">
-                  Forgot password?
-                </button>
-              </div>
-              {error && <p className="text-xs text-red-500">{error}</p>}
-              {success && <p className="text-xs text-green-500">{success}</p>}
-              <Button type="submit" loading={loading} className="w-full mt-1">Sign in</Button>
-              <button type="button" onClick={handleMagicLink} className="text-xs text-muted hover:text-accent transition-colors text-center">
-                Sign in with magic link
+      {magicSent ? (
+        <div className="rounded-xl border border-accent/40 bg-accent-light p-4 text-[14.5px]">
+          <b className="font-semibold">Check your email.</b> We sent a sign-in link. Open it on this device to finish signing in.
+        </div>
+      ) : (
+        <>
+          <form onSubmit={handleSubmit} className="grid gap-4">
+            <Input id="email" label="Email" type="email" placeholder="you@example.com" value={email} onChange={e => setEmail(e.target.value)} required autoComplete="email" />
+            <Input id="password" label="Password" type="password" value={password} onChange={e => setPassword(e.target.value)} required autoComplete="current-password" />
+            {error && <p className="text-xs text-red-400">{error}</p>}
+            {success && <p className="text-xs text-cyan">{success}</p>}
+            <Button type="submit" loading={loading} className="w-full">Sign in</Button>
+            <div className="flex items-center gap-3 text-xs uppercase tracking-[.1em] text-faint before:h-px before:flex-1 before:bg-border after:h-px after:flex-1 after:bg-border">or</div>
+            <Button type="button" variant="ghost" onClick={handleMagicLink} disabled={loading} className="w-full">Email me a sign-in link</Button>
+            <p className="text-[13px] text-faint">
+              <button type="button" onClick={() => { setShowReset(!showReset); setResetSent(false); setError(''); }} className="text-muted hover:text-text">
+                Forgot password?
               </button>
-            </form>
-            {showReset && (
-              <div className="mt-3 rounded-lg border border-border bg-bg2 p-3">
-                {resetSent ? (
-                  <p className="text-xs text-green-400">Check your email for a reset link.</p>
-                ) : (
-                  <form onSubmit={handleReset} className="flex flex-col gap-2">
-                    <p className="text-xs text-muted">Enter your email and we&apos;ll send a reset link.</p>
-                    <Input
-                      id="reset-email"
-                      type="email"
-                      value={resetEmail}
-                      onChange={e => setResetEmail(e.target.value)}
-                      placeholder="you@example.com"
-                      required
-                    />
-                    <Button type="submit" loading={resetLoading} variant="secondary" size="sm" disabled={!resetEmail.trim()}>
-                      Send Reset Link
-                    </Button>
-                  </form>
-                )}
-              </div>
-            )}
-          </>
-        )}
+              {' · '}No account? <Link to="/signup" className="text-accent">Get Moonlit</Link>
+            </p>
+          </form>
 
-        <p className="text-xs text-muted text-center mt-6">
-          Don&apos;t have an account? <Link to="/signup" className="text-accent hover:underline">Sign up</Link>
-        </p>
-      </Card>
-    </div>
-    )
+          {showReset && (
+            <div className="rounded-xl border border-border bg-bg2 p-4">
+              {resetSent ? (
+                <p className="text-sm text-cyan">Check your email for a reset link.</p>
+              ) : (
+                <form onSubmit={handleReset} className="grid gap-3">
+                  <p className="text-sm text-muted">Enter your email and we will send a reset link.</p>
+                  <Input id="reset-email" type="email" value={resetEmail} onChange={e => setResetEmail(e.target.value)} placeholder="you@example.com" required />
+                  <Button type="submit" loading={resetLoading} variant="secondary" size="sm" disabled={!resetEmail.trim()}>Send reset link</Button>
+                </form>
+              )}
+            </div>
+          )}
+        </>
+      )}
+    </AuthLayout>
   );
 }

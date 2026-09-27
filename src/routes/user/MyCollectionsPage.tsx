@@ -94,12 +94,17 @@ export default function MyCollectionsPage() {
 
   if (!eligible) {
     return (
-      <AppShell>
-        <div className="max-w-2xl mx-auto">
-          <h1 className="text-2xl font-bold text-text mb-2">My Collections</h1>
-          <p className="text-sm text-muted">
-            Building your own collections is only available on Studio.
-          </p>
+      <AppShell wide={false}>
+        <div className="grid gap-6">
+          <div>
+            <h1 className="text-[34px] font-semibold tracking-tight">My collections</h1>
+            <p className="mt-1.5 text-[15px] text-muted">Your own catalog on top of Moonlit's.</p>
+          </div>
+          <div className="grid gap-3.5 rounded-2xl border border-accent/35 bg-[linear-gradient(135deg,rgba(255,122,61,.12),transparent_60%)] bg-surface p-[22px]">
+            <b className="text-base font-semibold">Building your own collections is only available on Studio.</b>
+            <p className="text-sm text-muted">Make your own folders and add your own sources on top of the Moonlit catalog. Studio is $14.99 a month.</p>
+            <a href="/billing" className="inline-flex h-[38px] w-fit items-center rounded-full bg-text px-4 text-sm font-semibold text-[#0a0a0c] hover:bg-white">Upgrade to Studio</a>
+          </div>
         </div>
       </AppShell>
     );
@@ -108,11 +113,11 @@ export default function MyCollectionsPage() {
   return (
     <AppShell>
       <div className="max-w-4xl mx-auto">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-wrap items-end justify-between gap-3 mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-text">My Collections</h1>
-            <p className="text-sm text-muted">
-              Private to this profile — built from your own add-ons.
+            <h1 className="text-[34px] font-semibold tracking-tight">My collections</h1>
+            <p className="mt-1.5 text-[15px] text-muted">
+              Private to this profile, built from your own add-ons.
             </p>
           </div>
           <Button onClick={handleAddCollection} size="md">+ New collection</Button>
