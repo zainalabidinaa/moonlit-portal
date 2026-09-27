@@ -361,7 +361,7 @@ export function CollectionSettings({ collection, folders, allCollections, onSave
                           onClick={() => set(key, !draft[key])}
                           className={`h-5 w-5 rounded-md border transition-colors ${
                             draft[key]
-                              ? 'border-transparent bg-accent text-[#2a1206]'
+                              ? 'border-transparent bg-accent text-[#1a0b04]'
                               : 'border-border bg-surface-2 text-transparent hover:border-accent/40'
                           }`}
                         >
@@ -528,7 +528,7 @@ function Toggle({ label, on, onClick }: { label: string; on: boolean; onClick: (
       >
         <span
           className={`absolute top-0.5 h-[18px] w-[18px] rounded-full transition-all ${
-            on ? 'left-[22px] bg-[#2a1206]' : 'left-0.5 bg-white'
+            on ? 'left-[22px] bg-[#1a0b04]' : 'left-0.5 bg-white'
           }`}
         />
       </span>

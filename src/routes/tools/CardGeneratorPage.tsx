@@ -215,7 +215,7 @@ export default function CardGeneratorPage() {
           <div className="flex items-center justify-between">
             <h2 className="font-display text-lg font-bold">Cover Generator</h2>
             <button onClick={handleDownload}
-              className="px-4 py-2 bg-accent text-[#2a1206] font-semibold rounded-lg shadow-glow hover:bg-accent-2 transition-colors text-sm">
+              className="px-4 py-2 bg-accent text-[#1a0b04] font-semibold rounded-lg shadow-glow hover:bg-accent-2 transition-colors text-sm">
               Download PNG
             </button>
           </div>

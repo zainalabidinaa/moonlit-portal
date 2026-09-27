@@ -9,6 +9,7 @@ import {
   buildDiscoverMapFromAioConfig,
   type ImportResult,
 } from '../../lib/importCollections';
+import { adminKicker, adminTitle, adminLede } from '../../components/admin/AdminUI';
 
 interface Template {
   id: string;
@@ -147,10 +148,11 @@ export default function TemplatesPage() {
     <AppShell>
       <div className="space-y-8">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h1 className="font-display text-2xl font-bold text-text">Collection Templates</h1>
-            <p className="mt-1 text-sm text-muted">
+            <p className={adminKicker}>Catalog</p>
+            <h1 className={`mt-2 ${adminTitle}`}>Templates</h1>
+            <p className={adminLede}>
               Save Moonlit export profiles and switch between them to change what the app shows.
             </p>
           </div>

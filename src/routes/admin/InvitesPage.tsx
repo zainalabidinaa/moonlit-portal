@@ -7,6 +7,7 @@ import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { Card } from '../../components/ui/Card';
 import type { InviteCode } from '../../types';
+import { adminKicker, adminTitle, adminLede } from '../../components/admin/AdminUI';
 
 // `redeemed_streams` is the redeemer's LIVE profile state, not the code's
 // static `includes_streams` flag — the admin can grant/revoke streams directly
@@ -166,8 +167,12 @@ export default function InvitesPage() {
   return (
     <AppShell>
       <div className="max-w-7xl mx-auto">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold text-text">Invite Codes</h1>
+        <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <p className={adminKicker}>People</p>
+            <h1 className={`mt-2 ${adminTitle}`}>Invites</h1>
+            <p className={adminLede}>Codes that give someone Friends &amp; Family access. Each works once and can carry an expiry.</p>
+          </div>
           <div className="flex items-center gap-2">
             <select
               value={newCodeDuration === 'custom' && showCustomDuration ? 'custom' : newCodeDuration}
@@ -234,13 +239,13 @@ export default function InvitesPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border bg-bg">
-                  <th className="text-left px-4 py-3 font-medium text-muted">Code</th>
-                  <th className="text-left px-4 py-3 font-medium text-muted">Status</th>
-                  <th className="text-left px-4 py-3 font-medium text-muted">Used by</th>
-                  <th className="text-left px-4 py-3 font-medium text-muted">Role duration</th>
-                  <th className="text-left px-4 py-3 font-medium text-muted">Addons</th>
-                  <th className="text-left px-4 py-3 font-medium text-muted">Code expires</th>
-                  <th className="text-left px-4 py-3 font-medium text-muted">Created</th>
+                  <th className="px-4 py-3 text-left text-[11.5px] font-semibold uppercase tracking-[.06em] text-muted">Code</th>
+                  <th className="px-4 py-3 text-left text-[11.5px] font-semibold uppercase tracking-[.06em] text-muted">Status</th>
+                  <th className="px-4 py-3 text-left text-[11.5px] font-semibold uppercase tracking-[.06em] text-muted">Used by</th>
+                  <th className="px-4 py-3 text-left text-[11.5px] font-semibold uppercase tracking-[.06em] text-muted">Role duration</th>
+                  <th className="px-4 py-3 text-left text-[11.5px] font-semibold uppercase tracking-[.06em] text-muted">Addons</th>
+                  <th className="px-4 py-3 text-left text-[11.5px] font-semibold uppercase tracking-[.06em] text-muted">Code expires</th>
+                  <th className="px-4 py-3 text-left text-[11.5px] font-semibold uppercase tracking-[.06em] text-muted">Created</th>
                   <th className="px-4 py-3" />
                 </tr>
               </thead>

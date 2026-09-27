@@ -26,11 +26,11 @@ export function Modal({ open, onClose, title, children, width = 'max-w-lg', dism
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={dismissable ? onClose : undefined} />
-      <div className={`relative bg-surface rounded-2xl shadow-xl w-full ${width} max-h-[90vh] overflow-y-auto`}>
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={dismissable ? onClose : undefined} />
+      <div className={`relative w-full ${width} max-h-[90vh] overflow-y-auto rounded-2xl border border-border-strong bg-surface shadow-card`}>
         {title && (
           <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-            <h2 className="text-base font-semibold text-text">{title}</h2>
+            <h2 className="text-lg font-semibold tracking-tight text-text">{title}</h2>
             {dismissable && (
               <button onClick={onClose} className="text-muted hover:text-text transition-colors text-xl leading-none">&times;</button>
             )}

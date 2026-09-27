@@ -5,6 +5,7 @@ import { AppShell } from '../../components/layout/AppShell';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import type { SupportRequest, SupportStatus, SupportTopic } from '../../types';
+import { adminKicker, adminTitle, adminLede } from '../../components/admin/AdminUI';
 
 const TOPIC_LABELS: Record<SupportTopic, string> = {
   general: 'General',
@@ -79,10 +80,11 @@ export default function SupportRequestsPage() {
 
   return (
     <AppShell>
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+      <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="font-display text-2xl font-extrabold uppercase">Support requests</h1>
-          <p className="mt-1 text-sm text-muted">
+          <p className={adminKicker}>People</p>
+          <h1 className={`mt-2 ${adminTitle}`}>Support</h1>
+          <p className={adminLede}>
             {newCount > 0 ? `${newCount} waiting on a first reply.` : 'Nothing new in the queue.'}
           </p>
         </div>

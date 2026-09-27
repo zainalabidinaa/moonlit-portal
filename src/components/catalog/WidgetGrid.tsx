@@ -381,7 +381,7 @@ function WidgetCard({
         ) : (
           <div className="aspect-square w-full bg-surface-2" />
         )}
-        <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg,rgba(13,6,4,.8) 0%,rgba(13,6,4,.35) 32%,transparent 60%)' }} />
+        <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg,rgba(8,8,10,.8) 0%,rgba(8,8,10,.35) 32%,transparent 60%)' }} />
         {collection.status === 'draft' && (
           <span className="absolute right-2.5 top-2.5 rounded-full bg-fuchsia-500/85 px-2 py-0.5 font-mono text-[9.5px] font-semibold uppercase tracking-wide text-[#1a0512]">
             Draft
@@ -404,7 +404,7 @@ function WidgetCard({
                 title={genreHubOn
                   ? 'Rendering through the app’s hardcoded genre UI — click to turn off'
                   : 'Render through the app’s hardcoded genre UI (editorial genre tiles + genre rooms), using these folders as genres'}
-                className={`rounded-full px-2 py-0.5 text-[10px] font-semibold transition-colors ${genreHubOn ? 'bg-accent text-[#2a1206]' : 'bg-black/50 text-white/85 hover:bg-black/75'}`}
+                className={`rounded-full px-2 py-0.5 text-[10px] font-semibold transition-colors ${genreHubOn ? 'bg-accent text-[#1a0b04]' : 'bg-black/50 text-white/85 hover:bg-black/75'}`}
               >
                 {genreHubOn ? 'Genre hub ✓' : 'Genre hub'}
               </button>
@@ -414,7 +414,7 @@ function WidgetCard({
                   title={sourceArtOn
                     ? 'Tiles preview each folder’s own sources — click for the default TMDB genre art'
                     : 'Show each folder’s own source artwork on the genre tiles (needed for genres TMDB art can’t resolve, e.g. Arabic names) instead of the default TMDB genre art'}
-                  className={`rounded-full px-2 py-0.5 text-[10px] font-semibold transition-colors ${sourceArtOn ? 'bg-accent text-[#2a1206]' : 'bg-black/50 text-white/85 hover:bg-black/75'}`}
+                  className={`rounded-full px-2 py-0.5 text-[10px] font-semibold transition-colors ${sourceArtOn ? 'bg-accent text-[#1a0b04]' : 'bg-black/50 text-white/85 hover:bg-black/75'}`}
                 >
                   {sourceArtOn ? 'Source art ✓' : 'Source art'}
                 </button>
@@ -438,7 +438,7 @@ function WidgetCard({
             <button
               onClick={() => { if (cardItem.expandFolders) onSetExpandFolders?.(cardItem, false); }}
               title="Show the folders as one hub of tiles"
-              className={`px-2.5 py-1 transition-colors ${cardItem.expandFolders ? 'text-white/70 hover:text-white' : 'bg-accent text-[#2a1206]'}`}
+              className={`px-2.5 py-1 transition-colors ${cardItem.expandFolders ? 'text-white/70 hover:text-white' : 'bg-accent text-[#1a0b04]'}`}
             >
               Folders
             </button>
@@ -451,7 +451,7 @@ function WidgetCard({
                 onOpenFolderSelection?.(cardItem);
               }}
               title="Give every selected folder its own content row"
-              className={`px-2.5 py-1 transition-colors ${cardItem.expandFolders ? 'bg-accent text-[#2a1206]' : 'text-white/70 hover:text-white'}`}
+              className={`px-2.5 py-1 transition-colors ${cardItem.expandFolders ? 'bg-accent text-[#1a0b04]' : 'text-white/70 hover:text-white'}`}
             >
               Rows
             </button>

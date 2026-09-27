@@ -32,16 +32,16 @@ export function FolderGrid({
             no backdrop_image set
           </div>
         )}
-        <div className="absolute inset-0 flex items-end p-5" style={{ background: 'linear-gradient(0deg,rgba(13,6,4,.92),transparent 60%)' }}>
+        <div className="absolute inset-0 flex items-end p-5" style={{ background: 'linear-gradient(0deg,rgba(8,8,10,.92),transparent 60%)' }}>
           <div>
             <p className="font-mono text-[10px] uppercase tracking-widest text-accent">Collection backdrop · backdrop_image</p>
-            <h2 className="font-display text-3xl font-extrabold uppercase">{collection.name}</h2>
+            <h2 className="text-3xl font-semibold tracking-tight">{collection.name}</h2>
           </div>
         </div>
       </div>
 
       <div className="mb-3.5 flex items-center justify-between">
-        <h3 className="font-display text-[15px] font-extrabold">
+        <h3 className="text-[15px] font-semibold">
           Folders <span className="font-mono text-xs font-normal text-faint">· click to edit artwork · drag or use ↑↓ to reorder</span>
         </h3>
       </div>
@@ -80,7 +80,7 @@ export function FolderGrid({
                 ) : (
                   <div className="absolute inset-0 bg-surface-2" />
                 )}
-                <div className="absolute inset-0" style={{ background: 'linear-gradient(0deg,rgba(13,6,4,.7),transparent 50%)' }} />
+                <div className="absolute inset-0" style={{ background: 'linear-gradient(0deg,rgba(8,8,10,.7),transparent 50%)' }} />
                 {f.title_logo && (
                   <img src={f.title_logo} alt="" className="relative z-[2] max-h-[54px] max-w-[78%] object-contain drop-shadow-lg" />
                 )}
@@ -103,13 +103,13 @@ export function FolderGrid({
               <button
                 onClick={(e) => { e.stopPropagation(); onMoveUp(i); }}
                 disabled={i === 0}
-                className="flex h-6 w-6 items-center justify-center rounded-lg bg-bg/80 font-mono text-[11px] text-muted backdrop-blur transition-colors hover:bg-accent hover:text-[#2a1206] disabled:opacity-20"
+                className="flex h-6 w-6 items-center justify-center rounded-lg bg-bg/80 font-mono text-[11px] text-muted backdrop-blur transition-colors hover:bg-accent hover:text-[#1a0b04] disabled:opacity-20"
                 title="Move up"
               >↑</button>
               <button
                 onClick={(e) => { e.stopPropagation(); onMoveDown(i); }}
                 disabled={i === folders.length - 1}
-                className="flex h-6 w-6 items-center justify-center rounded-lg bg-bg/80 font-mono text-[11px] text-muted backdrop-blur transition-colors hover:bg-accent hover:text-[#2a1206] disabled:opacity-20"
+                className="flex h-6 w-6 items-center justify-center rounded-lg bg-bg/80 font-mono text-[11px] text-muted backdrop-blur transition-colors hover:bg-accent hover:text-[#1a0b04] disabled:opacity-20"
                 title="Move down"
               >↓</button>
               <button

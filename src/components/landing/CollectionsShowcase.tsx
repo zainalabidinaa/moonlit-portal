@@ -1,11 +1,10 @@
 import { Link } from 'react-router-dom';
 import { Reveal } from './Reveal';
 import { SectionHead } from './SectionHead';
-import { collectionCover, folderArt, type CollectionPreview } from '../../hooks/useCollectionPreviews';
+import { collectionCover, type CollectionPreview } from '../../hooks/useCollectionPreviews';
 
-function ShowcaseCard({ c, delay }: { c: CollectionPreview; delay: number }) {
+function ShowcaseCard({ c, delay, fan }: { c: CollectionPreview; delay: number; fan: string[] }) {
   const cover = collectionCover(c);
-  const fan = folderArt(c, 4);
   const count = c.folders.length;
   return (
     <Reveal delay={delay}>
@@ -21,7 +20,7 @@ function ShowcaseCard({ c, delay }: { c: CollectionPreview; delay: number }) {
           <div className="absolute inset-x-[22px] bottom-[112px] flex">
             {fan.map((src, i) => (
               <img
-                key={src}
+                key={`${src}-${i}`}
                 src={src}
                 alt=""
                 loading="lazy"
@@ -48,7 +47,8 @@ function ShowcaseCard({ c, delay }: { c: CollectionPreview; delay: number }) {
   );
 }
 
-export function CollectionsShowcase({ collections }: { collections: CollectionPreview[] }) {
+/** `posters` are real TMDB posters; each card fans four of them as decoration. */
+export function CollectionsShowcase({ collections, posters }: { collections: CollectionPreview[]; posters: string[] }) {
   const picks = collections.filter((c) => collectionCover(c)).slice(0, 3);
   if (picks.length === 0) return null;
   return (
@@ -65,7 +65,14 @@ export function CollectionsShowcase({ collections }: { collections: CollectionPr
           </Link>
         </Reveal>
         <div className="grid gap-3.5 md:grid-cols-3">
-          {picks.map((c, i) => <ShowcaseCard key={c.id} c={c} delay={i * 90} />)}
+          {picks.map((c, i) => (
+            <ShowcaseCard
+              key={c.id}
+              c={c}
+              delay={i * 90}
+              fan={posters.length >= 4 ? [0, 1, 2, 3].map((j) => posters[(i * 4 + j + 3) % posters.length]) : []}
+            />
+          ))}
         </div>
       </div>
     </section>

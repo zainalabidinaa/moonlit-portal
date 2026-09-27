@@ -11,6 +11,7 @@ import { cloneCollection } from '../../lib/cloneCollection';
 import { fetchAllRows } from '../../lib/fetchAllRows';
 import { splitFoldersIntoStandaloneWidgets } from '../../lib/splitFolders';
 import type { Collection, Folder, HomePreset, HomePresetItem } from '../../types';
+import { adminKicker, adminTitle, adminLede } from '../../components/admin/AdminUI';
 
 function slugify(name: string) {
   return name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
@@ -669,10 +670,11 @@ export default function HomePresetsPage() {
 
   return (
     <AppShell>
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-xl font-semibold text-text">Widgets</h1>
-          <p className="mt-1 text-sm text-muted">
+          <p className={adminKicker}>Catalog</p>
+          <h1 className={`mt-2 ${adminTitle}`}>Widgets</h1>
+          <p className={adminLede}>
             {mode === 'all'
               ? 'Every Home/Movies/Series widget — build and publish them here.'
               : <>Editing <span className="text-accent">{selectedPreset?.name}</span>'s widget list for this tab. Curated home layouts for Spotlight/Friends & Family — only <span className="text-accent">active</span> presets show up in the app.</>}
@@ -707,13 +709,14 @@ export default function HomePresetsPage() {
             </button>
           )}
         </div>
-        <div className="inline-flex rounded-lg border border-border-strong overflow-hidden">
+        <div className="inline-flex gap-0.5 rounded-full border border-border bg-bg2 p-1" role="group" aria-label="App tab">
           {(['home', 'movies', 'series'] as WidgetTab[]).map((t) => (
             <button
               key={t}
               onClick={() => setWidgetTab(t)}
-              className={`px-3.5 py-1.5 text-[12.5px] font-medium capitalize transition-colors ${
-                t === widgetTab ? 'bg-accent-light text-accent' : 'text-muted hover:text-text'
+              aria-pressed={t === widgetTab}
+              className={`h-8 rounded-full px-4 text-[13px] font-medium capitalize transition-colors ${
+                t === widgetTab ? 'bg-surface-2 text-text' : 'text-muted hover:text-text'
               }`}
             >
               {t}

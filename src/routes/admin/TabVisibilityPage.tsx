@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
 import { AppShell } from '../../components/layout/AppShell';
+import { adminKicker, adminTitle, adminLede } from '../../components/admin/AdminUI';
 
 type Role = 'spotlight' | 'friends_family' | 'free';
 type TabKey = 'home' | 'search' | 'library' | 'live_tv' | 'settings';
@@ -64,8 +65,9 @@ export default function TabVisibilityPage() {
   return (
     <AppShell>
       <div className="max-w-3xl mx-auto">
-        <h1 className="text-2xl font-bold text-text mb-1">Tab visibility</h1>
-        <p className="text-sm text-muted mb-6">
+        <p className={adminKicker}>Catalog</p>
+        <h1 className={`mt-2 ${adminTitle}`}>Tab visibility</h1>
+        <p className={`${adminLede} mb-8`}>
           Choose which app tabs each role can see. Admin always sees every tab.
         </p>
 
@@ -76,7 +78,7 @@ export default function TabVisibilityPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border bg-bg">
-                  <th className="text-left px-4 py-3 font-medium text-muted">Tab</th>
+                  <th className="px-4 py-3 text-left text-[11.5px] font-semibold uppercase tracking-[.06em] text-muted">Tab</th>
                   {ROLES.map(r => (
                     <th key={r.key} className="text-center px-4 py-3 font-medium text-muted">{r.label}</th>
                   ))}

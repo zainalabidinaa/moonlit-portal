@@ -52,7 +52,7 @@ export function ServerAccessCell({ user, busy, onGrant, onRevoke }: Props) {
           <select
             value={preset}
             onChange={(e) => setPreset(e.target.value)}
-            className="text-xs border border-border rounded-lg px-2 py-1 bg-surface text-text"
+            className="h-8 rounded-lg border border-border-strong bg-bg2 px-2.5 text-xs text-text outline-none transition-colors focus:border-accent disabled:opacity-50"
           >
             {GRANT_PRESETS.map((p) => (
               <option key={p.value} value={p.value}>{p.label}</option>

@@ -7,38 +7,43 @@ interface TmdbItem {
   id: number;
   title: string;
   poster_path: string | null;
+  /** Landscape still, for player and continue-watching mockups. */
+  backdrop_path: string | null;
   media_type: 'movie' | 'tv';
 }
 
 const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
 let cache: { items: TmdbItem[]; fetchedAt: number } | null = null;
 
-async function fetchTmdbPopular(apiKey: string): Promise<TmdbItem[]> {
-  const [movieRes, tvRes] = await Promise.all([
-    fetch(`https://api.themoviedb.org/3/movie/popular?api_key=${apiKey}&language=en-US&page=1`),
-    fetch(`https://api.themoviedb.org/3/tv/popular?api_key=${apiKey}&language=en-US&page=1`),
-  ]);
+const PER_TYPE = 16;
 
-  if (!movieRes.ok || !tvRes.ok) {
-    throw new Error(`TMDB request failed: movie=${movieRes.status} tv=${tvRes.status}`);
+async function fetchPages(apiKey: string, kind: 'movie' | 'tv'): Promise<any[]> {
+  const responses = await Promise.all(
+    [1, 2].map((page) =>
+      fetch(`https://api.themoviedb.org/3/${kind}/popular?api_key=${apiKey}&language=en-US&page=${page}`)
+    )
+  );
+  for (const r of responses) {
+    if (!r.ok) throw new Error(`TMDB ${kind} request failed: ${r.status}`);
   }
+  const pages = await Promise.all(responses.map((r) => r.json()));
+  return pages.flatMap((p) => p.results ?? []);
+}
 
-  const movieJson = await movieRes.json();
-  const tvJson = await tvRes.json();
+async function fetchTmdbPopular(apiKey: string): Promise<TmdbItem[]> {
+  const [movieResults, tvResults] = await Promise.all([fetchPages(apiKey, 'movie'), fetchPages(apiKey, 'tv')]);
 
-  const movies: TmdbItem[] = (movieJson.results ?? []).slice(0, 5).map((m: any) => ({
-    id: m.id,
-    title: m.title,
-    poster_path: m.poster_path ?? null,
-    media_type: 'movie' as const,
-  }));
+  // Two pages of each, posters only, so the marketing page has enough real
+  // artwork for its rails and grids without repeating the same few titles.
+  const movies: TmdbItem[] = movieResults
+    .filter((m: any) => m.poster_path)
+    .slice(0, PER_TYPE)
+    .map((m: any) => ({ id: m.id, title: m.title, poster_path: m.poster_path, backdrop_path: m.backdrop_path ?? null, media_type: 'movie' as const }));
 
-  const shows: TmdbItem[] = (tvJson.results ?? []).slice(0, 5).map((t: any) => ({
-    id: t.id,
-    title: t.name,
-    poster_path: t.poster_path ?? null,
-    media_type: 'tv' as const,
-  }));
+  const shows: TmdbItem[] = tvResults
+    .filter((t: any) => t.poster_path)
+    .slice(0, PER_TYPE)
+    .map((t: any) => ({ id: t.id, title: t.name, poster_path: t.poster_path, backdrop_path: t.backdrop_path ?? null, media_type: 'tv' as const }));
 
   // Interleave movies and shows so the strip isn't all-movies-then-all-tv.
   const merged: TmdbItem[] = [];

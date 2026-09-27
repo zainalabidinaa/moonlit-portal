@@ -140,3 +140,14 @@ h1, h2, h3, h4 {
 ::-webkit-scrollbar-track {
   background: transparent;
 }
+
+/* gentle idle bob for the illustrated profile avatars */
+@keyframes moonlit-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+.animate-bob { animation: moonlit-bob 3.2s ease-in-out infinite; }
+.group:hover .animate-bob { animation-play-state: paused; transform: translateY(-4px) scale(1.04); }
+
+/* closing CTA: the hand of posters spreads wider on hover */
+.group:hover .fan-card { transform: var(--spread) !important; }

@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { authedFetchJson, SessionExpiredError } from '../../lib/authed-fetch';
 import { supabase } from '../../lib/supabase';
@@ -7,6 +7,7 @@ import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { DeleteUserModal } from '../../components/admin/DeleteUserModal';
 import { ServerAccessCell } from '../../components/admin/ServerAccessCell';
+import { FilterChip, StatTile, adminKicker, adminLede, adminSelect, adminTh, adminTitle } from '../../components/admin/AdminUI';
 import { grantExpiry, matchesServerFilter, serverAccessState, type ServerAccessFilter, type ServerAccessSource } from '../../lib/serverAccess';
 import { lastActiveStatus, lastActiveLabel, formatRelativeTime, parseUserAgent, type ActiveStatus } from '../../lib/userActivity';
 import type { SessionInfo, ActivityEntry } from '../../lib/userActivity';
@@ -46,11 +47,11 @@ const ROLE_LABELS: Record<UserRole, string> = {
   restricted: 'Restricted',
 };
 
-const ROLE_BADGE: Record<UserRole, 'default' | 'success' | 'warning' | 'danger' | 'purple'> = {
+const ROLE_BADGE: Record<UserRole, 'default' | 'success' | 'warning' | 'danger' | 'purple' | 'info'> = {
   admin: 'purple',
-  friends_family: 'success',
-  spotlight: 'warning',
-  studio: 'default',
+  friends_family: 'default',
+  spotlight: 'success',
+  studio: 'info',
   free: 'danger',
   restricted: 'danger',
 };
@@ -137,7 +138,7 @@ function ActivityDrawer({
   data?: { sessions: SessionInfo[]; activity: ActivityEntry[] };
 }) {
   if (loading) return <p className="text-sm text-muted">Loading…</p>;
-  if (error) return <p className="text-sm text-red-500">Couldn't load activity: {error}</p>;
+  if (error) return <p className="text-sm text-red-400">Couldn't load activity: {error}</p>;
   if (!data) return null;
 
   return (
@@ -185,6 +186,8 @@ export default function UsersPage() {
   const [changingStreams, setChangingStreams] = useState<string | null>(null);
   const [changingServer, setChangingServer] = useState<string | null>(null);
   const [serverFilter, setServerFilter] = useState<ServerAccessFilter>('all');
+  const [roleFilter, setRoleFilter] = useState<UserRole | 'all'>('all');
+  const [query, setQuery] = useState('');
   const [deleteTarget, setDeleteTarget] = useState<AdminUser | null>(null);
   const [changingExpiry, setChangingExpiry] = useState<string | null>(null);
   const [runningSetup, setRunningSetup] = useState<string | null>(null);
@@ -425,6 +428,33 @@ export default function UsersPage() {
     }
   }
 
+  const stats = useMemo(() => {
+    const now = Date.now();
+    const DAY = 86_400_000;
+    const byRole: Record<UserRole, number> = { admin: 0, friends_family: 0, spotlight: 0, studio: 0, free: 0, restricted: 0 };
+    let online = 0, expiringSoon = 0, newThisMonth = 0, withServer = 0;
+    for (const u of users) {
+      byRole[u.role] += 1;
+      if (lastActiveStatus(u.last_active_at) === 'online') online += 1;
+      if (u.role === 'friends_family' && u.role_expires_at) {
+        const left = new Date(u.role_expires_at).getTime() - now;
+        if (left > 0 && left < 30 * DAY) expiringSoon += 1;
+      }
+      if (now - new Date(u.created_at).getTime() < 30 * DAY) newThisMonth += 1;
+      if (matchesServerFilter(serverAccessState(u), 'active')) withServer += 1;
+    }
+    return { total: users.length, byRole, online, expiringSoon, newThisMonth, withServer };
+  }, [users]);
+
+  const visibleUsers = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return users.filter(u =>
+      matchesServerFilter(serverAccessState(u), serverFilter) &&
+      (roleFilter === 'all' || u.role === roleFilter) &&
+      (!q || (u.email ?? '').toLowerCase().includes(q) || (u.name ?? '').toLowerCase().includes(q))
+    );
+  }, [users, serverFilter, roleFilter, query]);
+
   function isoToDisplay(iso: string | null): string {
     if (!iso) return '—';
     return new Date(iso).toLocaleDateString();
@@ -433,57 +463,84 @@ export default function UsersPage() {
   return (
     <AppShell>
       <div className="max-w-6xl mx-auto">
-        <h1 className="text-2xl font-bold text-text mb-6">Users</h1>
+        <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <p className={adminKicker}>People</p>
+            <h1 className={`mt-2 ${adminTitle}`}>Users</h1>
+            <p className={adminLede}>Everyone with a Moonlit account, their plan, server access and where they last signed in. Select a row for sessions and recent activity.</p>
+          </div>
+          <Button size="sm" variant="ghost" onClick={() => setReloadKey(k => k + 1)}>Refresh</Button>
+        </div>
 
-        {loading && <p className="text-muted text-sm">Loading…</p>}
+        {loading && <p className="text-sm text-muted">Loading…</p>}
         {error && (
-          <div className="flex items-center gap-3">
-            <p className="text-red-500 text-sm">{error}</p>
+          <div className="mb-4 flex items-center gap-3">
+            <p className="text-sm text-red-400">{error}</p>
             <Button size="sm" variant="ghost" onClick={() => setReloadKey(k => k + 1)}>Try again</Button>
           </div>
         )}
 
         {!loading && !error && (
-          <div className="mb-4 flex flex-wrap gap-2">
-            {SERVER_FILTERS.map(f => (
-              <button
-                key={f.value}
-                onClick={() => setServerFilter(f.value)}
-                className={`rounded-full border px-3 py-1 text-xs transition-colors ${
-                  serverFilter === f.value ? 'border-accent bg-accent-light text-accent' : 'border-border text-muted hover:text-text'
-                }`}
-              >
-                {f.label}
-              </button>
-            ))}
-          </div>
+          <>
+            <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">
+              <StatTile label="Accounts" value={stats.total} note={`${stats.online} active now`} tone={stats.online ? 'ok' : undefined} />
+              <StatTile label="Spotlight" value={stats.byRole.spotlight} note={`${stats.newThisMonth} joined in the last 30 days`} />
+              <StatTile label="Studio" value={stats.byRole.studio} note={`${stats.withServer} with server access`} />
+              <StatTile label="Friends & Family" value={stats.byRole.friends_family} note={stats.expiringSoon ? `${stats.expiringSoon} expire within 30 days` : 'None expiring soon'} tone={stats.expiringSoon ? 'warn' : undefined} />
+            </div>
+
+            <div className="mb-3 flex flex-wrap items-center gap-2">
+              <label className="relative mr-1">
+                <span className="sr-only">Search by email</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-faint"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" strokeLinecap="round" /></svg>
+                <input
+                  type="search"
+                  value={query}
+                  onChange={e => setQuery(e.target.value)}
+                  placeholder="Search by email"
+                  className="h-9 w-64 rounded-full border border-border-strong bg-bg2 pl-9 pr-3 text-sm text-text outline-none placeholder:text-faint focus:border-accent"
+                />
+              </label>
+              {(['all', 'spotlight', 'studio', 'friends_family', 'admin', 'free'] as const).map(r => (
+                <FilterChip key={r} on={roleFilter === r} onClick={() => setRoleFilter(r)} count={r === 'all' ? stats.total : stats.byRole[r]}>
+                  {r === 'all' ? 'All roles' : r === 'friends_family' ? 'Friends & Family' : ROLE_LABELS[r]}
+                </FilterChip>
+              ))}
+            </div>
+            <div className="mb-4 flex flex-wrap items-center gap-2">
+              <span className="mr-1 text-xs font-medium text-faint">Server access</span>
+              {SERVER_FILTERS.map(f => (
+                <FilterChip key={f.value} on={serverFilter === f.value} onClick={() => setServerFilter(f.value)}>{f.label}</FilterChip>
+              ))}
+            </div>
+          </>
         )}
 
         {!loading && !error && (
-          <div className="inline-block max-w-full overflow-x-auto rounded-xl border border-border bg-surface">
-            <table className="text-sm">
+          <div className="overflow-x-auto rounded-2xl border border-border bg-surface">
+            <table className="w-full min-w-[980px] text-sm [&_td]:whitespace-nowrap [&_th]:whitespace-nowrap">
               <thead>
-                <tr className="border-b border-border bg-bg">
-                  <th className="text-left px-4 py-3 font-medium text-muted">Email</th>
-                  <th className="text-left px-4 py-3 font-medium text-muted">Role</th>
-                  <th className="text-left px-4 py-3 font-medium text-muted">Expires</th>
-                  <th className="text-left px-4 py-3 font-medium text-muted">Server access</th>
-                  <th className="text-left px-4 py-3 font-medium text-muted">Streams</th>
-                  <th className="text-left px-4 py-3 font-medium text-muted">Last Active</th>
-                  <th className="text-left px-4 py-3 font-medium text-muted">Joined</th>
+                <tr className="border-b border-border">
+                  <th className={adminTh}>Email</th>
+                  <th className={adminTh}>Role</th>
+                  <th className={adminTh}>Expires</th>
+                  <th className={adminTh}>Server access</th>
+                  <th className={adminTh}>Streams</th>
+                  <th className={adminTh}>Last Active</th>
+                  <th className={adminTh}>Joined</th>
                   <th className="px-4 py-3" />
                   <th className="px-4 py-3" />
                   <th className="px-4 py-3" />
                 </tr>
               </thead>
               <tbody>
-                {users.filter(u => matchesServerFilter(serverAccessState(u), serverFilter)).map(u => (
+                {visibleUsers.map(u => (
                   <Fragment key={u.id}>
                   <tr
-                    className="border-b border-border last:border-0 cursor-pointer hover:bg-surface-2"
+                    className="cursor-pointer border-b border-border transition-colors last:border-0 hover:bg-white/[.03]"
                     onClick={() => toggleRow(u.user_id)}
                   >
-                    <td className="px-4 py-3 text-text">{u.email ?? u.user_id.slice(0, 8) + '…'}</td>
+                    <td className="px-4 py-3 font-medium text-text">{u.email ?? u.user_id.slice(0, 8) + '…'}</td>
                     <td className="px-4 py-3">
                       {isRoleExpired(u) ? (
                         <div className="flex items-center gap-1.5">
@@ -501,7 +558,7 @@ export default function UsersPage() {
                             value={customUsers.has(u.user_id) ? 'custom' : expiryPreset(u.role_expires_at)}
                             onChange={e => handleExpiryPreset(u.user_id, e.target.value)}
                             disabled={changingExpiry === u.user_id}
-                            className="text-xs border border-border rounded-lg px-2 py-1 bg-surface text-text disabled:opacity-50"
+                            className={adminSelect}
                           >
                             <option value="7d">7 days</option>
                             <option value="30d">30 days</option>
@@ -514,7 +571,7 @@ export default function UsersPage() {
                               type="datetime-local"
                               value={customValues[u.user_id] ?? toDateTimeInput(u.role_expires_at)}
                               onChange={e => handleCustomExpiry(u.user_id, e.target.value)}
-                              className="w-44 rounded-lg border border-border bg-bg px-2 py-1.5 text-xs text-text outline-none focus:border-accent"
+                              className={`w-44 ${adminSelect}`}
                             />
                           )}
                         </div>
@@ -553,7 +610,7 @@ export default function UsersPage() {
                         value={u.role}
                         onChange={e => handleRoleChange(u.user_id, e.target.value as UserRole)}
                         disabled={changingRole === u.user_id}
-                        className="text-xs border border-border rounded-lg px-2 py-1 bg-surface text-text disabled:opacity-50"
+                        className={adminSelect}
                       >
                         {(Object.keys(ROLE_LABELS) as UserRole[]).map(r => (
                           <option key={r} value={r}>{ROLE_LABELS[r]}</option>
@@ -584,7 +641,7 @@ export default function UsersPage() {
                   </tr>
                   {expandedUser === u.user_id && (
                     <tr className="border-b border-border last:border-0">
-                      <td colSpan={10} className="px-4 py-4 bg-bg" onClick={(e) => e.stopPropagation()}>
+                      <td colSpan={10} className="bg-bg2 px-4 py-4" onClick={(e) => e.stopPropagation()}>
                         <ActivityDrawer
                           loading={activityLoading === u.user_id}
                           error={activityError[u.user_id]}
@@ -595,6 +652,9 @@ export default function UsersPage() {
                   )}
                   </Fragment>
                 ))}
+                {visibleUsers.length === 0 && (
+                  <tr><td colSpan={10} className="px-4 py-10 text-center text-sm text-faint">No users match these filters.</td></tr>
+                )}
               </tbody>
             </table>
           </div>

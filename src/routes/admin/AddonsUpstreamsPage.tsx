@@ -9,6 +9,7 @@ import { DragHandle } from '../../components/ui/DragHandle';
 import { Badge } from '../../components/ui/Badge';
 import { AddonWidgetsDialog } from '../../components/catalog/AddonWidgetsDialog';
 import type { InstalledAddon } from '../../types';
+import { adminKicker, adminTitle, adminLede } from '../../components/admin/AdminUI';
 
 // Bundled on every device regardless of what's in `installed_addons` — see
 // AddonRepository.swift's `managedURLs` comment: these are merged in-memory
@@ -180,10 +181,11 @@ export default function AddonsUpstreamsPage() {
   return (
     <AppShell>
       <div className="max-w-2xl mx-auto">
-        <div className="flex items-center justify-between mb-6">
+        <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-text">Add-ons &amp; upstreams</h1>
-            <p className="mt-1 text-sm text-muted">
+            <p className={adminKicker}>Catalog</p>
+            <h1 className={`mt-2 ${adminTitle}`}>Add-ons &amp; upstreams</h1>
+            <p className={adminLede}>
               Admin only. Add-ons feed the server's copied lists and stream lookups behind the scenes;
               users never see or manage them.
             </p>
@@ -213,7 +215,7 @@ export default function AddonsUpstreamsPage() {
                 </Button>
               </div>
             </div>
-            {error && <p className="text-xs text-red-500 mt-3">{error}</p>}
+            {error && <p className="text-xs text-red-400 mt-3">{error}</p>}
             {lastInstallCount !== null && (
               <p className="text-xs text-muted mt-3">
                 {lastInstallCount > 0 ? `Added ${lastInstallCount} new add-on${lastInstallCount === 1 ? '' : 's'}.` : 'Already up to date.'}
@@ -316,7 +318,7 @@ export default function AddonsUpstreamsPage() {
                       <input type="checkbox" className="sr-only peer" checked={addon.enabled} onChange={() => handleToggle(addon)} />
                       <div className="w-9 h-5 bg-border rounded-full peer peer-checked:bg-accent transition-colors after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-4" />
                     </label>
-                    <button onClick={() => handleRemove(addon)} className="text-muted hover:text-red-500 transition-colors text-lg leading-none">&times;</button>
+                    <button onClick={() => handleRemove(addon)} className="text-muted hover:text-red-400 transition-colors text-lg leading-none">&times;</button>
                   </>
                 )}
               </Card>

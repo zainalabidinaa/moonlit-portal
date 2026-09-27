@@ -4,11 +4,17 @@ export interface TrendingItem {
   id: number;
   title: string;
   poster_path: string | null;
+  /** Present once the tmdb-popular function returns backdrops. */
+  backdrop_path?: string | null;
   media_type: 'movie' | 'tv';
 }
 
 export function posterUrl(item: TrendingItem, size: 'w342' | 'w500' = 'w342'): string | null {
   return item.poster_path ? `https://image.tmdb.org/t/p/${size}${item.poster_path}` : null;
+}
+
+export function backdropUrl(item: TrendingItem, size: 'w780' | 'w1280' = 'w780'): string | null {
+  return item.backdrop_path ? `https://image.tmdb.org/t/p/${size}${item.backdrop_path}` : null;
 }
 
 /**

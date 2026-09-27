@@ -171,7 +171,7 @@ function Toggle({ label, on, onClick }: { label: string; on: boolean; onClick: (
   return (
     <label className="flex cursor-pointer flex-col items-center gap-1.5 text-xs text-muted" onClick={onClick}>
       <span className={`relative h-6 w-11 flex-none rounded-full border transition-colors ${on ? 'border-transparent bg-accent' : 'border-border bg-surface-2'}`}>
-        <span className={`absolute top-0.5 h-[18px] w-[18px] rounded-full transition-all ${on ? 'left-[22px] bg-[#2a1206]' : 'left-0.5 bg-white'}`} />
+        <span className={`absolute top-0.5 h-[18px] w-[18px] rounded-full transition-all ${on ? 'left-[22px] bg-[#1a0b04]' : 'left-0.5 bg-white'}`} />
       </span>
       {label}
     </label>

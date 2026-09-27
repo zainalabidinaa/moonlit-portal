@@ -3,6 +3,7 @@ import { Reveal } from './Reveal';
 import { SectionHead } from './SectionHead';
 import { PlayerDemo } from './PlayerDemo';
 import { SourcesDemo } from './SourcesDemo';
+import { AstronautAvatar, FoxAvatar, GhostAvatar, OwlAvatar, SproutAvatar } from './AvatarIcons';
 
 function Cell({ title, body, children, span2, delay }: { title: string; body: string; children: ReactNode; span2?: boolean; delay?: number }) {
   return (
@@ -19,10 +20,10 @@ function Cell({ title, body, children, span2, delay }: { title: string; body: st
 }
 
 const household = [
-  { n: 'Jordan', bg: 'linear-gradient(140deg,#ff8a35,#ff6a2b)' },
-  { n: 'Sam', bg: 'linear-gradient(140deg,#4f7cff,#2b4bd6)' },
-  { n: 'Mia', bg: 'linear-gradient(140deg,#2fbf8f,#128f66)', kid: true },
-  { n: 'Ada', bg: 'linear-gradient(140deg,#c65cff,#7d2bd6)' },
+  { n: 'Jordan', Avatar: FoxAvatar },
+  { n: 'Sam', Avatar: AstronautAvatar },
+  { n: 'Mia', Avatar: SproutAvatar, kid: true },
+  { n: 'Ada', Avatar: OwlAvatar },
 ];
 
 interface FeatureBentoProps {
@@ -85,21 +86,27 @@ export function FeatureBento({ playerBackdrop, playerTitle, continueArt, curated
           </Cell>
 
           <Cell delay={80} title="A profile for everyone." body="Up to four profiles with their own library, watch history and recommendations. A kids profile only sees the kids catalog.">
-            <div className="flex flex-wrap gap-3.5 px-6 pb-6">
-              {household.map((p) => (
-                <div key={p.n} className="group grid justify-items-center gap-2 text-[12.5px] font-medium text-muted">
+            <div className="flex flex-wrap gap-x-3 gap-y-4 px-6 pb-6">
+              {household.map(({ n, Avatar, kid }, i) => (
+                <div key={n} className="group grid justify-items-center gap-2 text-[12.5px] font-medium text-muted">
                   <span
-                    className="grid h-[58px] w-[58px] place-items-center rounded-full border-2 border-transparent text-lg font-semibold text-white transition-[transform,border-color] duration-300 group-hover:-translate-y-1 group-hover:border-text"
-                    style={{ background: p.bg }}
+                    className="animate-bob block h-[54px] w-[54px] overflow-hidden rounded-full ring-2 ring-transparent transition-[box-shadow] duration-300 group-hover:ring-text"
+                    style={{ animationDelay: `${i * 0.4}s` }}
                   >
-                    {p.n[0]}
+                    <Avatar />
                   </span>
-                  <span>
-                    {p.n}
-                    {p.kid && <em className="ml-1 rounded bg-accent-light px-1.5 py-px font-mono text-[9.5px] not-italic text-accent">KIDS</em>}
+                  <span className="text-text">
+                    {n}
+                    {kid && <em className="ml-1 rounded bg-accent-light px-1.5 py-px font-mono text-[9.5px] not-italic text-accent">KIDS</em>}
                   </span>
                 </div>
               ))}
+              <div className="grid justify-items-center gap-2 text-[12.5px] font-medium text-faint">
+                <span className="block h-[54px] w-[54px] overflow-hidden rounded-full opacity-45 grayscale transition-[filter,opacity] duration-300 hover:opacity-100 hover:grayscale-0">
+                  <GhostAvatar />
+                </span>
+                <span>Guest</span>
+              </div>
             </div>
           </Cell>
 

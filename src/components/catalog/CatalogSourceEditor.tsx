@@ -101,7 +101,7 @@ export function CatalogSourceEditor({ catalogs, onAdd, onDelete, addons }: Props
             </span>
           )}
           {hasUpdate && (
-            <span className="rounded-full bg-accent px-2 py-0.5 font-mono text-[10px] font-bold text-[#2a1206]">
+            <span className="rounded-full bg-accent px-2 py-0.5 font-mono text-[10px] font-bold text-[#1a0b04]">
               UPDATED
             </span>
           )}

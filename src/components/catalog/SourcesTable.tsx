@@ -149,10 +149,10 @@ export function SourcesTable({ folder, sources, catalogs, onAddSource, onDeleteS
           <table className="w-full border-collapse text-[13px]">
             <thead>
               <tr className="border-b border-border text-left font-mono text-[10px] uppercase tracking-wide text-faint">
-                <th className="p-3 font-normal">Title</th>
-                <th className="p-3 font-normal">Provider</th>
-                <th className="p-3 font-normal">TMDB id</th>
-                <th className="p-3 font-normal">Type</th>
+                <th className="p-3 text-left text-[11.5px] font-semibold uppercase tracking-[.06em] text-muted">Title</th>
+                <th className="p-3 text-left text-[11.5px] font-semibold uppercase tracking-[.06em] text-muted">Provider</th>
+                <th className="p-3 text-left text-[11.5px] font-semibold uppercase tracking-[.06em] text-muted">TMDB id</th>
+                <th className="p-3 text-left text-[11.5px] font-semibold uppercase tracking-[.06em] text-muted">Type</th>
                 <th className="p-3" />
               </tr>
             </thead>

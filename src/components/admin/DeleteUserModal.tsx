@@ -83,7 +83,7 @@ export function DeleteUserModal({ open, onClose, userEmail, onConfirm }: DeleteU
           I understand this cannot be undone.
         </label>
 
-        {error && <p className="text-xs text-red-500">{error}</p>}
+        {error && <p className="text-xs text-red-400">{error}</p>}
 
         <div className="flex justify-end gap-2 pt-2">
           <Button variant="ghost" onClick={handleClose} disabled={deleting}>Cancel</Button>

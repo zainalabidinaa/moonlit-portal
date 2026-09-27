@@ -13,6 +13,7 @@ import { JsonImport } from '../../components/catalog/JsonImport';
 import { CollectionSettings } from '../../components/catalog/CollectionSettings';
 import { useAutoScrollOnDrag } from '../../hooks/useAutoScrollOnDrag';
 import type { Collection, Folder, FolderSource, FolderCatalog, InstalledAddon } from '../../types';
+import { adminKicker, adminTitle, adminLede } from '../../components/admin/AdminUI';
 
 type Tab = 'folders' | 'artwork' | 'sources' | 'json' | 'collection';
 const TABS: { id: Tab; label: string }[] = [
@@ -569,9 +570,9 @@ export default function CatalogPage() {
     <AppShell>
       <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="font-mono text-[11px] uppercase tracking-[0.28em] text-accent">Admin · Catalog</p>
-          <h1 className="font-display text-[clamp(30px,4vw,46px)] font-extrabold uppercase">Collection manager</h1>
-          <p className="mt-1 text-sm text-muted">
+          <p className={adminKicker}>Catalog</p>
+          <h1 className={`mt-2 ${adminTitle}`}>Collections</h1>
+          <p className={adminLede}>
             Edit collections, folders, sources and <span className="text-accent">every artwork slot</span> — with live previews.
           </p>
         </div>

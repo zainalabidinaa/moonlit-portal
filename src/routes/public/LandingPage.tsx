@@ -12,15 +12,15 @@ import { Devices } from '../../components/landing/Devices';
 import { PlansGrid } from '../../components/landing/PlansGrid';
 import { CtaBand } from '../../components/landing/CtaBand';
 import { AppleIcon, CheckIcon, GlobeIcon, PhoneIcon, TvIcon, WindowsIcon } from '../../components/landing/PlatformIcons';
-import { useTrending, posterUrl } from '../../hooks/useTrending';
-import { useCollectionPreviews, collectionCover, folderArt, type CollectionPreview } from '../../hooks/useCollectionPreviews';
+import { useTrending, posterUrl, backdropUrl } from '../../hooks/useTrending';
+import { useCollectionPreviews, type CollectionPreview } from '../../hooks/useCollectionPreviews';
 import { PLANS } from '../../lib/plans';
 
 const heroMeta = [`From ${PLANS[1].price} a month`, 'No ads, cancel anytime', 'Up to 4 profiles'];
 
 /** "Tonight's collection": rotates through the real collections every 7s. */
-function TonightCard({ collections }: { collections: CollectionPreview[] }) {
-  const picks = useMemo(() => collections.filter((c) => folderArt(c, 3).length >= 1).slice(0, 6), [collections]);
+function TonightCard({ collections, posters }: { collections: CollectionPreview[]; posters: string[] }) {
+  const picks = useMemo(() => collections.slice(0, 6), [collections]);
   const [i, setI] = useState(0);
   const [swap, setSwap] = useState(false);
 
@@ -34,8 +34,9 @@ function TonightCard({ collections }: { collections: CollectionPreview[] }) {
   }, [picks.length]);
 
   const c = picks[i];
-  if (!c) return null;
-  const art = folderArt(c, 3);
+  if (!c || posters.length < 3) return null;
+  // Decorative stack of real TMDB posters; the collection name is the real one.
+  const art = [0, 1, 2].map((j) => posters[(i * 3 + j) % posters.length]);
   const groups = c.folders.length;
 
   return (
@@ -46,7 +47,7 @@ function TonightCard({ collections }: { collections: CollectionPreview[] }) {
       <div className="relative h-[58px] w-[74px] flex-none">
         {art.map((src, j) => (
           <img
-            key={src}
+            key={`${i}-${j}`}
             src={src}
             alt=""
             className={`absolute bottom-0 aspect-[2/3] w-[38px] rounded-[5px] object-cover shadow-[0_8px_20px_-8px_rgba(0,0,0,1),0_0_0_1px_rgba(255,255,255,.1)] transition-opacity duration-500 ${swap ? 'opacity-0' : 'opacity-100'} ${
@@ -80,35 +81,30 @@ export default function LandingPage() {
   const trending = useTrending();
   const { collections } = useCollectionPreviews();
 
-  // Rails: trending posters first, then folder covers, deduplicated.
-  const rail: RailPoster[] = useMemo(() => {
-    const out: RailPoster[] = [];
-    const seen = new Set<string>();
-    for (const t of trending) {
-      const src = posterUrl(t);
-      if (src && !seen.has(src)) { seen.add(src); out.push({ key: `t-${t.media_type}-${t.id}`, src, title: t.title, sub: t.media_type === 'tv' ? 'Series' : 'Film' }); }
-    }
-    for (const c of collections) {
-      for (const f of c.folders) {
-        const src = f.cover_image;
-        if (src && !seen.has(src)) { seen.add(src); out.push({ key: `f-${f.id}`, src, title: f.name, sub: c.name }); }
-      }
-    }
-    return out.slice(0, 28);
-  }, [trending, collections]);
-
-  const backdrops = useMemo(
-    () => collections.map((c) => ({ c, src: collectionCover(c) })).filter((x): x is { c: CollectionPreview; src: string } => !!x.src),
-    [collections]
+  // Real TMDB posters only. Folder and collection covers are admin widget
+  // art (genre tiles with text baked in, landscape crops), so they never go
+  // into anything presented as a poster.
+  const posters = useMemo(() => trending.map((t) => posterUrl(t)).filter((s): s is string => !!s), [trending]);
+  const rail: RailPoster[] = useMemo(
+    () => trending
+      .filter((t) => t.poster_path)
+      .map((t) => ({ key: `t-${t.media_type}-${t.id}`, src: posterUrl(t) as string, title: t.title, sub: t.media_type === 'tv' ? 'Series' : 'Film' })),
+    [trending]
   );
-  const continueArt = backdrops.slice(1, 4).map((x, i) => ({
-    src: x.src,
-    title: x.c.folders[0]?.name ?? x.c.name,
-    sub: ['S2 E4 · 31 min left', '1:12:40 left', 'S3 E1 · 18 min left'][i],
+
+  // Landscape stills for the player and continue-watching mockups, also TMDB.
+  const stills = useMemo(
+    () => trending.map((t) => ({ t, src: backdropUrl(t) })).filter((x): x is { t: typeof trending[number]; src: string } => !!x.src),
+    [trending]
+  );
+  const continueArt = stills.slice(1, 4).map(({ t, src }, i) => ({
+    src,
+    title: t.title,
+    sub: t.media_type === 'tv' ? ['S2 E4 · 31 min left', 'S1 E6 · 39 min left', 'S3 E1 · 18 min left'][i] : ['1:12:40 left', '48 min left', '1:31:05 left'][i],
     pct: [42, 61, 55][i],
     device: ['MAC', 'IPHONE', 'WEB'][i],
   }));
-  const curatedArt = collections.flatMap((c) => folderArt(c, 8)).slice(0, 8);
+  const curatedArt = posters.length > 8 ? posters.slice(-8) : posters.slice(0, 8);
 
   return (
     <div className="min-h-screen bg-bg">
@@ -139,7 +135,7 @@ export default function LandingPage() {
                 <span key={m} className="inline-flex items-center gap-2"><CheckIcon className="h-4 w-4 text-accent" />{m}</span>
               ))}
             </div>
-            <TonightCard collections={collections} />
+            <TonightCard collections={collections} posters={posters} />
           </div>
 
           <div className="intro relative min-w-0 lg:-mr-[6%]">
@@ -176,13 +172,13 @@ export default function LandingPage() {
       <PosterRails posters={rail} caption="A slice of what is on Moonlit this week. Artwork courtesy of TMDB." />
 
       <FeatureBento
-        playerBackdrop={backdrops[0]?.src}
-        playerTitle={backdrops[0]?.c.folders[0]?.name ?? backdrops[0]?.c.name}
+        playerBackdrop={stills[0]?.src}
+        playerTitle={stills[0]?.t.title}
         continueArt={continueArt}
         curatedArt={curatedArt}
       />
 
-      <CollectionsShowcase collections={collections} />
+      <CollectionsShowcase collections={collections} posters={posters} />
 
       <Devices />
 
@@ -205,7 +201,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <CtaBand backdrop={backdrops[backdrops.length - 1]?.src} signedIn={!!session} />
+      <CtaBand posters={posters.length > 12 ? posters.slice(6, 11) : posters.slice(0, 5)} signedIn={!!session} />
 
       <Footer />
     </div>

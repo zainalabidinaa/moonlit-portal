@@ -11,6 +11,7 @@ import {
   type SourceHealth,
   type SourceKind,
 } from '../../lib/catalogSources';
+import { adminKicker, adminTitle, adminLede } from '../../components/admin/AdminUI';
 
 const PAGE_SIZE = 250;
 
@@ -74,10 +75,11 @@ export default function CatalogSourcesPage() {
   return (
     <AppShell>
       <div className="max-w-7xl mx-auto">
-        <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
+        <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-text">Catalog sources</h1>
-            <p className="mt-1 text-sm text-muted">
+            <p className={adminKicker}>Catalog</p>
+            <h1 className={`mt-2 ${adminTitle}`}>Sources</h1>
+            <p className={adminLede}>
               Every list the apps read, where it comes from, and whether it is healthy.
             </p>
           </div>
@@ -85,7 +87,7 @@ export default function CatalogSourcesPage() {
         </div>
 
         {loading && <p className="text-sm text-muted">Loading…</p>}
-        {error && <p className="text-sm text-red-500">{error}</p>}
+        {error && <p className="text-sm text-red-400">{error}</p>}
 
         {!loading && !error && (
           <>
@@ -128,12 +130,12 @@ export default function CatalogSourcesPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border bg-bg">
-                    <th className="px-4 py-3 text-left font-medium text-muted">List</th>
-                    <th className="px-4 py-3 text-left font-medium text-muted">Source</th>
-                    <th className="px-4 py-3 text-left font-medium text-muted">Refresh</th>
-                    <th className="px-4 py-3 text-left font-medium text-muted">Last refresh</th>
-                    <th className="px-4 py-3 text-right font-medium text-muted">Items</th>
-                    <th className="px-4 py-3 text-left font-medium text-muted">Health</th>
+                    <th className="px-4 py-3 text-left text-[11.5px] font-semibold uppercase tracking-[.06em] text-muted">List</th>
+                    <th className="px-4 py-3 text-left text-[11.5px] font-semibold uppercase tracking-[.06em] text-muted">Source</th>
+                    <th className="px-4 py-3 text-left text-[11.5px] font-semibold uppercase tracking-[.06em] text-muted">Refresh</th>
+                    <th className="px-4 py-3 text-left text-[11.5px] font-semibold uppercase tracking-[.06em] text-muted">Last refresh</th>
+                    <th className="px-4 py-3 text-right text-[11.5px] font-semibold uppercase tracking-[.06em] text-muted">Items</th>
+                    <th className="px-4 py-3 text-left text-[11.5px] font-semibold uppercase tracking-[.06em] text-muted">Health</th>
                     <th className="px-4 py-3" />
                   </tr>
                 </thead>

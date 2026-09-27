@@ -141,7 +141,7 @@ export default function MyCollectionsPage() {
                 </button>
                 <button
                   onClick={() => handleDeleteCollection(c.id)}
-                  className="text-muted hover:text-red-500 text-lg leading-none"
+                  className="text-muted hover:text-red-400 text-lg leading-none"
                 >
                   &times;
                 </button>
@@ -174,7 +174,7 @@ export default function MyCollectionsPage() {
                     </button>
                     <button
                       onClick={() => handleDeleteFolder(f.id)}
-                      className="text-muted hover:text-red-500 text-lg leading-none"
+                      className="text-muted hover:text-red-400 text-lg leading-none"
                     >
                       &times;
                     </button>
