@@ -44,6 +44,7 @@ p { margin: 0; }
 .wrap { width: min(1240px, 100%); margin-inline: auto; padding-inline: 20px; }
 @media (min-width: 760px) { .wrap { padding-inline: 32px; } }
 .kicker { font-size: 12px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); }
+@media (max-width: 480px) { .hero .kicker { font-size: 10.5px; letter-spacing: .08em; } }
 .lede { color: var(--muted); font-size: 17px; line-height: 1.6; max-width: 36em; }
 .section { padding-block: 80px; }
 @media (min-width: 900px) { .section { padding-block: 120px; } }
@@ -106,45 +107,94 @@ p { margin: 0; }
 .js .reveal { opacity: 0; transform: translateY(28px); transition: opacity .9s var(--ease), transform .9s var(--ease); transition-delay: var(--d, 0ms); }
 .js .reveal.in { opacity: 1; transform: none; }
 
-/* ─── hero ─── */
-.hero { position: relative; min-height: clamp(620px, 92vh, 880px); display: flex; align-items: flex-end; overflow: hidden; }
-.hero-bg { position: absolute; inset: 0; background: #000; }
-.hero-slide { position: absolute; inset: 0; opacity: 0; transition: opacity 1.6s ease; will-change: opacity; }
-.hero-slide img { width: 100%; height: 100%; object-fit: cover; object-position: center 30%; transform: scale(1.12); }
-.hero-slide.on { opacity: 1; }
-.hero-slide.on img { animation: kenburns 9s linear forwards; }
-@keyframes kenburns { from { transform: scale(1.14) translate(1.2%, .8%); } to { transform: scale(1.02) translate(0, 0); } }
-.hero-shade { position: absolute; inset: 0; background:
-  linear-gradient(0deg, var(--bg) 0%, rgba(8,8,10,.92) 18%, rgba(8,8,10,.35) 55%, rgba(8,8,10,.15) 100%),
-  linear-gradient(90deg, rgba(8,8,10,.85) 0%, rgba(8,8,10,.35) 45%, rgba(8,8,10,0) 75%); }
-.hero-content { position: relative; z-index: 2; width: 100%; padding-bottom: 48px; padding-top: calc(var(--nav-h) + 80px); }
-.hero-grid { display: grid; gap: 36px; align-items: end; }
-@media (min-width: 960px) { .hero-grid { grid-template-columns: 1.3fr .7fr; gap: 48px; } .hero-content { padding-bottom: 64px; } }
-.hero h1 { font-size: clamp(42px, 7vw, 92px); font-weight: 700; letter-spacing: -0.04em; line-height: .98; max-width: 11em; }
-.hero .lede { margin-top: 24px; font-size: 18px; max-width: 32em; color: #d0d0d6; }
-.hero-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 32px; }
-.hero-meta { display: flex; flex-wrap: wrap; gap: 8px 22px; margin-top: 28px; color: var(--muted); font-size: 14px; font-weight: 500; }
+/* ─── hero (two options, switchable) ─── */
+.hero { position: relative; overflow: hidden; }
+.hero:not([data-on="true"]) { display: none !important; }
+.hero h1 { font-size: clamp(32px, 4.4vw, 56px); font-weight: 600; letter-spacing: -0.035em; line-height: 1.04; }
+.hero .lede { margin-top: 18px; font-size: 17px; max-width: 34em; color: #d0d0d6; }
+.hero-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
+.hero-meta { display: flex; flex-wrap: wrap; gap: 8px 22px; margin-top: 24px; color: var(--muted); font-size: 14px; font-weight: 500; }
 .hero-meta span { display: inline-flex; align-items: center; gap: 8px; }
 .hero-meta svg { width: 16px; height: 16px; color: var(--accent); }
 .intro > * { animation: rise 1s var(--ease) both; }
-.intro > :nth-child(1) { animation-delay: .15s } .intro > :nth-child(2) { animation-delay: .28s } .intro > :nth-child(3) { animation-delay: .42s } .intro > :nth-child(4) { animation-delay: .55s } .intro > :nth-child(5) { animation-delay: .68s }
+.intro > :nth-child(1) { animation-delay: .15s } .intro > :nth-child(2) { animation-delay: .28s } .intro > :nth-child(3) { animation-delay: .42s } .intro > :nth-child(4) { animation-delay: .55s } .intro > :nth-child(5) { animation-delay: .68s } .intro > :nth-child(6) { animation-delay: .8s }
 @keyframes rise { from { opacity: 0; transform: translateY(26px); } to { opacity: 1; transform: none; } }
 
-.now-card { display: grid; grid-template-columns: 64px 1fr; gap: 16px; align-items: center; padding: 14px; border-radius: var(--r); background: rgba(14,14,17,.62); border: 1px solid var(--line-2); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); animation: rise 1s var(--ease) .8s both; max-width: 440px; }
-.now-card .np { position: relative; aspect-ratio: 2 / 3; border-radius: 8px; overflow: hidden; background: #222; }
-.now-card .np img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity .8s; }
-.now-card .np img.on { opacity: 1; }
-.now-card .nl { font-size: 11px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); display: flex; align-items: center; gap: 8px; }
-.now-card .nl i { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 0 rgba(255,122,61,.6); animation: ping 2.4s ease-out infinite; }
+/* progressive blur: stacked backdrop layers, each masked a little lower */
+.pblur { position: absolute; left: 0; right: 0; bottom: 0; height: 42%; pointer-events: none; z-index: 3; }
+.pblur i { position: absolute; inset: 0; backdrop-filter: blur(var(--b)); -webkit-backdrop-filter: blur(var(--b)); mask-image: linear-gradient(to bottom, transparent var(--f), #000 var(--t)); -webkit-mask-image: linear-gradient(to bottom, transparent var(--f), #000 var(--t)); }
+.pblur i:nth-child(1) { --b: 1.5px; --f: 0%;  --t: 30%; }
+.pblur i:nth-child(2) { --b: 3px;   --f: 15%; --t: 45%; }
+.pblur i:nth-child(3) { --b: 6px;   --f: 30%; --t: 60%; }
+.pblur i:nth-child(4) { --b: 12px;  --f: 45%; --t: 75%; }
+.pblur i:nth-child(5) { --b: 24px;  --f: 60%; --t: 90%; }
+.pblur i:nth-child(6) { --b: 40px;  --f: 75%; --t: 100%; }
+.pblur::after { content: ""; position: absolute; inset: 0; background: linear-gradient(to bottom, transparent, rgba(8,8,10,.55) 55%, var(--bg)); }
+.pblur-top { position: absolute; left: 0; right: 0; top: 0; height: 160px; pointer-events: none; z-index: 3; background: linear-gradient(to bottom, rgba(8,8,10,.9), rgba(8,8,10,.4) 50%, transparent); }
+
+/* option A · poster wall */
+.hero-wall { min-height: clamp(620px, 86vh, 860px); display: grid; align-items: center; }
+.wall3d { position: absolute; inset: -18% -12%; perspective: 1300px; z-index: 0; }
+.wall3d .g { position: absolute; inset: 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; transform: rotateX(24deg) rotateZ(-9deg) scale(1.18); transform-origin: 50% 50%; will-change: transform; }
+@media (min-width: 760px) { .wall3d .g { grid-template-columns: repeat(7, 1fr); gap: 16px; } }
+@media (min-width: 1200px) { .wall3d .g { grid-template-columns: repeat(9, 1fr); } }
+.wall3d .c { display: flex; flex-direction: column; gap: 12px; animation: wally 90s linear infinite; }
+@media (min-width: 760px) { .wall3d .c { gap: 16px; } }
+.wall3d .c:nth-child(even) { animation-direction: reverse; animation-duration: 110s; }
+.wall3d .c:nth-child(3n) { animation-duration: 130s; }
+.wall3d .c img { width: 100%; aspect-ratio: 2 / 3; object-fit: cover; border-radius: 8px; opacity: .92; box-shadow: 0 20px 40px -20px rgba(0,0,0,.9); }
+@keyframes wally { to { transform: translateY(-50%); } }
+.hero-wall .scrim { position: absolute; inset: 0; z-index: 1; background: radial-gradient(70% 60% at 50% 50%, rgba(8,8,10,.84), rgba(8,8,10,.55) 55%, rgba(8,8,10,.25) 100%); }
+.hero-wall .hero-content { position: relative; z-index: 4; text-align: center; padding-top: calc(var(--nav-h) + 80px); padding-bottom: 80px; display: grid; justify-items: center; }
+.hero-wall h1 { max-width: 14em; }
+.hero-wall .lede { margin-inline: auto; }
+.hero-wall .hero-actions, .hero-wall .hero-meta { justify-content: center; }
+
+/* option B · coverflow */
+.hero-flow { padding: calc(var(--nav-h) + 64px) 0 56px; }
+.hero-flow .pblur { height: 16%; }
+.hero-flow .pblur i { display: none; }
+.hero-flow .hero-content { position: relative; z-index: 4; text-align: center; display: grid; justify-items: center; }
+.hero-flow h1 { max-width: 14em; }
+.hero-flow .lede { margin-inline: auto; }
+.hero-flow .hero-actions, .hero-flow .hero-meta { justify-content: center; }
+.flow-wrap { position: relative; margin-top: 44px; width: 100%; }
+.flow-glow { position: absolute; inset: -30% 10%; z-index: 0; pointer-events: none; }
+.flow-glow img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; filter: blur(80px) saturate(1.5); opacity: 0; transition: opacity 1.2s; }
+.flow-glow img.on { opacity: .42; }
+.flow { position: relative; z-index: 1; height: 300px; perspective: 1400px; display: flex; align-items: center; justify-content: center; }
+@media (min-width: 760px) { .flow { height: 380px; } }
+.flow .it { position: absolute; width: 150px; aspect-ratio: 2 / 3; border-radius: 10px; overflow: visible; cursor: pointer; transition: transform 1s var(--ease), opacity 1s, filter 1s; transform-style: preserve-3d; will-change: transform; }
+@media (min-width: 760px) { .flow .it { width: 210px; } }
+.flow .it img { width: 100%; height: 100%; object-fit: cover; border-radius: 10px; box-shadow: 0 30px 60px -20px rgba(0,0,0,1), 0 0 0 1px rgba(255,255,255,.08); -webkit-box-reflect: below 8px linear-gradient(transparent 62%, rgba(0,0,0,.28)); }
+.flow .it.c { z-index: 10; }
+.flow .it.c img { box-shadow: 0 40px 80px -20px rgba(0,0,0,1), 0 0 0 1px rgba(255,255,255,.18); }
+.flow-caption { position: relative; z-index: 4; margin-top: 26px; }
+.flow-dots { display: flex; justify-content: center; gap: 6px; margin-top: 18px; }
+.flow-dots i { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,.2); transition: background .3s, transform .3s; }
+.flow-dots i.on { background: var(--text); transform: scale(1.3); }
+
+/* tonight's collection card (replaces the poster-title card) */
+.tonight { display: grid; grid-template-columns: auto 1fr; gap: 14px; align-items: center; padding: 12px 16px 12px 12px; border-radius: 14px; background: rgba(14,14,17,.62); border: 1px solid var(--line-2); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); text-align: left; max-width: 460px; width: 100%; }
+.tonight .stack { position: relative; width: 74px; height: 58px; flex: none; }
+.tonight .stack img { position: absolute; bottom: 0; width: 38px; aspect-ratio: 2 / 3; object-fit: cover; border-radius: 5px; box-shadow: 0 8px 20px -8px rgba(0,0,0,1), 0 0 0 1px rgba(255,255,255,.1); transition: transform .8s var(--ease), opacity .8s; }
+.tonight .stack img:nth-child(1) { left: 0; transform: rotate(-8deg); }
+.tonight .stack img:nth-child(2) { left: 18px; bottom: 4px; z-index: 1; }
+.tonight .stack img:nth-child(3) { left: 36px; transform: rotate(8deg); }
+.tonight .tl { font-size: 11px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); display: flex; align-items: center; gap: 8px; }
+.tonight .tl i { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); animation: ping 2.4s ease-out infinite; }
 @keyframes ping { 0% { box-shadow: 0 0 0 0 rgba(255,122,61,.55); } 100% { box-shadow: 0 0 0 10px rgba(255,122,61,0); } }
-.now-card .nt { font-size: 18px; font-weight: 600; letter-spacing: -0.02em; margin-top: 4px; min-height: 1.3em; }
-.now-card .nm { font-size: 13px; color: var(--muted); margin-top: 2px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.tonight .tn { font-size: 16px; font-weight: 600; letter-spacing: -0.02em; margin-top: 3px; transition: opacity .5s; }
+.tonight .tm { font-size: 13px; color: var(--muted); margin-top: 1px; transition: opacity .5s; }
+.tonight.swap .tn, .tonight.swap .tm { opacity: 0; }
 .chip { font-family: var(--mono); font-size: 10.5px; padding: 2px 7px; border-radius: 5px; border: 1px solid var(--line-2); color: #ddd; background: rgba(0,0,0,.35); }
 .chip.hot { background: var(--accent); color: var(--accent-ink); border-color: transparent; font-weight: 500; }
-.dots { display: flex; gap: 6px; margin-top: 12px; grid-column: 1 / -1; }
-.dots button { width: 22px; height: 3px; border-radius: 3px; border: 0; background: rgba(255,255,255,.18); padding: 0; overflow: hidden; position: relative; }
-.dots button.on::after { content: ""; position: absolute; inset: 0; background: var(--text); transform-origin: left; animation: fill 9s linear forwards; }
-@keyframes fill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+/* hero option switch (review aid, remove before shipping) */
+.hero-switch { position: absolute; right: 16px; bottom: 16px; z-index: 6; display: flex; gap: 4px; padding: 4px; border-radius: 999px; background: rgba(14,14,17,.7); border: 1px solid var(--line-2); backdrop-filter: blur(12px); font-size: 12px; }
+.hero-switch span { padding: 6px 4px 6px 10px; color: var(--faint); }
+.hero-switch button { height: 28px; padding: 0 12px; border-radius: 999px; border: 0; background: transparent; color: var(--muted); font-weight: 600; font-size: 12px; }
+.hero-switch button[aria-pressed="true"] { background: var(--text); color: #0a0a0c; }
 
 /* ─── platform strip ─── */
 .strip { border-block: 1px solid var(--line); background: var(--bg); }
@@ -470,7 +520,7 @@ footer { border-top: 1px solid var(--line); padding-block: 56px 40px; background
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .001s !important; animation-iteration-count: 1 !important; transition-duration: .001s !important; }
   .js .reveal { opacity: 1; transform: none; }
-  .hero-slide.on img { transform: none; }
+  .wall3d .c, .flow .it { animation: none !important; transition: none !important; }
 }
 </style>
 </head>
@@ -509,36 +559,62 @@ footer { border-top: 1px solid var(--line); padding-block: 56px 40px; background
 <main>
 <!-- ═══════════════════════ HOME ═══════════════════════ -->
 <section class="page" data-page="home" data-active="true">
-  <div class="hero">
-    <div class="hero-bg" id="hero-bg"></div>
-    <div class="hero-shade"></div>
-    <div class="wrap hero-content">
-      <div class="hero-grid">
-        <div class="intro">
-          <p class="kicker">Curated streaming for the whole household</p>
-          <h1>Your own streaming service. Already set up.</h1>
-          <p class="lede">Collections picked by people, real 4K playback, and a profile for everyone at home. Sign up, open Moonlit on Mac, iPhone or the web, and press play.</p>
-          <div class="hero-actions">
-            <a class="btn btn-primary btn-lg" href="#signup" data-nav="signup">Start watching <span class="arr">→</span></a>
-            <a class="btn btn-ghost btn-lg" href="#catalog" data-nav="catalog">Browse the catalog</a>
-          </div>
-          <div class="hero-meta">
-            <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>From $6.99 a month</span>
-            <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>No ads, cancel anytime</span>
-            <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Up to 6 profiles</span>
-          </div>
-        </div>
-        <div class="now-card" id="now-card">
-          <div class="np" id="now-poster"></div>
-          <div>
-            <div class="nl"><i></i>Now on Moonlit</div>
-            <div class="nt" id="now-title"></div>
-            <div class="nm" id="now-meta"></div>
-          </div>
-          <div class="dots" id="hero-dots"></div>
-        </div>
+  <!-- HERO OPTION A · poster wall -->
+  <div class="hero hero-wall" data-hero="wall" data-on="true">
+    <div class="wall3d" aria-hidden="true"><div class="g" id="wall3d"></div></div>
+    <div class="scrim"></div>
+    <div class="pblur-top"></div>
+    <div class="pblur" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+    <div class="wrap hero-content intro">
+      <p class="kicker">Curated streaming for the whole household</p>
+      <h1>Your own streaming service, already set up.</h1>
+      <p class="lede">Collections picked by people, real 4K playback, and a profile for everyone at home. Open Moonlit on Mac, iPhone or the web and press play.</p>
+      <div class="hero-actions">
+        <a class="btn btn-primary btn-lg" href="#signup" data-nav="signup">Start watching <span class="arr">→</span></a>
+        <a class="btn btn-ghost btn-lg" href="#catalog" data-nav="catalog">Browse the catalog</a>
+      </div>
+      <div class="hero-meta">
+        <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>From $9.99 a month</span>
+        <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>No ads, cancel anytime</span>
+        <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Up to 4 profiles</span>
+      </div>
+      <div class="tonight" data-tonight style="margin-top: 36px">
+        <div class="stack"><img alt=""><img alt=""><img alt=""></div>
+        <div><div class="tl"><i></i>Tonight's collection</div><div class="tn"></div><div class="tm"></div></div>
       </div>
     </div>
+    <div class="hero-switch" role="group" aria-label="Hero option"><span>Hero</span><button type="button" data-hero-btn="wall" aria-pressed="true">A · Wall</button><button type="button" data-hero-btn="flow" aria-pressed="false">B · Coverflow</button></div>
+  </div>
+
+  <!-- HERO OPTION B · coverflow carousel -->
+  <div class="hero hero-flow" data-hero="flow" data-on="false">
+    <div class="pblur" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+    <div class="wrap hero-content intro">
+      <p class="kicker">Curated streaming for the whole household</p>
+      <h1>Your own streaming service, already set up.</h1>
+      <p class="lede">Collections picked by people, real 4K playback, and a profile for everyone at home. Open Moonlit on Mac, iPhone or the web and press play.</p>
+      <div class="hero-actions">
+        <a class="btn btn-primary btn-lg" href="#signup" data-nav="signup">Start watching <span class="arr">→</span></a>
+        <a class="btn btn-ghost btn-lg" href="#catalog" data-nav="catalog">Browse the catalog</a>
+      </div>
+      <div class="flow-wrap">
+        <div class="flow-glow" aria-hidden="true" id="flow-glow"></div>
+        <div class="flow" id="flow" aria-label="Featured titles"></div>
+        <div class="flow-dots" id="flow-dots" aria-hidden="true"></div>
+      </div>
+      <div class="flow-caption">
+        <div class="tonight" data-tonight>
+          <div class="stack"><img alt=""><img alt=""><img alt=""></div>
+          <div><div class="tl"><i></i>Tonight's collection</div><div class="tn"></div><div class="tm"></div></div>
+        </div>
+      </div>
+      <div class="hero-meta">
+        <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>From $9.99 a month</span>
+        <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>No ads, cancel anytime</span>
+        <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Up to 4 profiles</span>
+      </div>
+    </div>
+    <div class="hero-switch" role="group" aria-label="Hero option"><span>Hero</span><button type="button" data-hero-btn="wall" aria-pressed="false">A · Wall</button><button type="button" data-hero-btn="flow" aria-pressed="true">B · Coverflow</button></div>
   </div>
 
   <div class="strip">
@@ -599,14 +675,13 @@ footer { border-top: 1px solid var(--line); padding-block: 56px 40px; background
         </div>
 
         <div class="cell reveal" style="--d:80ms">
-          <div class="cell-copy"><h3>A profile for everyone.</h3><p>Separate libraries, watch history and recommendations. A kids profile only sees the kids catalog.</p></div>
+          <div class="cell-copy"><h3>A profile for everyone.</h3><p>Up to four profiles with their own library, watch history and recommendations. A kids profile only sees the kids catalog.</p></div>
           <div class="cell-visual profiles">
             <div class="prof"><span class="av" style="background:linear-gradient(140deg,#ff8a35,#ff6a2b)">J</span><span>Jordan</span></div>
             <div class="prof"><span class="av" style="background:linear-gradient(140deg,#4f7cff,#2b4bd6)">S</span><span>Sam</span></div>
             <div class="prof"><span class="av" style="background:linear-gradient(140deg,#2fbf8f,#128f66)">M</span><span>Mia<em class="kid">KIDS</em></span></div>
             <div class="prof"><span class="av" style="background:linear-gradient(140deg,#c65cff,#7d2bd6)">A</span><span>Ada</span></div>
-            <div class="prof"><span class="av add">+</span><span>Add</span></div>
-          </div>
+                      </div>
         </div>
 
         <div class="cell reveal" style="--d:160ms">
@@ -803,11 +878,11 @@ footer { border-top: 1px solid var(--line); padding-block: 56px 40px; background
         <table class="cmp">
           <thead><tr><th></th><th>Friends &amp; Family</th><th class="featured-col">Spotlight</th><th>Studio</th></tr></thead>
           <tbody>
-            <tr><td>Price</td><td>By invitation</td><td class="featured-col">$6.99 / mo</td><td>$9.99 / mo</td></tr>
+            <tr><td>Price</td><td>By invitation</td><td class="featured-col">$9.99 / mo</td><td>$14.99 / mo</td></tr>
             <tr><td>Full curated catalog</td><td class="y">✓</td><td class="featured-col y">✓</td><td class="y">✓</td></tr>
             <tr><td>Simultaneous streams</td><td>1</td><td class="featured-col">2</td><td>4</td></tr>
             <tr><td>Maximum quality</td><td>4K HDR</td><td class="featured-col">4K HDR</td><td>4K HDR</td></tr>
-            <tr><td>Profiles</td><td>1</td><td class="featured-col">Up to 6</td><td>Unlimited</td></tr>
+            <tr><td>Profiles</td><td>1</td><td class="featured-col">Up to 4</td><td>Unlimited</td></tr>
             <tr><td>Mac, iPhone, iPad and web</td><td class="y">✓</td><td class="featured-col y">✓</td><td class="y">✓</td></tr>
             <tr><td>Add your own sources and catalog</td><td>—</td><td class="featured-col">—</td><td class="y">✓</td></tr>
             <tr><td>Priority stream warm-up</td><td>—</td><td class="featured-col">—</td><td class="y">✓</td></tr>
@@ -896,8 +971,8 @@ footer { border-top: 1px solid var(--line); padding-block: 56px 40px; background
           <div class="form-body" style="display:grid; gap:16px">
             <div data-pane="subscribe" style="display:grid; gap:16px">
               <div class="plan-pick">
-                <label><input type="radio" name="plan" value="spotlight" checked><b>Spotlight</b><span>2 streams · up to 6 profiles · 4K HDR</span><em class="pp">$6.99/mo</em></label>
-                <label><input type="radio" name="plan" value="studio"><b>Studio</b><span>4 streams · unlimited profiles · your own sources</span><em class="pp">$9.99/mo</em></label>
+                <label><input type="radio" name="plan" value="spotlight" checked><b>Spotlight</b><span>2 streams · up to 4 profiles · 4K HDR</span><em class="pp">$9.99/mo</em></label>
+                <label><input type="radio" name="plan" value="studio"><b>Studio</b><span>4 streams · unlimited profiles · your own sources</span><em class="pp">$14.99/mo</em></label>
               </div>
               <div class="field"><label for="su-email">Email</label><input id="su-email" type="email" placeholder="you@example.com" autocomplete="email" required></div>
               <div class="field"><label for="su-pass">Password</label><input id="su-pass" type="password" autocomplete="new-password" required></div>
@@ -947,35 +1022,82 @@ footer { border-top: 1px solid var(--line); padding-block: 56px 40px; background
   function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;'); }
   var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  /* ── hero slideshow ── */
-  var slides = [
-    { k: 'movie693134', meta: ['4K', 'Dolby Vision', 'Atmos', 'Sci-fi · 2h 46m'] },
-    { k: 'movie335984', meta: ['4K', 'Dolby Vision', 'Atmos', 'Sci-fi · 2h 44m'] },
-    { k: 'tv95396', meta: ['4K', 'HDR', 'Series · 2 seasons'] },
-    { k: 'movie76341', meta: ['4K', 'HDR10+', 'Action · 2h 1m'] },
-    { k: 'movie157336', meta: ['4K', 'IMAX', 'Sci-fi · 2h 49m'] },
-    { k: 'movie414906', meta: ['4K', 'Dolby Vision', 'Crime · 2h 57m'] }
-  ].filter(function (s) { return H[s.k]; });
-  var bg = document.getElementById('hero-bg'), np = document.getElementById('now-poster'), nt = document.getElementById('now-title'), nm = document.getElementById('now-meta'), dots = document.getElementById('hero-dots');
-  slides.forEach(function (s, i) {
-    var d = document.createElement('div'); d.className = 'hero-slide'; d.innerHTML = '<img src="' + H[s.k] + '" alt="">'; bg.appendChild(d);
-    var img = document.createElement('img'); img.src = P[s.k]; img.alt = ''; np.appendChild(img);
-    var b = document.createElement('button'); b.type = 'button'; b.setAttribute('aria-label', 'Show ' + t(s.k)); b.addEventListener('click', function () { go(i, true); }); dots.appendChild(b);
-  });
-  var cur = -1, timer;
-  function go(i, manual) {
-    if (i === cur) return;
-    cur = i;
-    var s = slides[i];
-    [].forEach.call(bg.children, function (el, j) { el.classList.toggle('on', j === i); });
-    [].forEach.call(np.children, function (el, j) { el.classList.toggle('on', j === i); });
-    [].forEach.call(dots.children, function (el, j) { el.classList.remove('on'); if (j === i) { void el.offsetWidth; el.classList.add('on'); } });
-    nt.textContent = t(s.k) + (y(s.k) ? ' (' + y(s.k) + ')' : '');
-    nm.innerHTML = s.meta.map(function (m, j) { return j === 0 ? '<span class="chip hot">' + esc(m) + '</span>' : j < s.meta.length - 1 ? '<span class="chip">' + esc(m) + '</span>' : '<span>' + esc(m) + '</span>'; }).join('');
-    clearInterval(timer);
-    if (!reduce && slides.length > 1) timer = setInterval(function () { go((cur + 1) % slides.length); }, 9000);
+  /* ── hero option switch ── */
+  var heroes = document.querySelectorAll('.hero[data-hero]');
+  function setHero(name, save) {
+    heroes.forEach(function (h) { h.setAttribute('data-on', String(h.getAttribute('data-hero') === name)); });
+    document.querySelectorAll('[data-hero-btn]').forEach(function (b) { b.setAttribute('aria-pressed', String(b.getAttribute('data-hero-btn') === name)); });
+    if (save) { try { localStorage.setItem('moonlit-hero', name); } catch (e) {} }
   }
-  if (slides.length) go(0);
+  document.querySelectorAll('[data-hero-btn]').forEach(function (b) { b.addEventListener('click', function () { setHero(b.getAttribute('data-hero-btn'), true); }); });
+  var savedHero = null; try { savedHero = localStorage.getItem('moonlit-hero'); } catch (e) {}
+  if (savedHero === 'flow' || savedHero === 'wall') setHero(savedHero, false);
+
+  /* ── option A: 3D poster wall ── */
+  var wallEl = document.getElementById('wall3d');
+  if (wallEl) {
+    var wk = Object.keys(P); var cols = '';
+    for (var c = 0; c < 9; c++) {
+      var pick = []; for (var i = 0; i < 6; i++) pick.push(wk[(c * 13 + i * 7 + 5) % wk.length]);
+      var imgs = pick.map(function (k) { return '<img src="' + P[k] + '" alt="">'; }).join('');
+      cols += '<div class="c">' + imgs + imgs + '</div>';
+    }
+    wallEl.innerHTML = cols;
+  }
+
+  /* ── option B: coverflow ── */
+  var flowKeys = ['movie693134','tv95396','movie496243','movie129','tv136315','movie872585','movie335984','tv126308','movie545611','movie940721','tv76331','movie792307','movie361743','tv94605','movie666277'].filter(function (k) { return P[k]; });
+  var flowEl = document.getElementById('flow'), glowEl = document.getElementById('flow-glow'), fdots = document.getElementById('flow-dots');
+  var fcur = 0, ftimer;
+  if (flowEl) {
+    flowEl.innerHTML = flowKeys.map(function (k, i) { return '<div class="it" data-i="' + i + '" role="button" tabindex="0" aria-label="' + esc(t(k)) + '"><img src="' + P[k] + '" alt="" draggable="false"></div>'; }).join('');
+    glowEl.innerHTML = flowKeys.map(function (k) { return '<img src="' + P[k] + '" alt="">'; }).join('');
+    fdots.innerHTML = flowKeys.map(function () { return '<i></i>'; }).join('');
+    var items = flowEl.children;
+    function layout() {
+      var n = flowKeys.length, wide = window.innerWidth >= 760, step = wide ? 165 : 110, depth = wide ? 130 : 90;
+      for (var i = 0; i < n; i++) {
+        var off = i - fcur; if (off > n / 2) off -= n; if (off < -n / 2) off += n;
+        var a = Math.abs(off), el = items[i];
+        el.classList.toggle('c', off === 0);
+        if (a > 4) { el.style.opacity = '0'; el.style.transform = 'translateX(' + (off * step) + 'px) translateZ(-600px)'; el.style.pointerEvents = 'none'; continue; }
+        el.style.pointerEvents = '';
+        el.style.opacity = String(1 - a * 0.16);
+        el.style.filter = a ? 'brightness(' + (0.85 - a * 0.12) + ')' : 'none';
+        var x = off === 0 ? 0 : Math.sign(off) * (step * 0.85 + (a - 1) * step * 0.62);
+        el.style.transform = 'translateX(' + x + 'px) translateZ(' + (off === 0 ? 90 : -a * depth) + 'px) rotateY(' + (off === 0 ? 0 : -Math.sign(off) * 42) + 'deg)';
+        el.style.zIndex = String(10 - a);
+      }
+      [].forEach.call(glowEl.children, function (g, i) { g.classList.toggle('on', i === fcur); });
+      [].forEach.call(fdots.children, function (d, i) { d.classList.toggle('on', i === fcur); });
+    }
+    function goFlow(i) { fcur = (i + flowKeys.length) % flowKeys.length; layout(); restartFlow(); }
+    function restartFlow() { clearInterval(ftimer); if (!reduce) ftimer = setInterval(function () { fcur = (fcur + 1) % flowKeys.length; layout(); }, 3600); }
+    flowEl.addEventListener('click', function (e) { var it = e.target.closest('.it'); if (it) goFlow(+it.getAttribute('data-i')); });
+    flowEl.addEventListener('keydown', function (e) { if (e.key === 'ArrowRight') goFlow(fcur + 1); if (e.key === 'ArrowLeft') goFlow(fcur - 1); if (e.key === 'Enter') { var it = e.target.closest('.it'); if (it) goFlow(+it.getAttribute('data-i')); } });
+    window.addEventListener('resize', layout);
+    layout(); restartFlow();
+  }
+
+  /* ── tonight's collection card (rotates through curated collections) ── */
+  var tonight = [
+    { n: 'Neo-noir nights', m: '24 titles · curated by Jordan', ks: ['movie64690','movie335984','movie949'] },
+    { n: 'Studio Ghibli, complete', m: '22 films · updated this week', ks: ['movie129','movie128','movie508883'] },
+    { n: 'Prestige TV', m: '31 shows · curated by Sam', ks: ['tv76331','tv95396','tv1396'] },
+    { n: 'Korean cinema', m: '18 titles · curated by Ada', ks: ['movie496243','movie705996','movie11423'] },
+    { n: 'Big science fiction', m: '20 titles · 4K Dolby Vision', ks: ['movie693134','movie329865','movie157336'] }
+  ].filter(function (c) { return c.ks.every(function (k) { return P[k]; }); });
+  var tcards = document.querySelectorAll('[data-tonight]'), tcur = 0;
+  function paintTonight(first) {
+    var c = tonight[tcur]; if (!c) return;
+    tcards.forEach(function (card) {
+      var imgs = card.querySelectorAll('.stack img');
+      function apply() { imgs.forEach(function (im, i) { im.src = P[c.ks[i]]; }); card.querySelector('.tn').textContent = c.n; card.querySelector('.tm').textContent = c.m; card.classList.remove('swap'); }
+      if (first) apply(); else { card.classList.add('swap'); setTimeout(apply, 500); }
+    });
+  }
+  paintTonight(true);
+  if (!reduce && tonight.length > 1) setInterval(function () { tcur = (tcur + 1) % tonight.length; paintTonight(false); }, 7000);
 
   /* ── rails ── */
   var railA = ['movie693134','tv95396','movie496243','movie129','tv136315','movie872585','movie545611','tv126308','movie64690','movie940721','tv76331','movie792307','movie361743','tv94605','movie666277','movie27205','tv83867','movie120467'];
@@ -1072,8 +1194,8 @@ footer { border-top: 1px solid var(--line); padding-block: 56px 40px; background
   var check = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
   var plans = [
     { n: 'Friends & Family', p: 'By invitation', word: true, who: 'For people invited by a Moonlit admin.', f: ['Shared household catalog', 'Your own profile and library', 'Every device', 'No billing'], cta: 'I have an invite code', to: 'signup', ghost: true },
-    { n: 'Spotlight', p: '$6.99', unit: 'per month', who: 'For a household that just wants to watch.', f: ['Full curated catalog', '2 streams at once, up to 4K HDR', 'Up to 6 profiles', 'Mac, iPhone, iPad and web'], cta: 'Choose Spotlight', to: 'signup', featured: true },
-    { n: 'Studio', p: '$9.99', unit: 'per month', who: 'For power users who want more control.', f: ['Everything in Spotlight', '4 streams at once in 4K HDR', 'Unlimited profiles', 'Add your own sources and catalog', 'Priority stream warm-up and early features'], cta: 'Choose Studio', to: 'signup', ghost: true }
+    { n: 'Spotlight', p: '$9.99', unit: 'per month', who: 'For a household that just wants to watch.', f: ['Full curated catalog', '2 streams at once, up to 4K HDR', 'Up to 4 profiles', 'Mac, iPhone, iPad and web'], cta: 'Choose Spotlight', to: 'signup', featured: true },
+    { n: 'Studio', p: '$14.99', unit: 'per month', who: 'For power users who want more control.', f: ['Everything in Spotlight', '4 streams at once in 4K HDR', 'Unlimited profiles', 'Add your own sources and catalog', 'Priority stream warm-up and early features'], cta: 'Choose Studio', to: 'signup', ghost: true }
   ];
   document.querySelectorAll('[data-plans]').forEach(function (el) {
     el.innerHTML = plans.map(function (p, i) {
