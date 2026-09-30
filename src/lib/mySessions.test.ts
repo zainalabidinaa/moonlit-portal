@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 
 vi.mock('./supabase', () => ({ supabase: {} }));
 
-import { currentSessionId, describeDevice, maskIp } from './mySessions';
+import { currentSessionId, describeDevice, maskIp, describeSession } from './mySessions';
 
 describe('describeDevice', () => {
   it('names the native app, which sends the same agent on iOS and Mac', () => {
@@ -33,5 +33,18 @@ describe('currentSessionId', () => {
     expect(currentSessionId(`h.${payload}.s`)).toBe('abc-123');
     expect(currentSessionId('not-a-jwt')).toBeNull();
     expect(currentSessionId(undefined)).toBeNull();
+  });
+});
+
+describe('describeSession', () => {
+  const appUa = 'Moonlit/142 CFNetwork/3826 Darwin/25.0.0';
+
+  it('names the device the app reported', () => {
+    const info = describeSession({ user_agent: appUa, device_platform: 'ios', device_model: 'iPhone17,1', device_os_version: '26.0' });
+    expect(info).toEqual({ name: 'iPhone 16 Pro', detail: 'Moonlit app · iOS 26.0', kind: 'app', platform: 'ios' });
+  });
+
+  it('falls back to the user agent when no device was reported', () => {
+    expect(describeSession({ user_agent: appUa, device_platform: null })).toEqual(describeDevice(appUa));
   });
 });

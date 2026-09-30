@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { Button } from '../ui/Button';
 import { AppleIcon, GlobeIcon, PhoneIcon, WindowsIcon } from '../landing/PlatformIcons';
-import { currentSessionId, describeDevice, loadMySessions, maskIp, signOutOtherDevices, type DevicePlatform, type MySession } from '../../lib/mySessions';
+import { currentSessionId, describeDevice, describeSession, loadMySessions, maskIp, signOutOtherDevices, type DevicePlatform, type MySession } from '../../lib/mySessions';
 import { formatRelativeTime } from '../../lib/userActivity';
 
 const FIVE_MIN = 5 * 60_000;
@@ -53,7 +53,7 @@ export function AccountActivity() {
 
   const now = Date.now();
   const devices = useMemo(() => {
-    const list = (sessions ?? []).map((s) => ({ s, info: describeDevice(s.user_agent) }));
+    const list = (sessions ?? []).map((s) => ({ s, info: describeSession(s) }));
     // This browser first, then most recently active.
     return list.sort((a, b) => (a.s.id === currentId ? -1 : b.s.id === currentId ? 1 : 0));
   }, [sessions, currentId]);
@@ -148,7 +148,7 @@ export function AccountActivity() {
           <ol className="relative mt-4 grid gap-4 border-l border-border pl-5">
             {loading && <li className="text-sm text-faint">Loading…</li>}
             {!loading && signIns.map((s) => {
-              const info = describeDevice(s.user_agent);
+              const info = describeSession(s);
               return (
                 <li key={s.id} className="relative">
                   <i className={`absolute -left-[25px] top-1.5 h-2.5 w-2.5 rounded-full border-2 border-surface ${s.id === currentId ? 'bg-accent' : 'bg-border-strong'}`} />

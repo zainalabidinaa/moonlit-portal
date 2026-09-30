@@ -9,7 +9,8 @@ import { DeleteUserModal } from '../../components/admin/DeleteUserModal';
 import { ServerAccessCell } from '../../components/admin/ServerAccessCell';
 import { StatTile, adminKicker, adminLede, adminSelect, adminTh, adminTitle } from '../../components/admin/AdminUI';
 import { grantExpiry, matchesServerFilter, serverAccessState, type ServerAccessFilter, type ServerAccessSource } from '../../lib/serverAccess';
-import { lastActiveStatus, lastActiveLabel, formatRelativeTime, parseUserAgent, type ActiveStatus } from '../../lib/userActivity';
+import { lastActiveStatus, lastActiveLabel, formatRelativeTime, type ActiveStatus } from '../../lib/userActivity';
+import { describeSession } from '../../lib/mySessions';
 import type { SessionInfo, ActivityEntry } from '../../lib/userActivity';
 import { deviceName, osLabel, summarizeDevices, type UserDevice } from '../../lib/devices';
 import type { UserRole } from '../../types';
@@ -184,12 +185,18 @@ function ActivityDrawer({
           <p className="text-sm text-muted/60">No sessions yet</p>
         ) : (
           <ul className="space-y-2">
-            {data.sessions.map((s, i) => (
-              <li key={i} className="text-sm flex items-center justify-between border-b border-border pb-2 last:border-0">
-                <span className="text-text">{parseUserAgent(s.user_agent)}</span>
-                <span className="text-muted text-xs">{formatRelativeTime(s.updated_at)}</span>
-              </li>
-            ))}
+            {data.sessions.map((s, i) => {
+              const info = describeSession(s);
+              return (
+                <li key={i} className="text-sm flex items-center justify-between border-b border-border pb-2 last:border-0">
+                  <span className="min-w-0 truncate text-text">
+                    {info.name}
+                    {info.detail && <span className="ml-1.5 text-xs text-muted">{info.detail}</span>}
+                  </span>
+                  <span className="text-muted text-xs">{formatRelativeTime(s.updated_at)}</span>
+                </li>
+              );
+            })}
           </ul>
         )}
       </div>

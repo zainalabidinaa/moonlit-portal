@@ -3,6 +3,11 @@ export type SessionInfo = {
   updated_at: string;
   user_agent: string | null;
   ip: string | null;
+  // Device a Moonlit app reported for this session, when there is one —
+  // see SessionDeviceColumns in mySessions.ts.
+  device_platform?: string | null;
+  device_model?: string | null;
+  device_os_version?: string | null;
 };
 
 // ActivityKind and ActivityEntry mirror the shape returned by the

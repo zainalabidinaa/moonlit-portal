@@ -1,6 +1,16 @@
 import { supabase } from './supabase';
+import { deviceName, osLabel, type DevicePlatform as AppPlatform } from './devices';
 
-export interface MySession {
+/** The device a Moonlit app reported for a session (via register_device),
+ *  joined in by my_sessions()/admin_list_user_sessions(). All null for
+ *  browsers and for app sessions from before the apps reported devices. */
+export interface SessionDeviceColumns {
+  device_platform?: string | null;
+  device_model?: string | null;
+  device_os_version?: string | null;
+}
+
+export interface MySession extends SessionDeviceColumns {
   id: string;
   created_at: string;
   updated_at: string | null;
@@ -44,6 +54,34 @@ export function describeDevice(ua: string | null): DeviceInfo {
     /Safari\//.test(ua) ? 'Safari' : null;
   if (!browser) return { name: os ? `${os} device` : 'Unknown device', detail: null, kind: 'unknown', platform };
   return { name: os ? `${browser} on ${os}` : browser, detail: null, kind: 'browser', platform };
+}
+
+const APP_PLATFORM_ICON: Record<AppPlatform, DevicePlatform> = {
+  ios: 'ios',
+  ipados: 'ios',
+  macos: 'mac',
+  tvos: 'apple',
+  visionos: 'apple',
+  androidtv: 'android',
+  windows: 'windows',
+};
+
+/**
+ * Names a session's device, preferring what the app itself reported
+ * ("iPhone 16 Pro", detail "iOS 26.0") over the User-Agent guess, which for
+ * the native apps can't tell an iPhone from a Mac.
+ */
+export function describeSession(s: SessionDeviceColumns & { user_agent: string | null }): DeviceInfo {
+  const platform = s.device_platform as AppPlatform | null | undefined;
+  if (platform && platform in APP_PLATFORM_ICON) {
+    return {
+      name: deviceName(s.device_model ?? null, platform),
+      detail: `Moonlit app · ${osLabel({ platform, os_version: s.device_os_version ?? null })}`,
+      kind: 'app',
+      platform: APP_PLATFORM_ICON[platform],
+    };
+  }
+  return describeDevice(s.user_agent);
 }
 
 /** Hides the last part of an IP so the page shows a rough origin, not the full address. */
