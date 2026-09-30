@@ -206,6 +206,17 @@ Deno.serve(async (req) => {
         (lastActiveRows ?? []).map((r: any) => [r.user_id, r.last_active_at]),
       );
 
+      const { data: deviceRows, error: devicesErr } = await supabaseAdmin
+        .rpc('admin_list_user_devices');
+      if (devicesErr) throw devicesErr;
+      const devicesMap = new Map<string, any[]>();
+      for (const d of deviceRows ?? []) {
+        const { user_id, ...device } = d as any;
+        const list = devicesMap.get(user_id) ?? [];
+        list.push(device);
+        devicesMap.set(user_id, list);
+      }
+
       const users = allAuthUsers.map((u) => {
         const p = profileMap.get(u.id);
         return {
@@ -222,6 +233,8 @@ Deno.serve(async (req) => {
           created_at: u.created_at,
           last_sign_in_at: u.last_sign_in_at ?? null,
           last_active_at: lastActiveMap.get(u.id) ?? u.last_sign_in_at ?? null,
+          // Newest first — the RPC orders by last_seen_at desc per user.
+          devices: devicesMap.get(u.id) ?? [],
         };
       });
 

@@ -11,6 +11,7 @@ import { StatTile, adminKicker, adminLede, adminSelect, adminTh, adminTitle } fr
 import { grantExpiry, matchesServerFilter, serverAccessState, type ServerAccessFilter, type ServerAccessSource } from '../../lib/serverAccess';
 import { lastActiveStatus, lastActiveLabel, formatRelativeTime, parseUserAgent, type ActiveStatus } from '../../lib/userActivity';
 import type { SessionInfo, ActivityEntry } from '../../lib/userActivity';
+import { deviceName, osLabel, summarizeDevices, type UserDevice } from '../../lib/devices';
 import type { UserRole } from '../../types';
 
 type AdminUser = {
@@ -26,6 +27,7 @@ type AdminUser = {
   server_access_expires_at: string | null;
   server_access_source: ServerAccessSource | null;
   last_active_at: string | null;
+  devices: UserDevice[];
 };
 
 const SERVER_FILTERS: { value: ServerAccessFilter; label: string }[] = [
@@ -128,23 +130,56 @@ function activityTitle(entry: ActivityEntry): string {
   return base;
 }
 
+function DevicesList({ devices }: { devices: UserDevice[] }) {
+  return (
+    <div>
+      <p className="text-xs uppercase tracking-wide text-muted font-medium mb-2">Devices</p>
+      {devices.length === 0 ? (
+        <p className="text-sm text-muted/60">No app devices yet</p>
+      ) : (
+        <ul className="space-y-2">
+          {devices.map(d => (
+            <li key={d.device_id} className="text-sm flex items-center justify-between gap-3 border-b border-border pb-2 last:border-0">
+              <span className="flex items-center gap-2 min-w-0">
+                <span
+                  className={`w-2 h-2 rounded-full flex-none ${d.signed_in ? 'bg-green-500' : 'bg-muted/40'}`}
+                  title={d.signed_in ? 'Signed in' : 'Signed out'}
+                />
+                <span className="text-text truncate">{deviceName(d.model, d.platform)}</span>
+                <span className="text-muted text-xs whitespace-nowrap">
+                  {osLabel(d)}{d.app_version ? ` · v${d.app_version}` : ''}
+                </span>
+              </span>
+              <span className="text-muted text-xs whitespace-nowrap">{formatRelativeTime(d.last_seen_at)}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 function ActivityDrawer({
   loading,
   error,
   data,
+  devices,
 }: {
   loading: boolean;
   error?: string;
   data?: { sessions: SessionInfo[]; activity: ActivityEntry[] };
+  devices: UserDevice[];
 }) {
   if (loading) return <p className="text-sm text-muted">Loading…</p>;
   if (error) return <p className="text-sm text-red-400">Couldn't load activity: {error}</p>;
   if (!data) return null;
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div className="grid gap-6">
+      <DevicesList devices={devices} />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       <div>
-        <p className="text-xs uppercase tracking-wide text-muted font-medium mb-2">Sessions</p>
+        <p className="text-xs uppercase tracking-wide text-muted font-medium mb-2">Sign-ins</p>
         {data.sessions.length === 0 ? (
           <p className="text-sm text-muted/60">No sessions yet</p>
         ) : (
@@ -172,6 +207,7 @@ function ActivityDrawer({
             ))}
           </ul>
         )}
+      </div>
       </div>
     </div>
   );
@@ -635,6 +671,7 @@ export default function UsersPage() {
                           </td>
                           <td className="px-4 py-3.5 whitespace-nowrap">
                             <LastActiveCell lastActiveAt={u.last_active_at} />
+                            <div className="mt-0.5 truncate text-xs text-faint">{summarizeDevices(u.devices ?? [])}</div>
                           </td>
                           <td className="px-4 py-3.5 text-right">
                             <span className={`inline-block h-2 w-2 rotate-45 border-b-[1.5px] border-r-[1.5px] border-muted transition-transform ${open ? '-rotate-[135deg]' : ''}`} aria-hidden="true" />
@@ -705,6 +742,7 @@ export default function UsersPage() {
                                     loading={activityLoading === u.user_id}
                                     error={activityError[u.user_id]}
                                     data={activityByUser[u.user_id]}
+                                    devices={u.devices ?? []}
                                   />
                                 </div>
                               </div>

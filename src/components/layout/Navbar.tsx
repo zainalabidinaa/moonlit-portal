@@ -57,7 +57,7 @@ export function Navbar({ transparent = false, wide = false }: NavbarProps) {
   useEffect(() => { setOpen(false); }, [location.pathname]);
 
   async function handleSignOut() {
-    await supabase.auth.signOut();
+    await supabase.auth.signOut({ scope: 'local' });
     navigate('/');
   }
 

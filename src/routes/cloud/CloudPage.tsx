@@ -219,7 +219,7 @@ export default function CloudPage() {
         {signedIn && (
           <div className="flex items-center gap-3 text-[13px] text-muted">
             <span className="hidden sm:inline">{session.user.email}</span>
-            <button className="text-faint hover:text-text" onClick={() => supabase.auth.signOut()}>Sign out</button>
+            <button className="text-faint hover:text-text" onClick={() => supabase.auth.signOut({ scope: 'local' })}>Sign out</button>
           </div>
         )}
       </header>
