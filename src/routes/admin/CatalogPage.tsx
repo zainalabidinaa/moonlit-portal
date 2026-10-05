@@ -7,6 +7,7 @@ import { Button } from '../../components/ui/Button';
 import { FolderGrid } from '../../components/catalog/FolderGrid';
 import { CollectionTree } from '../../components/catalog/CollectionTree';
 import { ArtworkGallery } from '../../components/catalog/ArtworkGallery';
+import { saveSourceTitle } from '../../components/catalog/SourceRowTitle';
 import { SourcesTable } from '../../components/catalog/SourcesTable';
 import type { NativeSourceRow } from '../../lib/addSource';
 import { JsonImport } from '../../components/catalog/JsonImport';
@@ -369,6 +370,19 @@ export default function CatalogPage() {
     await supabase.from('folder_catalogs').delete().eq('id', id);
     setCatalogs((p) => p.filter((c) => c.id !== id));
   }
+  async function updateCatalog(id: string, patch: Partial<Pick<FolderCatalog, 'title' | 'person_tmdb_id'>>) {
+    await saveSourceTitle(id, patch);
+    setCatalogs((p) => p.map((c) => (c.id === id ? { ...c, ...patch } : c)));
+  }
+  async function renameFolder(name: string) {
+    if (!selectedFolder) return;
+    const { error } = await supabase.from('folders').update({ name }).eq('id', selectedFolder.id);
+    if (error) throw new Error(error.message);
+    const updated = { ...selectedFolder, name };
+    setSelectedFolder(updated);
+    setFolders((p) => p.map((f) => (f.id === updated.id ? updated : f)));
+    setAllFolders((p) => p.map((f) => (f.id === updated.id ? updated : f)));
+  }
 
   // ---- JSON pack import ----
   async function importPack(pack: Record<string, unknown>, discoverMap?: Map<string, string>) {
@@ -665,6 +679,8 @@ export default function CatalogPage() {
                   onAddNativeSource={addNativeSource}
                   onDeleteCatalog={deleteCatalog}
                   addons={installedAddons}
+                  onUpdateCatalog={updateCatalog}
+                  onRenameFolder={renameFolder}
                 />
               ) : (
                 <div className="py-16 text-center text-sm text-muted">Pick a folder from the Folders tab to edit its sources.</div>

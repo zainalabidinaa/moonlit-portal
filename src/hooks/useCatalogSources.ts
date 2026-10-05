@@ -40,7 +40,7 @@ export function useCatalogSources(reloadKey = 0) {
           fetchAll<{ id: string; name: string; collection_id: string }>('folders', 'id,name,collection_id'),
           fetchAll<FolderCatalog>('folder_catalogs', '*'),
           fetchAll<FolderSource>('folder_sources', '*'),
-          fetchAll<SnapshotRow>('catalog_snapshots', 'catalog_id,media_type,variant,item_count,error,fetched_at'),
+          fetchAll<SnapshotRow>('catalog_snapshots', 'catalog_id,media_type,variant,item_count,error,fetched_at,source,name'),
         ]);
         if (cancelled) return;
         const collectionById = new Map(collections.map((c) => [c.id, c]));

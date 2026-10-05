@@ -163,6 +163,16 @@ export function useCollectionSubtree(collectionId: string | null) {
     setCatalogsByFolder((p) => ({ ...p, [folderId]: (p[folderId] ?? []).filter((c) => c.id !== id) }));
   }
 
+  /** A source's hub row title / portrait (see SourceRowTitle). */
+  async function updateCatalog(folderId: string, id: string, patch: Partial<Pick<FolderCatalog, 'title' | 'person_tmdb_id'>>) {
+    const { error } = await supabase.from('folder_catalogs').update(patch).eq('id', id);
+    if (error) throw new Error(error.message);
+    setCatalogsByFolder((p) => ({
+      ...p,
+      [folderId]: (p[folderId] ?? []).map((c) => (c.id === id ? { ...c, ...patch } : c)),
+    }));
+  }
+
   // One-time deep copy of another collection's folder (and its whole
   // subtree, catalogs, and sources) into this widget as a new, fully
   // independent set of rows — importing never links back to or mutates the
@@ -238,6 +248,6 @@ export function useCollectionSubtree(collectionId: string | null) {
   return {
     collection, folders, sourcesByFolder, catalogsByFolder, loading, refresh,
     saveCollectionSettings, addFolder, deleteFolder, reorderFolderSiblings, saveFolderArtwork,
-    addSource, deleteSource, addCatalog, deleteCatalog, importFolder,
+    addSource, deleteSource, addCatalog, deleteCatalog, updateCatalog, importFolder,
   };
 }

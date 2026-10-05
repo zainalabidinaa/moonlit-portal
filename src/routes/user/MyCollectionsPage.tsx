@@ -4,6 +4,8 @@ import { AppShell } from '../../components/layout/AppShell';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { SourcesTable } from '../../components/catalog/SourcesTable';
+import { saveSourceTitle } from '../../components/catalog/SourceRowTitle';
+import { supabase } from '../../lib/supabase';
 import {
   listPersonalCollections, createPersonalCollection, deletePersonalCollection,
   listFolders, createFolder, deleteFolder,
@@ -90,6 +92,20 @@ export default function MyCollectionsPage() {
   async function handleDeleteCatalog(id: string) {
     await deleteCatalogSource(id);
     setCatalogs((p) => p.filter((c) => c.id !== id));
+  }
+
+  async function handleUpdateCatalog(id: string, patch: Partial<Pick<FolderCatalog, 'title' | 'person_tmdb_id'>>) {
+    await saveSourceTitle(id, patch);
+    setCatalogs((p) => p.map((c) => (c.id === id ? { ...c, ...patch } : c)));
+  }
+
+  async function handleRenameFolder(name: string) {
+    if (!selectedFolder) return;
+    const { error } = await supabase.from('folders').update({ name }).eq('id', selectedFolder.id);
+    if (error) throw new Error(error.message);
+    const updated = { ...selectedFolder, name };
+    setSelectedFolder(updated);
+    setFolders((p) => p.map((f) => (f.id === updated.id ? updated : f)));
   }
 
   if (!eligible) {
@@ -197,6 +213,8 @@ export default function MyCollectionsPage() {
               onAddCatalog={async () => {}}
               onDeleteCatalog={handleDeleteCatalog}
               onAddNativeSource={handleAddNativeSource}
+              onUpdateCatalog={handleUpdateCatalog}
+              onRenameFolder={handleRenameFolder}
             />
           </Card>
         )}

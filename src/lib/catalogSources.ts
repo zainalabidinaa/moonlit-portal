@@ -19,6 +19,10 @@ export interface SnapshotRow {
   item_count: number;
   error: string | null;
   fetched_at: string;
+  /** "addon", or "tmdb-fallback" when the server rebuilt the copy from TMDB. */
+  source?: string | null;
+  /** The list's own name, saved by the server with the copy. */
+  name?: string | null;
 }
 
 export interface SourceRow {
@@ -34,6 +38,9 @@ export interface SourceRow {
   itemCount: number | null;
   fetchedAt: string | null;
   error: string | null;
+  /** The copy was rebuilt from the backup source (TMDB). */
+  backup: boolean;
+  listName: string | null;
 }
 
 export const KIND_LABEL: Record<SourceKind, string> = {
@@ -125,7 +132,12 @@ export function buildSourceRows(input: {
 
   const rows: SourceRow[] = [];
   for (const c of input.catalogs) {
-    const snap = snaps.get(snapshotKey(c.catalog_id, c.media_type, c.genre));
+    // The server serves a list copied under the other type (AIOMetadata's
+    // "movie" K-drama lists filed under "series"), so health must match too.
+    const otherType = c.media_type === 'series' ? 'movie' : 'series';
+    const snap =
+      snaps.get(snapshotKey(c.catalog_id, c.media_type, c.genre)) ??
+      snaps.get(snapshotKey(c.catalog_id, otherType, c.genre));
     const kind = classifyCatalogId(c.catalog_id, c.filter_params != null, snap != null);
     const refresh = refreshFor(kind, c.catalog_id, input.folderName(c.folder_id));
     rows.push({
@@ -141,6 +153,8 @@ export function buildSourceRows(input: {
       itemCount: kind === 'copy' && snap ? snap.item_count : null,
       fetchedAt: kind === 'copy' && snap ? snap.fetched_at : null,
       error: kind === 'copy' && snap ? snap.error : null,
+      backup: kind === 'copy' && snap?.source === 'tmdb-fallback',
+      listName: snap?.name ?? null,
     });
   }
   for (const s of input.sources) {
@@ -158,6 +172,8 @@ export function buildSourceRows(input: {
       itemCount: null,
       fetchedAt: null,
       error: null,
+      backup: false,
+      listName: null,
     });
   }
   return rows;

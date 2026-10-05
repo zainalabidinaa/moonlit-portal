@@ -144,6 +144,9 @@ export default function CatalogSourcesPage() {
                     <tr key={r.key} className="border-b border-border last:border-0 hover:bg-surface-2">
                       <td className="px-4 py-2.5">
                         <div className="text-text">{r.folderName}{r.genre ? <span className="text-muted"> · {r.genre}</span> : null}</div>
+                        {r.listName && r.listName !== r.folderName && (
+                          <div className="text-[12px] text-muted">{r.listName}</div>
+                        )}
                         <div className="font-mono text-[11px] text-faint">{r.collectionName} · {r.catalogId}</div>
                       </td>
                       <td className="px-4 py-2.5">
@@ -153,7 +156,13 @@ export default function CatalogSourcesPage() {
                       <td className="px-4 py-2.5 text-muted" title={r.error ?? undefined}>{ago(r.fetchedAt)}</td>
                       <td className="px-4 py-2.5 text-right tabular-nums text-text">{r.itemCount ?? '—'}</td>
                       <td className="px-4 py-2.5">
-                        <Badge variant={HEALTH_VARIANT[r.health]}>{HEALTH_LABEL[r.health]}</Badge>
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <Badge variant={HEALTH_VARIANT[r.health]}>{HEALTH_LABEL[r.health]}</Badge>
+                          {r.backup && <Badge variant="default">Backup source</Badge>}
+                        </div>
+                        {r.error && r.health !== 'ok' && (
+                          <div className="mt-1 max-w-[220px] text-[11px] leading-snug text-faint">{r.error}</div>
+                        )}
                       </td>
                       <td className="px-4 py-2.5 text-right">
                         {r.collectionId && (

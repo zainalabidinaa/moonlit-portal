@@ -111,6 +111,20 @@ describe('buildSourceRows', () => {
     expect(rows[1].health).toBe('missing');
   });
 
+  it('matches a list the server copied under the other type, and flags backup copies', () => {
+    const rows = buildSourceRows({
+      catalogs: [catalog({ id: 'k', catalog_id: 'letterboxd.bU4aw', media_type: 'series' })],
+      sources: [],
+      snapshots: [{ ...snap({ catalog_id: 'letterboxd.bU4aw', media_type: 'movie' }), source: 'tmdb-fallback', name: 'K-drama' }],
+      folderName: () => 'K-Drama',
+      now: NOW,
+    });
+    expect(rows[0].kind).toBe('copy');
+    expect(rows[0].health).toBe('ok');
+    expect(rows[0].backup).toBe(true);
+    expect(rows[0].listName).toBe('K-drama');
+  });
+
   it('includes folder provider sources and summarizes everything', () => {
     const sources: FolderSource[] = [
       { id: 's1', folder_id: 'f1', provider: 'tmdb.collection.10', title: null, tmdb_id: null, media_type: 'movie', sort_order: 0 },

@@ -130,6 +130,12 @@ export interface FolderCatalog {
   /** TMDB discover params. When set, apps fetch this row directly from TMDB
    *  using these params instead of asking the connected addon. */
   filter_params: Record<string, string> | null;
+  /** Row title in the app's genre/language hubs. NULL = the list's own name
+   *  (saved by the server with its copy), else the folder name. */
+  title?: string | null;
+  /** TMDB person whose portrait sits beside the row. NULL = matched from the
+   *  row title automatically; 0 = no portrait. */
+  person_tmdb_id?: number | null;
 }
 
 export interface LanguageHubRail {

@@ -11,6 +11,7 @@ import { ArtworkGallery } from './ArtworkGallery';
 import { TAB_FLAG, TILE_SHAPES, tileAspectClass, type WidgetTab } from './WidgetGrid';
 import { LANGUAGE_ISO_BY_FOLDER_NAME, LanguageHubRailsEditor } from './LanguageHubRailsEditor';
 import type { Folder, FolderSource, FolderCatalog, InstalledAddon } from '../../types';
+import { SourceRowTitle, useListNames } from './SourceRowTitle';
 
 const TABS: { id: WidgetTab; label: string }[] = [
   { id: 'home', label: 'Home' },
@@ -52,7 +53,7 @@ export function WidgetEditor({ collectionId, initialFolderId, onBack }: Props) {
   const {
     collection, folders, sourcesByFolder, catalogsByFolder, loading,
     saveCollectionSettings, addFolder, deleteFolder, reorderFolderSiblings, saveFolderArtwork,
-    addSource, deleteSource, addCatalog, deleteCatalog, importFolder,
+    addSource, deleteSource, addCatalog, deleteCatalog, updateCatalog, importFolder,
   } = useCollectionSubtree(collectionId);
 
   const [path, setPath] = useState<string[]>(initialFolderId ? [initialFolderId] : []);
@@ -192,6 +193,8 @@ export function WidgetEditor({ collectionId, initialFolderId, onBack }: Props) {
           onDeleteSource={(id) => deleteSource(currentFolder.id, id)}
           onAddCatalog={(catalogId, mediaType, genre, filterParams) => addCatalog(currentFolder.id, catalogId, mediaType, genre, null, filterParams)}
           onDeleteCatalog={(id) => deleteCatalog(currentFolder.id, id)}
+          onUpdateCatalog={(id, patch) => updateCatalog(currentFolder.id, id, patch)}
+          onRenameFolder={(name) => saveFolderArtwork(currentFolder.id, { name })}
           onSaveShape={(shape) => saveFolderArtwork(currentFolder.id, { tile_shape: shape })}
           onSaveSourceRows={(value) => saveFolderArtwork(currentFolder.id, { source_rows: value })}
           onEditArtwork={() => setArtworkFolderId(currentFolder.id)}
@@ -747,7 +750,7 @@ function TileShapePicker({ value, onChange, size = 'md' }: { value: string; onCh
 }
 
 function FolderSourceEditor({
-  folder, sources, catalogs, onAddSource, onDeleteSource, onAddCatalog, onDeleteCatalog, onSaveShape, onSaveSourceRows, onEditArtwork, languageIso,
+  folder, sources, catalogs, onAddSource, onDeleteSource, onAddCatalog, onDeleteCatalog, onUpdateCatalog, onRenameFolder, onSaveShape, onSaveSourceRows, onEditArtwork, languageIso,
 }: {
   folder: Folder;
   sources: FolderSource[];
@@ -756,6 +759,8 @@ function FolderSourceEditor({
   onDeleteSource: (id: string) => void;
   onAddCatalog: (catalogId: string, mediaType: string, genre: string | null, filterParams?: Record<string, string>) => void;
   onDeleteCatalog: (id: string) => void;
+  onUpdateCatalog: (id: string, patch: Partial<Pick<FolderCatalog, 'title' | 'person_tmdb_id'>>) => Promise<void>;
+  onRenameFolder: (name: string) => Promise<void> | void;
   onSaveShape: (shape: string) => void;
   onSaveSourceRows: (value: boolean) => void;
   onEditArtwork: () => void;
@@ -788,6 +793,9 @@ function FolderSourceEditor({
     return () => { cancelled = true; };
   }, [activeProfile]);
   const { catalogById } = useAllAddonManifests(installedAddons);
+  const savedListNames = useListNames(catalogs.map((c) => c.catalog_id));
+  const [folderName, setFolderName] = useState(folder.name);
+  useEffect(() => { setFolderName(folder.name); }, [folder.id, folder.name]);
 
   function slugifyFilterTitle(s: string) {
     return s.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
@@ -809,6 +817,18 @@ function FolderSourceEditor({
 
   return (
     <div>
+      <div className="mb-4">
+        <label htmlFor={`folder-name-${folder.id}`} className="font-mono text-[10px] uppercase tracking-widest text-faint">Folder name</label>
+        <input
+          id={`folder-name-${folder.id}`}
+          value={folderName}
+          onChange={(e) => setFolderName(e.target.value)}
+          onBlur={() => { const next = folderName.trim(); if (next && next !== folder.name) onRenameFolder(next); else setFolderName(folder.name); }}
+          onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+          className="mt-1 block w-full max-w-md rounded-lg border border-border bg-bg2 px-3 py-2 text-[14px] text-text outline-none focus:border-accent"
+        />
+        <p className="mt-1 text-[11px] text-faint">Shown on the app&apos;s tile and as the hub title. Renaming it here renames it everywhere.</p>
+      </div>
       <div className="mb-4 flex items-center justify-between gap-3">
         <p className="font-mono text-[10px] uppercase tracking-widest text-faint">Tile shape</p>
         <div className="flex items-center gap-2">
@@ -839,22 +859,26 @@ function FolderSourceEditor({
       </div>
       <p className="mb-2 font-mono text-[10px] uppercase tracking-widest text-faint">Content sources</p>
       <div className="mb-4 flex flex-col gap-1.5">
-        {catalogs.map((c) => (
-          <div key={c.id} className="flex items-center gap-3 rounded-lg border border-border bg-surface px-3.5 py-2.5">
-            <span className={`rounded border px-1.5 py-0.5 font-mono text-[9px] ${
-              c.filter_params ? 'border-fuchsia-500/30 text-fuchsia-400' : 'border-cyan-500/30 text-cyan-400'
-            }`}>
-              {c.filter_params ? 'tmdb filter' : 'catalog'}
-            </span>
-            <span className="flex-1 truncate text-[13px] text-text">
-              {c.filter_params
-                ? c.catalog_id.replace('tmdb.discover.custom.', '').replace(/-/g, ' ')
-                : catalogById(c.catalog_id)?.name ?? c.catalog_id}
-            </span>
-            <span className="font-mono text-[10.5px] text-faint">{c.media_type}{c.genre ? ` · ${c.genre}` : ''}</span>
-            <button onClick={() => onDeleteCatalog(c.id)} className="text-faint hover:text-red-400">×</button>
-          </div>
-        ))}
+        {catalogs.map((c) => {
+          const listName = c.filter_params
+            ? c.catalog_id.replace('tmdb.discover.custom.', '').replace(/-/g, ' ')
+            : savedListNames[c.catalog_id] ?? catalogById(c.catalog_id)?.name ?? null;
+          return (
+            <div key={c.id} className="flex items-start gap-3 rounded-lg border border-border bg-surface px-3.5 py-2.5">
+              <span className={`mt-1 rounded border px-1.5 py-0.5 font-mono text-[9px] ${
+                c.filter_params ? 'border-fuchsia-500/30 text-fuchsia-400' : 'border-cyan-500/30 text-cyan-400'
+              }`}>
+                {c.filter_params ? 'tmdb filter' : 'catalog'}
+              </span>
+              <div className="min-w-0 flex-1">
+                <SourceRowTitle catalog={c} listName={listName} onSave={(patch) => onUpdateCatalog(c.id, patch)} />
+                <p className="mt-1 truncate font-mono text-[10px] text-faint">{c.catalog_id}</p>
+              </div>
+              <span className="mt-1 font-mono text-[10.5px] text-faint">{c.media_type}{c.genre ? ` · ${c.genre}` : ''}</span>
+              <button onClick={() => onDeleteCatalog(c.id)} className="mt-1 text-faint hover:text-red-400">×</button>
+            </div>
+          );
+        })}
         {sources.map((s) => (
           <div key={s.id} className="flex items-center gap-3 rounded-lg border border-border bg-surface px-3.5 py-2.5">
             <span className="rounded border border-border-strong px-1.5 py-0.5 font-mono text-[9px] text-muted">list</span>
