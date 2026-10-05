@@ -5,7 +5,8 @@ import { Footer } from '../../components/layout/Footer';
 import { Reveal } from '../../components/landing/Reveal';
 import { SectionHead } from '../../components/landing/SectionHead';
 import { AppleIcon, GlobeIcon, PhoneIcon, StatusPill, TvIcon, WindowsIcon } from '../../components/landing/PlatformIcons';
-import { MAC_DOWNLOAD_URL, MAC_MIN_OS, MAC_VERSION, TESTFLIGHT_URL, WINDOWS_CERT_URL, WINDOWS_CHECKSUM_URL, WINDOWS_DOWNLOAD_URL, WINDOWS_VERSION, fetchReleaseNotes, type ReleaseNote } from '../../lib/releases';
+import { TvInstallGuide } from '../../components/download/TvInstallGuide';
+import { MAC_DOWNLOAD_URL, MAC_MIN_OS, MAC_VERSION, TESTFLIGHT_URL, TV_DOWNLOAD_URL, TV_VERSION, WINDOWS_CERT_URL, WINDOWS_CHECKSUM_URL, WINDOWS_DOWNLOAD_URL, WINDOWS_VERSION, fetchReleaseNotes, type ReleaseNote } from '../../lib/releases';
 
 const icon = 'h-[30px] w-[30px]';
 
@@ -26,7 +27,7 @@ export default function DownloadPage() {
           <p className="text-xs font-semibold uppercase tracking-[.12em] text-accent">Download</p>
           <h1 className="text-[clamp(40px,6vw,72px)] font-semibold leading-[1.05]">Moonlit on every screen.</h1>
           <p className="max-w-[36em] text-lg text-muted">
-            Moonlit for Mac and Windows is out now and the iPhone and iPad beta is open on TestFlight. Apple TV is next. Moonlit also runs in any modern browser today.
+            Moonlit for Mac, Windows and Android TV is out now and the iPhone and iPad beta is open on TestFlight. Apple TV is next. Moonlit also runs in any modern browser today.
           </p>
         </div>
 
@@ -93,6 +94,18 @@ export default function DownloadPage() {
               <a href={WINDOWS_DOWNLOAD_URL} className="inline-flex h-[46px] items-center rounded-full bg-text px-5 text-[15px] font-semibold text-[#0a0a0c] hover:bg-white">Download for Windows</a>
             </div>
           </Card>
+
+          <Card>
+            <TvIcon className={icon} />
+            <span><StatusPill now>Version {TV_VERSION} · Beta</StatusPill></span>
+            <h3 className="text-[22px] font-semibold tracking-tight">Android TV</h3>
+            <p className="text-[14.5px] text-muted">Built for the remote. Works on Google TV, Chromecast with Google TV, Fire TV and Nvidia Shield.</p>
+            <p className="text-[13px] text-faint">Android 7 or later. About 79 MB. Installed from an APK.</p>
+            <div className="mt-auto flex flex-wrap gap-2.5 pt-1">
+              <a href={TV_DOWNLOAD_URL} className="inline-flex h-[46px] items-center rounded-full bg-text px-5 text-[15px] font-semibold text-[#0a0a0c] hover:bg-white">Download APK</a>
+              <a href="#install-android-tv" className="inline-flex h-[46px] items-center rounded-full border border-border-strong bg-white/[.06] px-5 text-[15px] font-semibold hover:bg-white/10">How to install</a>
+            </div>
+          </Card>
         </div>
 
         <div id="release-notes" className="mt-14 grid gap-10 scroll-mt-24 lg:grid-cols-[1fr_1.5fr] lg:gap-[72px]">
@@ -134,6 +147,7 @@ export default function DownloadPage() {
                 <a className="text-accent" href={WINDOWS_CERT_URL} download>our certificate</a> into <span className="text-text">Trusted Root Certification Authorities</span> and <span className="text-text">Trusted Publishers</span>.
               </p>
             </div>
+            <TvInstallGuide />
           </div>
         </div>
       </div>

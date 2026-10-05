@@ -13,6 +13,13 @@ export const WINDOWS_INSTALLER = `Moonlit_${WINDOWS_VERSION}_x64-setup.exe`;
 export const WINDOWS_DOWNLOAD_URL = `/downloads/${WINDOWS_INSTALLER}`;
 export const WINDOWS_CHECKSUM_URL = `${WINDOWS_DOWNLOAD_URL}.sha256`;
 export const WINDOWS_CERT_URL = '/downloads/moonlit-signing.cer';
+// Android TV APK, built from Apps/Moonlit-androidtv (assembleRelease). Drop the APK and its
+// .sha256 into public/downloads/, bump TV_VERSION and update the /tv redirect in vercel.json.
+export const TV_VERSION = '0.1.0';
+export const TV_APK = `Moonlit-TV-${TV_VERSION}.apk`;
+export const TV_DOWNLOAD_URL = `/downloads/${TV_APK}`;
+export const TV_CHECKSUM_URL = `${TV_DOWNLOAD_URL}.sha256`;
+export const TV_SHORT_URL = 'trymoonlit.app/tv';
 export const MAC_MIN_OS = 'macOS 14 or later';
 export const TESTFLIGHT_URL = 'https://testflight.apple.com/join/9HSBA4vz';
 
