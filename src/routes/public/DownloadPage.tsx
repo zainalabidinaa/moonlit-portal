@@ -5,7 +5,7 @@ import { Footer } from '../../components/layout/Footer';
 import { Reveal } from '../../components/landing/Reveal';
 import { SectionHead } from '../../components/landing/SectionHead';
 import { AppleIcon, GlobeIcon, PhoneIcon, StatusPill, TvIcon, WindowsIcon } from '../../components/landing/PlatformIcons';
-import { MAC_DOWNLOAD_URL, MAC_MIN_OS, MAC_VERSION, TESTFLIGHT_URL, fetchReleaseNotes, type ReleaseNote } from '../../lib/releases';
+import { MAC_DOWNLOAD_URL, MAC_MIN_OS, MAC_VERSION, TESTFLIGHT_URL, WINDOWS_CERT_URL, WINDOWS_CHECKSUM_URL, WINDOWS_DOWNLOAD_URL, WINDOWS_VERSION, fetchReleaseNotes, type ReleaseNote } from '../../lib/releases';
 
 const icon = 'h-[30px] w-[30px]';
 
@@ -26,7 +26,7 @@ export default function DownloadPage() {
           <p className="text-xs font-semibold uppercase tracking-[.12em] text-accent">Download</p>
           <h1 className="text-[clamp(40px,6vw,72px)] font-semibold leading-[1.05]">Moonlit on every screen.</h1>
           <p className="max-w-[36em] text-lg text-muted">
-            Moonlit for Mac is out now and the iPhone and iPad beta is open on TestFlight. Apple TV and Windows are next. Moonlit also runs in any modern browser today.
+            Moonlit for Mac and Windows is out now and the iPhone and iPad beta is open on TestFlight. Apple TV is next. Moonlit also runs in any modern browser today.
           </p>
         </div>
 
@@ -85,10 +85,13 @@ export default function DownloadPage() {
 
           <Card>
             <WindowsIcon className={icon} />
-            <span><StatusPill>Coming soon</StatusPill></span>
+            <span><StatusPill now>Version {WINDOWS_VERSION}</StatusPill></span>
             <h3 className="text-[22px] font-semibold tracking-tight">Windows</h3>
-            <p className="text-[14.5px] text-muted">Desktop app with hardware-accelerated playback.</p>
-            <p className="text-[13px] text-faint">Windows 10 and 11. In development.</p>
+            <p className="text-[14.5px] text-muted">Desktop app with hardware-accelerated playback, Live TV and downloads.</p>
+            <p className="text-[13px] text-faint">Windows 10 and 11, 64-bit.</p>
+            <div className="mt-auto flex flex-wrap gap-2.5 pt-1">
+              <a href={WINDOWS_DOWNLOAD_URL} className="inline-flex h-[46px] items-center rounded-full bg-text px-5 text-[15px] font-semibold text-[#0a0a0c] hover:bg-white">Download for Windows</a>
+            </div>
           </Card>
         </div>
 
@@ -117,6 +120,19 @@ export default function DownloadPage() {
                 <li>Launch it from Applications. macOS asks once whether you want to open an app downloaded from the internet. Click <span className="text-text">Open</span>.</li>
               </ol>
               <p className="mt-2.5">Moonlit is signed and notarized by Apple, so that is the only prompt you will see.</p>
+            </div>
+            <div className="rounded-2xl border border-border bg-surface px-[22px] py-5 text-sm text-muted">
+              <p className="font-semibold text-text">Installing on Windows</p>
+              <ol className="mt-2.5 list-decimal space-y-1 pl-5">
+                <li>Run the downloaded <span className="text-text">.exe</span>.</li>
+                <li>Windows may say <span className="text-text">Windows protected your PC</span>. Click <span className="text-text">More info</span>, then <span className="text-text">Run anyway</span>.</li>
+                <li>Follow the installer, then open Moonlit from the Start menu.</li>
+              </ol>
+              <p className="mt-2.5">
+                That warning appears because the installer is signed with our own certificate rather than one Microsoft already recognises. To check your download, compare its SHA-256 checksum with{' '}
+                <a className="text-accent" href={WINDOWS_CHECKSUM_URL}>the published one</a>. To make a PC you control trust the installer for good, install{' '}
+                <a className="text-accent" href={WINDOWS_CERT_URL} download>our certificate</a> into <span className="text-text">Trusted Root Certification Authorities</span> and <span className="text-text">Trusted Publishers</span>.
+              </p>
             </div>
           </div>
         </div>
