@@ -1,0 +1,11 @@
+{
+  "version": "1.0.0",
+  "notes": "First release of Moonlit for Windows.",
+  "pub_date": "2026-10-05T22:45:33Z",
+  "platforms": {
+    "windows-x86_64": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTb3AwTG9QN0E5UitVSU5wMkhzdmRYcmxFMlZQaWZsSGdRMzFva1EyVFplb0JMeE5HSHdNNlF3Y0tRYStjMVpnTng1clh3OTdBOVgwMFhkeTVEVDJFTW45bjl4U29uR2c0PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkxMjQwMzI1CWZpbGU6TW9vbmxpdF8xLjAuMF94NjQtc2V0dXAuZXhlCmlXYVZnNUZkR0JscGk0V3Fkb3FYUzBLd3VQSWhOQm9hV1llWG82UVAxNDFoZ2k4NEZFcWJKWEVPNlY4Yk9uRmRLcUswNnR1dzJ6ZG40OVZJNHpPN0N3PT0K",
+      "url": "https://trymoonlit.app/downloads/Moonlit_1.0.0_x64-setup.exe"
+    }
+  }
+}
