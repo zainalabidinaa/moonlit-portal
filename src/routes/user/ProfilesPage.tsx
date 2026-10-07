@@ -6,7 +6,7 @@ import { ProfileCard } from '../../components/profiles/ProfileCard';
 import { ProfileEditor } from '../../components/profiles/ProfileEditor';
 import { Badge } from '../../components/ui/Badge';
 import { PLAN_LABELS, profileLimitFor } from '../../lib/plans';
-import { MAC_DOWNLOAD_URL, MAC_VERSION, TESTFLIGHT_URL } from '../../lib/releases';
+import { MAC_TESTFLIGHT_URL, TESTFLIGHT_URL } from '../../lib/releases';
 import { AppleIcon, PhoneIcon, TvIcon } from '../../components/landing/PlatformIcons';
 import { AccountActivity } from '../../components/profiles/AccountActivity';
 
@@ -124,7 +124,7 @@ export default function ProfilesPage() {
 
         <div className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-2xl border border-border px-5 py-3.5 text-sm">
           <span className="font-medium text-muted">Add a device</span>
-          <a href={MAC_DOWNLOAD_URL} className="inline-flex items-center gap-1.5 text-text hover:text-accent"><AppleIcon className="h-4 w-4" />Moonlit for Mac {MAC_VERSION}</a>
+          <a href={MAC_TESTFLIGHT_URL} target="_blank" rel="noreferrer noopener" className="inline-flex items-center gap-1.5 text-text hover:text-accent"><AppleIcon className="h-4 w-4" />Mac beta</a>
           <a href={TESTFLIGHT_URL} target="_blank" rel="noreferrer noopener" className="inline-flex items-center gap-1.5 text-text hover:text-accent"><PhoneIcon className="h-4 w-4" />iPhone and iPad beta</a>
           <Link to="/activate" className="inline-flex items-center gap-1.5 text-text hover:text-accent"><TvIcon className="h-4 w-4" />Link a TV</Link>
         </div>

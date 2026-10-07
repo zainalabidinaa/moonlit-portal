@@ -2,14 +2,14 @@ import { Link } from 'react-router-dom';
 import { Reveal } from './Reveal';
 import { SectionHead } from './SectionHead';
 import { AppleIcon, GlobeIcon, PhoneIcon, StatusPill, TvIcon, WindowsIcon } from './PlatformIcons';
-import { MAC_VERSION } from '../../lib/releases';
+import { WINDOWS_VERSION } from '../../lib/releases';
 
 const rows = [
-  { icon: <AppleIcon className="h-[22px] w-[22px]" />, name: 'Mac', note: 'Native app, Apple silicon and Intel. Live TV and IPTV built in.', status: `v${MAC_VERSION}`, now: true },
+  { icon: <AppleIcon className="h-[22px] w-[22px]" />, name: 'Mac', note: 'Native app, Apple silicon and Intel. Live TV and IPTV built in.', status: 'TestFlight', now: true },
   { icon: <PhoneIcon className="h-[22px] w-[22px]" />, name: 'iPhone and iPad', note: 'Native playback engine, downloads and AirPlay.', status: 'TestFlight', now: true },
+  { icon: <WindowsIcon className="h-[22px] w-[22px]" />, name: 'Windows', note: 'Hardware-accelerated playback, Live TV and downloads.', status: `v${WINDOWS_VERSION}`, now: true },
   { icon: <GlobeIcon className="h-[22px] w-[22px]" />, name: 'Web', note: 'Nothing to install. Sign in and play.', status: 'Live', now: true },
   { icon: <TvIcon className="h-[22px] w-[22px]" />, name: 'Apple TV', note: 'Built for the remote.', status: 'Coming', now: false },
-  { icon: <WindowsIcon className="h-[22px] w-[22px]" />, name: 'Windows', note: 'Hardware-accelerated playback.', status: 'Coming', now: false },
 ];
 
 /**

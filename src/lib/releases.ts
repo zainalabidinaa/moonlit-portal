@@ -22,6 +22,9 @@ export const TV_CHECKSUM_URL = `${TV_DOWNLOAD_URL}.sha256`;
 export const TV_SHORT_URL = 'trymoonlit.app/tv';
 export const MAC_MIN_OS = 'macOS 14 or later';
 export const TESTFLIGHT_URL = 'https://testflight.apple.com/join/9HSBA4vz';
+// The Mac app is installed through TestFlight too. Same app record as the iPhone build, so the same
+// invite; swap this if the Mac ever gets its own public link.
+export const MAC_TESTFLIGHT_URL = TESTFLIGHT_URL;
 
 export interface ReleaseNote {
   version: string;
