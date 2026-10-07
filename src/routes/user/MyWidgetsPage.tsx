@@ -76,11 +76,13 @@ interface EditorProps {
   initial: HomeWidget | null;
   defaultTab: WidgetTab;
   collections: CollectionPreview[];
+  /** Studio builds from its own sources, never from Moonlit's curated collections. */
+  allowMoonlitCollections: boolean;
   onClose: () => void;
   onSave: (w: HomeWidget) => void;
 }
 
-function WidgetEditorDialog({ open, initial, defaultTab, collections, onClose, onSave }: EditorProps) {
+function WidgetEditorDialog({ open, initial, defaultTab, collections, allowMoonlitCollections, onClose, onSave }: EditorProps) {
   const initialKind = (initial?.dataSource.kind as CreatableKind | undefined) ?? null;
   const [kind, setKind] = useState<CreatableKind | null>(initialKind);
   const [title, setTitle] = useState(initial?.title ?? '');
@@ -134,7 +136,7 @@ function WidgetEditorDialog({ open, initial, defaultTab, collections, onClose, o
       <div className="grid gap-5 p-6">
         {!isEdit && (
           <div className="grid gap-2 sm:grid-cols-2">
-            {kinds.map((k) => (
+            {kinds.filter((k) => allowMoonlitCollections || k.id !== 'collection').map((k) => (
               <button
                 key={k.id}
                 type="button"
@@ -455,7 +457,7 @@ export default function MyWidgetsPage() {
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            {preset && <Button size="sm" loading={starting} onClick={startFromPreset}>Start from Moonlit’s Home</Button>}
+            {preset && role !== 'studio' && <Button size="sm" loading={starting} onClick={startFromPreset}>Start from Moonlit’s Home</Button>}
             <Button size="sm" variant="ghost" onClick={() => setEditor({ open: true, widget: null })}>Start empty</Button>
           </div>
         </div>
@@ -492,6 +494,7 @@ export default function MyWidgetsPage() {
           initial={editor.widget}
           defaultTab={tab}
           collections={collections}
+          allowMoonlitCollections={role !== 'studio'}
           onClose={() => setEditor({ open: false, widget: null })}
           onSave={upsert}
         />
