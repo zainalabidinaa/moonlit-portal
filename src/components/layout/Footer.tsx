@@ -4,7 +4,7 @@ import { Logo } from './Navbar';
 const columns: { title: string; links: { label: string; to: string }[] }[] = [
   { title: 'Product', links: [{ label: 'Catalog', to: '/catalog' }, { label: 'Download', to: '/download' }, { label: 'Pricing', to: '/pricing' }] },
   { title: 'Account', links: [{ label: 'Sign in', to: '/login' }, { label: 'Create account', to: '/signup' }, { label: 'Redeem an invite', to: '/signup?tab=invite' }] },
-  { title: 'Help', links: [{ label: 'Support', to: '/support' }, { label: 'Link a TV', to: '/activate' }, { label: 'Release notes', to: '/download#release-notes' }] },
+  { title: 'Help', links: [{ label: 'Support', to: '/support' }, { label: 'Privacy', to: '/privacy' }, { label: 'Link a TV', to: '/activate' }, { label: 'Release notes', to: '/download#release-notes' }] },
 ];
 
 export function Footer({ wide = false }: { wide?: boolean } = {}) {

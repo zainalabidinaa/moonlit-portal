@@ -9,6 +9,7 @@ import CollectionsPage from './routes/public/CollectionsPage';
 import DownloadPage from './routes/public/DownloadPage';
 import ActivatePage from './routes/public/ActivatePage';
 import SupportPage from './routes/public/SupportPage';
+import PrivacyPage from './routes/public/PrivacyPage';
 import ProfilesPage from './routes/user/ProfilesPage';
 import AddonsUpstreamsPage from './routes/admin/AddonsUpstreamsPage';
 import CloudPage from './routes/cloud/CloudPage';
@@ -55,6 +56,7 @@ export default function App() {
           <Route path="/activate" element={<ActivatePage />} />
           <Route path="/contact" element={<SupportPage />} />
           <Route path="/support" element={<SupportPage />} />
+          <Route path="/privacy" element={<PrivacyPage />} />
 
           {/* User */}
           <Route path="/profiles" element={<UserRoute><ProfilesPage /></UserRoute>} />
