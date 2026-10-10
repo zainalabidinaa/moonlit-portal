@@ -190,7 +190,7 @@ export default function AddonsUpstreamsPage() {
               users never see or manage them.
             </p>
           </div>
-          {isManaged && <Badge variant="purple">Managed by Moonlit</Badge>}
+          {isManaged && <Badge variant="purple">Managed by Axis</Badge>}
           {role === 'friends_family' && <Badge>Inherited from admin</Badge>}
         </div>
 
@@ -199,7 +199,7 @@ export default function AddonsUpstreamsPage() {
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0">
                 <p className="text-sm font-medium text-text">One-tap setup</p>
-                <p className="text-xs text-muted">Add Moonlit's recommended add-ons to your account in one tap. They'll sync to your apps.</p>
+                <p className="text-xs text-muted">Add Axis's recommended add-ons to your account in one tap. They'll sync to your apps.</p>
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 <Badge variant={curatedSetupInstalled ? 'success' : 'default'}>

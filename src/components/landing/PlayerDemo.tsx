@@ -21,7 +21,7 @@ interface PlayerDemoProps {
  * A live-feeling player: the still zooms slowly, the scrubber creeps, the
  * clock ticks, the active codec chips catch a light sweep. No video.
  */
-export function PlayerDemo({ backdrop, title = 'Tonight on Moonlit', subtitle = 'Direct play · no transcoding' }: PlayerDemoProps) {
+export function PlayerDemo({ backdrop, title = 'Tonight on Axis', subtitle = 'Direct play · no transcoding' }: PlayerDemoProps) {
   const [secs, setSecs] = useState(51 * 60 + 42);
 
   useEffect(() => {

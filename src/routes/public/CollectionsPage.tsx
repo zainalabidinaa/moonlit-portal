@@ -153,7 +153,7 @@ export default function CollectionsPage() {
       <div className="mx-auto max-w-[1240px] px-5 pb-24 pt-[calc(var(--nav-h)+72px)] md:px-8 md:pt-[calc(var(--nav-h)+110px)]">
         <div className="mb-10 grid max-w-[720px] gap-4">
           <p className="text-xs font-semibold uppercase tracking-[.12em] text-accent">The catalog</p>
-          <h1 className="text-[clamp(40px,6vw,72px)] font-semibold leading-[1.05]">Every collection on Moonlit.</h1>
+          <h1 className="text-[clamp(40px,6vw,72px)] font-semibold leading-[1.05]">Every collection on Axis.</h1>
           <p className="max-w-[36em] text-lg text-muted">
             {loading ? 'Loading collections…' : `${collections.length} collections and ${totalGroups} groups, put together by curators with their own artwork. Open one in the app and start at the top.`}
           </p>
@@ -190,7 +190,7 @@ export default function CollectionsPage() {
         {!loading && !error && collections.length === 0 && (
           <div className="py-24 text-center">
             <p className="text-sm text-faint">No collections found.</p>
-            <p className="mt-2 text-xs text-faint">Collections are managed by your Moonlit admin.</p>
+            <p className="mt-2 text-xs text-faint">Collections are managed by your Axis admin.</p>
           </div>
         )}
 

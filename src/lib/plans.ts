@@ -28,7 +28,7 @@ export const PLANS: PlanFacts[] = [
     id: 'friends_family',
     name: 'Friends & Family',
     price: null,
-    who: 'For people invited by a Moonlit admin.',
+    who: 'For people invited by an Axis admin.',
     features: ['Shared household catalog', 'Up to 4 profiles', 'Every device', 'No billing'],
     cta: 'I have an invite code',
     to: '/signup?tab=invite',

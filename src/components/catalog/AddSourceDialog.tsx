@@ -18,7 +18,7 @@ type Tab = 'filter' | 'moonlit' | 'collection' | 'list';
 
 const TABS: { id: Tab; label: string; hint: string }[] = [
   { id: 'filter', label: 'TMDB filter', hint: 'Build a list from genres, years, ratings and more.' },
-  { id: 'moonlit', label: 'Moonlit list', hint: 'Start from one of Moonlit’s ready-made lists.' },
+  { id: 'moonlit', label: 'Axis list', hint: 'Start from one of Axis’s ready-made lists.' },
   { id: 'collection', label: 'Collection', hint: 'A TMDB franchise, like John Wick or the MCU.' },
   { id: 'list', label: 'Trakt / MDBList', hint: 'A public list from Trakt or MDBList.' },
 ];
@@ -122,7 +122,7 @@ export function AddSourceDialog({ open, folderName, onClose, onAdd }: Props) {
 
         {tab === 'moonlit' && (
           <div className="flex flex-col gap-2">
-            <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search Moonlit lists" />
+            <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search Axis lists" />
             <div className="max-h-64 overflow-y-auto rounded-xl border border-border">
               {definitions === null && <p className="p-4 text-sm text-muted">Loading…</p>}
               {shown.map((d) => (
@@ -140,7 +140,7 @@ export function AddSourceDialog({ open, folderName, onClose, onAdd }: Props) {
               {definitions !== null && shown.length === 0 && <p className="p-4 text-sm text-muted">No lists match.</p>}
             </div>
             <p className="text-[11px] text-faint">
-              This adds a copy of the list&apos;s settings to the folder. Later changes to the Moonlit list won&apos;t carry over.
+              This adds a copy of the list&apos;s settings to the folder. Later changes to the Axis list won&apos;t carry over.
             </p>
           </div>
         )}

@@ -102,9 +102,9 @@ export default function SignupPage() {
   }
 
   return (
-    <AuthLayout quote="Collections picked by people. Real 4K playback. A profile for everyone at home." attribution="What you get with Moonlit">
+    <AuthLayout quote="Collections picked by people. Real 4K playback. A profile for everyone at home." attribution="What you get with Axis">
       <h1 className="text-[34px] font-semibold tracking-tight">Create your account.</h1>
-      <p className="-mt-2.5 text-[15px] text-muted">Subscribe in a minute, or redeem an invite from someone who already has Moonlit.</p>
+      <p className="-mt-2.5 text-[15px] text-muted">Subscribe in a minute, or redeem an invite from someone who already has Axis.</p>
 
       <div className="flex rounded-full border border-border bg-bg2 p-1" role="tablist">
         {(['subscribe', 'invite'] as Tab[]).map((t) => (

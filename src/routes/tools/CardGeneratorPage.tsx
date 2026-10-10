@@ -4,7 +4,7 @@ const COVER_W = 1920;
 const COVER_H = 1080;
 
 export default function CardGeneratorPage() {
-  const [title, setTitle] = useState('Moonlit');
+  const [title, setTitle] = useState('Axis');
   const [subtitle, setSubtitle] = useState('');
   const [titleFont, setTitleFont] = useState('Montserrat');
   const [titleSize, setTitleSize] = useState(96);

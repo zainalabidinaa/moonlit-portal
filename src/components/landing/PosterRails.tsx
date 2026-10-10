@@ -38,7 +38,7 @@ export function PosterRails({ posters, caption }: { posters: RailPoster[]; capti
   const a = posters.slice(0, half);
   const b = posters.slice(half);
   return (
-    <div className="rails overflow-hidden pt-16" aria-label="Titles available on Moonlit">
+    <div className="rails overflow-hidden pt-16" aria-label="Titles available on Axis">
       <Rail posters={a} />
       <Rail posters={b.length >= 4 ? b : a} reverse />
       {caption && <p className="mx-auto mt-7 max-w-[1240px] px-5 text-center text-[13px] text-faint">{caption}</p>}

@@ -224,7 +224,7 @@ export function ImportWidgetsDialog({ presetId, presetName, tab, startSortOrder,
             <textarea
               value={text}
               onChange={(e) => { setText(e.target.value); resetPreview(); }}
-              placeholder="Paste a Moonlit widgets export or a Fusion widgets export…"
+              placeholder="Paste an Axis widgets export or a Fusion widgets export…"
               className="h-44 w-full resize-y rounded-lg border border-border bg-bg p-3 font-mono text-xs leading-relaxed text-text focus:border-accent focus:outline-none"
             />
           ) : (
@@ -238,7 +238,7 @@ export function ImportWidgetsDialog({ presetId, presetName, tab, startSortOrder,
           )}
 
           <p className="text-xs text-faint">
-            Accepts a Moonlit widgets export, a Fusion widgets export, a Nuvio/Moonlit collections profile,
+            Accepts an Axis widgets export, a Fusion widgets export, a Nuvio/Moonlit collections profile,
             or an add-on <span className="font-mono">manifest.json</span> URL.
           </p>
 

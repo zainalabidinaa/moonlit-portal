@@ -46,14 +46,14 @@ export function CtaBand({ posters, signedIn }: CtaBandProps) {
               <p className="max-w-[30em] text-[17px] leading-relaxed text-muted">
                 {signedIn
                   ? 'Your collections, your profiles and your place in every show are waiting on every screen.'
-                  : 'Sign up in a minute, open Moonlit on any screen, and start with something good. No setup, no scrolling.'}
+                  : 'Sign up in a minute, open Axis on any screen, and start with something good. No setup, no scrolling.'}
               </p>
               <div className="mt-2 flex flex-wrap gap-3">
                 <Link
                   to={signedIn ? '/profiles' : '/signup'}
                   className="inline-flex h-[54px] items-center gap-2 rounded-full bg-text px-7 text-base font-semibold text-[#0a0a0c] transition-[transform,box-shadow] hover:-translate-y-px hover:bg-white hover:shadow-[0_10px_40px_-10px_rgba(255,255,255,.35)]"
                 >
-                  {signedIn ? 'Open Moonlit' : 'Get Moonlit'} <span aria-hidden="true">→</span>
+                  {signedIn ? 'Open Axis' : 'Get Axis'} <span aria-hidden="true">→</span>
                 </Link>
                 <Link
                   to="/download"

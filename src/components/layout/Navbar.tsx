@@ -71,6 +71,7 @@ export function Navbar({ transparent = false, wide = false }: NavbarProps) {
       <NavLink to="/download" className={navClass}>Download</NavLink>
       {!session && <NavLink to="/pricing" className={navClass}>Pricing</NavLink>}
       {session && mobile && <NavLink to="/profiles" className={navClass}>Profiles</NavLink>}
+      {session && isOwner && <NavLink to="/media-servers" className={navClass}>Media servers</NavLink>}
       {session && (role === 'spotlight' || isStudio) && <NavLink to="/my-widgets" className={navClass}>My widgets</NavLink>}
       {session && isStudio && <NavLink to="/my-collections" className={navClass}>My collections</NavLink>}
       {session && isAdmin && <NavLink to="/admin/home-presets" className={navClass}>Widgets</NavLink>}
@@ -92,7 +93,7 @@ export function Navbar({ transparent = false, wide = false }: NavbarProps) {
         <div className={`mx-auto flex h-[var(--nav-h)] items-center gap-6 px-5 md:px-8 ${wide ? 'max-w-[1600px]' : 'max-w-[1240px]'}`}>
           <Link to="/" className="flex flex-none items-center gap-2.5 text-[19px] font-bold tracking-tight">
             <Logo />
-            Moonlit
+            Axis
           </Link>
 
           <nav className="mx-auto hidden items-center gap-0.5 lg:flex" aria-label="Primary">
@@ -132,7 +133,7 @@ export function Navbar({ transparent = false, wide = false }: NavbarProps) {
             ) : (
               <>
                 <Button variant="ghost" size="sm" className="hidden sm:inline-flex" onClick={() => navigate('/login')}>Sign in</Button>
-                <Button size="sm" onClick={() => navigate('/signup')}>Get Moonlit</Button>
+                <Button size="sm" onClick={() => navigate('/signup')}>Get Axis</Button>
               </>
             )}
             <button

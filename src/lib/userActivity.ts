@@ -38,7 +38,7 @@ const THIRTY_DAYS_MS = 30 * ONE_DAY_MS;
  */
 export function parseUserAgent(ua: string | null): string {
   if (!ua) return 'Unknown device';
-  if (ua.startsWith('Moonlit/')) return 'Moonlit app';
+  if (ua.startsWith('Moonlit/')) return 'Axis app';
   if (/iPhone|iPad/.test(ua)) return 'Safari (iOS)';
   if (/Macintosh/.test(ua)) return 'Browser (Mac)';
   if (/Windows/.test(ua)) return 'Browser (Windows)';

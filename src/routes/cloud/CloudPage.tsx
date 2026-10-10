@@ -5,8 +5,8 @@ import { cloudDate, cloudState, type CloudAccount, type CloudState } from '../..
 import { completeEmailLink } from '../../lib/emailLink';
 
 const CONNECT_ERRORS: Record<string, string> = {
-  not_spotlight: 'Moonlit Cloud is included with an active Spotlight plan.',
-  no_account: "We couldn't find your Moonlit account. Try signing out and in again.",
+  not_spotlight: 'Axis Cloud is included with an active Spotlight plan.',
+  no_account: "We couldn't find your Axis account. Try signing out and in again.",
 };
 
 function Dot({ tone }: { tone: 'muted' | 'accent' | 'green' | 'red' }) {
@@ -65,7 +65,7 @@ function SignIn() {
     <Card>
       <StatusLine tone="muted">Sign in to connect</StatusLine>
       <h3 className="mt-3 font-display text-2xl font-bold tracking-tight text-text">Have Spotlight?</h3>
-      <p className="mt-1.5 text-muted">Moonlit Cloud is included with your Spotlight plan. Sign in with your Moonlit account to connect it.</p>
+      <p className="mt-1.5 text-muted">Axis Cloud is included with your Spotlight plan. Sign in with your Axis account to connect it.</p>
       {linkSent ? (
         <p className="mt-5 rounded-xl bg-green-500/10 p-4 text-sm text-green-400">Check your email: we sent you a sign-in link.</p>
       ) : (
@@ -97,12 +97,12 @@ function StatusCard({ state, busy, error, onConnect, onDisconnect }: {
       return (
         <Card>
           <StatusLine tone="accent">Included with your Spotlight plan · not connected</StatusLine>
-          <h3 className="mt-3 font-display text-2xl font-bold tracking-tight text-text">Connect Moonlit Cloud</h3>
+          <h3 className="mt-3 font-display text-2xl font-bold tracking-tight text-text">Connect Axis Cloud</h3>
           <p className="mt-1.5 text-muted">It's part of your plan at no extra cost. Once connected it stays on for as long as Spotlight is active.</p>
           <div className="mt-5 grid gap-2.5 sm:grid-cols-3">
             {[
               ['1 · Connect', 'Press the button below.'],
-              ['2 · Open Moonlit', 'Within a couple of minutes it appears under Settings → Servers.'],
+              ['2 · Open Axis', 'Within a couple of minutes it appears under Settings → Servers.'],
               ['3 · Watch', 'Your library is ready on every device.'],
             ].map(([t, d]) => (
               <div key={t} className="rounded-xl border border-border bg-white/[0.03] px-3.5 py-3 text-[13px] text-muted">
@@ -111,7 +111,7 @@ function StatusCard({ state, busy, error, onConnect, onDisconnect }: {
             ))}
           </div>
           <button className={`${primaryBtn} mt-5 w-full`} onClick={onConnect} disabled={busy}>
-            {busy ? 'Connecting…' : 'Connect Moonlit Cloud'}
+            {busy ? 'Connecting…' : 'Connect Axis Cloud'}
           </button>
           {err}
         </Card>
@@ -120,7 +120,7 @@ function StatusCard({ state, busy, error, onConnect, onDisconnect }: {
       return (
         <Card>
           <StatusLine tone="green">Connected</StatusLine>
-          <h3 className="mt-3 font-display text-2xl font-bold tracking-tight text-text">Moonlit Cloud is on</h3>
+          <h3 className="mt-3 font-display text-2xl font-bold tracking-tight text-text">Axis Cloud is on</h3>
           <p className="mt-1.5 text-muted">
             It stays connected while your Spotlight plan renews.
             {state.renewsAt && <> Next renewal: {cloudDate(state.renewsAt)}.</>}
@@ -136,9 +136,9 @@ function StatusCard({ state, busy, error, onConnect, onDisconnect }: {
       return (
         <Card>
           <StatusLine tone="green">Active on your account</StatusLine>
-          <h3 className="mt-3 font-display text-2xl font-bold tracking-tight text-text">Moonlit Cloud is on</h3>
+          <h3 className="mt-3 font-display text-2xl font-bold tracking-tight text-text">Axis Cloud is on</h3>
           <p className="mt-1.5 text-muted">
-            Your access was set up for you{state.until ? <> and runs until {cloudDate(state.until)}</> : null}. Open Moonlit and it's there.
+            Your access was set up for you{state.until ? <> and runs until {cloudDate(state.until)}</> : null}. Open Axis and it's there.
           </p>
         </Card>
       );
@@ -146,8 +146,8 @@ function StatusCard({ state, busy, error, onConnect, onDisconnect }: {
       return (
         <Card>
           <StatusLine tone="muted">Not included with your plan</StatusLine>
-          <h3 className="mt-3 font-display text-2xl font-bold tracking-tight text-text">Moonlit Cloud is part of Spotlight</h3>
-          <p className="mt-1.5 text-muted">Your account is on <b className="text-text">Studio</b>, which is built around your own server. Moonlit Cloud is available with the Spotlight plan.</p>
+          <h3 className="mt-3 font-display text-2xl font-bold tracking-tight text-text">Axis Cloud is part of Spotlight</h3>
+          <p className="mt-1.5 text-muted">Your account is on <b className="text-text">Studio</b>, which is built around your own server. Axis Cloud is available with the Spotlight plan.</p>
         </Card>
       );
     case 'ended':
@@ -155,7 +155,7 @@ function StatusCard({ state, busy, error, onConnect, onDisconnect }: {
         <Card>
           <StatusLine tone="red">Disconnected on {cloudDate(state.endedAt)}</StatusLine>
           <h3 className="mt-3 font-display text-2xl font-bold tracking-tight text-text">Cloud disconnected when Spotlight ended</h3>
-          <p className="mt-1.5 text-muted">Your Spotlight plan finished, so Moonlit Cloud was disconnected. Your watch history and settings are kept.</p>
+          <p className="mt-1.5 text-muted">Your Spotlight plan finished, so Axis Cloud was disconnected. Your watch history and settings are kept.</p>
           <p className="mt-3 text-[13px] text-faint">Subscribe to Spotlight again, then come back here and connect.</p>
         </Card>
       );
@@ -163,8 +163,8 @@ function StatusCard({ state, busy, error, onConnect, onDisconnect }: {
       return (
         <Card>
           <StatusLine tone="muted">Not included with your plan</StatusLine>
-          <h3 className="mt-3 font-display text-2xl font-bold tracking-tight text-text">Moonlit Cloud is part of Spotlight</h3>
-          <p className="mt-1.5 text-muted">Moonlit Cloud is available with the Spotlight plan. There's nothing to buy on this site.</p>
+          <h3 className="mt-3 font-display text-2xl font-bold tracking-tight text-text">Axis Cloud is part of Spotlight</h3>
+          <p className="mt-1.5 text-muted">Axis Cloud is available with the Spotlight plan. There's nothing to buy on this site.</p>
         </Card>
       );
   }
@@ -214,7 +214,7 @@ export default function CloudPage() {
       <header className="flex items-center justify-between border-b border-border px-5 py-4 sm:px-9">
         <div className="flex items-center gap-2.5 text-[15px] font-semibold">
           <span className="block h-[26px] w-[26px] rounded-[7px] bg-gradient-to-br from-[#ff9d4d] to-[#9b3f12]" />
-          Moonlit Cloud
+          Axis Cloud
         </div>
         {signedIn && (
           <div className="flex items-center gap-3 text-[13px] text-muted">
@@ -228,7 +228,7 @@ export default function CloudPage() {
         <div className="pointer-events-none absolute inset-x-0 -top-1/3 h-[120%] bg-[radial-gradient(50%_50%_at_50%_30%,rgba(250,130,77,0.18),transparent_70%)]" />
         <h1 className="relative font-display text-[34px] font-bold leading-[1.06] tracking-tight sm:text-5xl">Your library,<br />ready when you are.</h1>
         <p className="relative mx-auto mt-4 max-w-[520px] text-[15px] text-muted sm:text-[17px]">
-          Moonlit Cloud is Moonlit's own server, included with Spotlight. Connect it once and your movies and shows are there, with nothing to install or configure.
+          Axis Cloud is Axis's own server, included with Spotlight. Connect it once and your movies and shows are there, with nothing to install or configure.
         </p>
       </section>
 
@@ -283,7 +283,7 @@ export default function CloudPage() {
       </section>
 
       <footer className="flex flex-wrap justify-between gap-2.5 border-t border-border px-5 py-5 text-xs text-faint sm:px-9">
-        <span>© 2026 Moonlit</span>
+        <span>© 2026 Axis</span>
         <span className="flex gap-3">
           <a className="hover:text-text" href="https://trymoonlit.app/terms">Terms</a>
           <a className="hover:text-text" href="https://trymoonlit.app/privacy">Privacy</a>

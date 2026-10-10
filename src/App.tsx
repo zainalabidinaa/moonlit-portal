@@ -18,6 +18,7 @@ import CatalogSourcesPage from './routes/admin/CatalogSourcesPage';
 import MyCollectionsPage from './routes/user/MyCollectionsPage';
 import MyWidgetsPage from './routes/user/MyWidgetsPage';
 import BillingPage from './routes/user/BillingPage';
+import MediaServersPage from './routes/user/MediaServersPage';
 import CatalogPage from './routes/admin/CatalogPage';
 import HomePresetsPage from './routes/admin/HomePresetsPage';
 import UsersPage from './routes/admin/UsersPage';
@@ -64,6 +65,7 @@ export default function App() {
           <Route path="/my-collections" element={<UserRoute><MyCollectionsPage /></UserRoute>} />
           <Route path="/my-widgets" element={<UserRoute><MyWidgetsPage /></UserRoute>} />
           <Route path="/billing" element={<AuthRoute><BillingPage /></AuthRoute>} />
+          <Route path="/media-servers" element={<UserRoute><MediaServersPage /></UserRoute>} />
 
           {/* Admin */}
           {/* Home Layout was removed — its unprotected tab-visibility checkboxes let one

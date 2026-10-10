@@ -48,7 +48,7 @@ export function Devices() {
           </div>
           <img
             src="/screenshots/mac-home.webp"
-            alt="Moonlit for Mac: the Home screen with a featured title and a Continue Watching row"
+            alt="Axis for Mac: the Home screen with a featured title and a Continue Watching row"
             width="1500"
             height="904"
             className="relative w-full rounded-[14px] shadow-window"

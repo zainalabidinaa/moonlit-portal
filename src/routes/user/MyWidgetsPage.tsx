@@ -41,7 +41,7 @@ const KIND_LABEL: Record<string, string> = {
   watchlist: 'Watchlist',
   addonCatalog: 'Add-on catalog',
   traktList: 'Trakt list',
-  definition: 'Moonlit list',
+  definition: 'Axis list',
   collectionsRow: 'Collections row',
 };
 const KIND_COLOR: Record<string, string> = {
@@ -124,7 +124,7 @@ function WidgetEditorDialog({ open, initial, defaultTab, collections, allowMoonl
   }
 
   const kinds: { id: CreatableKind; title: string; body: string }[] = [
-    { id: 'collection', title: 'A Moonlit collection', body: 'A curated collection, as a row of its groups or titles.' },
+    { id: 'collection', title: 'An Axis collection', body: 'A curated collection, as a row of its groups or titles.' },
     { id: 'filtering', title: 'Filtering', body: 'Your own rules on TMDB: genres, years, rating, what is airing.' },
     { id: 'browseHub', title: 'Browse hub', body: 'The Browse by Genre or Browse by Language tiles.' },
     { id: 'watchlist', title: 'Watchlist', body: 'Everything you saved for later.' },
@@ -402,10 +402,10 @@ export default function MyWidgetsPage() {
         <div className="grid gap-6">
           <div>
             <h1 className="text-[34px] font-semibold tracking-tight">My widgets</h1>
-            <p className="mt-1.5 text-[15px] text-muted">Your own rows on Home, built from Moonlit’s collections and your own filters.</p>
+            <p className="mt-1.5 text-[15px] text-muted">Your own rows on Home, built from Axis’s collections and your own filters.</p>
           </div>
           <div className="grid gap-3.5 rounded-2xl border border-accent/35 bg-[linear-gradient(135deg,rgba(255,122,61,.12),transparent_60%)] bg-surface p-[22px]">
-            <b className="text-base font-semibold">{role === 'friends_family' ? 'Friends & Family accounts use the shared Moonlit Home.' : 'My widgets comes with Spotlight and Studio.'}</b>
+            <b className="text-base font-semibold">{role === 'friends_family' ? 'Friends & Family accounts use the shared Axis Home.' : 'My widgets comes with Spotlight and Studio.'}</b>
             <p className="text-sm text-muted">Subscribe to build your own Home rows that sync to every device.</p>
             <Link to="/pricing" className="inline-flex h-[38px] w-fit items-center rounded-full bg-text px-4 text-sm font-semibold text-[#0a0a0c] hover:bg-white">See plans</Link>
           </div>
@@ -421,7 +421,7 @@ export default function MyWidgetsPage() {
           <p className="text-xs font-semibold uppercase tracking-[.12em] text-accent">Your Home</p>
           <h1 className="mt-2 text-[34px] font-semibold leading-tight tracking-tight">My widgets</h1>
           <p className="mt-2 max-w-[46em] text-[15px] text-muted">
-            Your own rows on Moonlit’s Home, Movies and Series tabs. They belong to this profile only and sync to Mac, iPhone and the web. Moonlit’s shared layout is never changed.
+            Your own rows on Axis’s Home, Movies and Series tabs. They belong to this profile only and sync to Mac, iPhone and the web. Axis’s shared layout is never changed.
           </p>
         </div>
         <Button size="sm" onClick={() => setEditor({ open: true, widget: null })} disabled={loading || !!loadError}>Add widget</Button>
@@ -451,13 +451,13 @@ export default function MyWidgetsPage() {
       {!loading && !loadError && isNew && (
         <div className="mb-6 grid gap-4 rounded-2xl border border-border bg-surface p-6 md:grid-cols-[1fr_auto] md:items-center">
           <div>
-            <b className="text-base font-semibold">This profile uses Moonlit’s shared Home{preset ? ` (${preset.presetName})` : ''}.</b>
+            <b className="text-base font-semibold">This profile uses Axis’s shared Home{preset ? ` (${preset.presetName})` : ''}.</b>
             <p className="mt-1 text-sm text-muted">
               Start from a copy of it{preset ? ` — ${preset.count} rows` : ''} and change what you like, or start empty and add only your own rows.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            {preset && role !== 'studio' && <Button size="sm" loading={starting} onClick={startFromPreset}>Start from Moonlit’s Home</Button>}
+            {preset && role !== 'studio' && <Button size="sm" loading={starting} onClick={startFromPreset}>Start from Axis’s Home</Button>}
             <Button size="sm" variant="ghost" onClick={() => setEditor({ open: true, widget: null })}>Start empty</Button>
           </div>
         </div>

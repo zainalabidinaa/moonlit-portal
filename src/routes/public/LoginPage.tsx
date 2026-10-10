@@ -89,7 +89,7 @@ export default function LoginPage() {
     setSuccess('Password updated. Sign in with your new password.');
   }
 
-  const quote = 'Five apps, forty minutes of scrolling, and everyone settles. Moonlit is the fix we wanted for our own living room.';
+  const quote = 'Five apps, forty minutes of scrolling, and everyone settles. Axis is the fix we wanted for our own living room.';
 
   if (recoveryMode) {
     return (
@@ -128,7 +128,7 @@ export default function LoginPage() {
               <button type="button" onClick={() => { setShowReset(!showReset); setResetSent(false); setError(''); }} className="text-muted hover:text-text">
                 Forgot password?
               </button>
-              {' · '}No account? <Link to="/signup" className="text-accent">Get Moonlit</Link>
+              {' · '}No account? <Link to="/signup" className="text-accent">Get Axis</Link>
             </p>
           </form>
 

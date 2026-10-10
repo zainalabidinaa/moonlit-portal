@@ -23,7 +23,7 @@ const helps: { title: string; body: string; to: string; cta: string }[] = [
   { title: 'Playback and devices', body: 'Stuttering, subtitles out of sync, a title that will not start.', to: '/download', cta: 'Get the latest apps' },
   { title: 'Account and profiles', body: 'Sign-in links, passwords, adding a profile, kids mode.', to: '/profiles', cta: 'Manage profiles' },
   { title: 'Billing and plans', body: 'Invoices, changing plans, cancelling.', to: '/billing', cta: 'Open billing' },
-  { title: 'Sign in on Apple TV', body: 'Open Moonlit on the TV, note the code it shows, then enter it here.', to: '/activate', cta: 'Link a device' },
+  { title: 'Sign in on Apple TV', body: 'Open Axis on the TV, note the code it shows, then enter it here.', to: '/activate', cta: 'Link a device' },
 ];
 
 const isValidEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());

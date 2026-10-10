@@ -574,7 +574,7 @@ export default function UsersPage() {
           <div>
             <p className={adminKicker}>People</p>
             <h1 className={`mt-2 ${adminTitle}`}>Users</h1>
-            <p className={adminLede}>Everyone with a Moonlit account. Select a person to change their plan or access, and to see their devices and recent activity.</p>
+            <p className={adminLede}>Everyone with an Axis account. Select a person to change their plan or access, and to see their devices and recent activity.</p>
           </div>
           <Button size="sm" variant="ghost" onClick={() => setReloadKey(k => k + 1)}>Refresh</Button>
         </div>

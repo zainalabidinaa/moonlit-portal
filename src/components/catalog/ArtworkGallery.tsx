@@ -71,7 +71,7 @@ export function ArtworkGallery({ folder, onBack, onSave }: Props) {
       <div className="mb-5 flex items-center justify-between gap-4">
         <div>
           <p className="font-mono text-[11px] uppercase tracking-widest text-accent">Folder · {folder.name}</p>
-          <p className="mt-1 text-sm text-muted">Every image slot Moonlit renders for this folder — set a URL and preview instantly.</p>
+          <p className="mt-1 text-sm text-muted">Every image slot Axis renders for this folder — set a URL and preview instantly.</p>
         </div>
         <div className="flex flex-none gap-2">
           <Button variant="ghost" size="sm" onClick={onBack}>‹ Folders</Button>

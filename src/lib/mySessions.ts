@@ -37,7 +37,7 @@ export interface DeviceInfo {
 export function describeDevice(ua: string | null): DeviceInfo {
   if (!ua) return { name: 'Unknown device', detail: null, kind: 'unknown', platform: 'other' };
   if (ua.startsWith('Moonlit/') || /\bMoonlit(Mac|App)?\//.test(ua)) {
-    return { name: 'Moonlit app', detail: 'iPhone, iPad or Mac', kind: 'app', platform: 'apple' };
+    return { name: 'Axis app', detail: 'iPhone, iPad or Mac', kind: 'app', platform: 'apple' };
   }
   const platform: DevicePlatform =
     /iPhone|iPad|iPod/.test(ua) ? 'ios' :
@@ -76,7 +76,7 @@ export function describeSession(s: SessionDeviceColumns & { user_agent: string |
   if (platform && platform in APP_PLATFORM_ICON) {
     return {
       name: deviceName(s.device_model ?? null, platform),
-      detail: `Moonlit app · ${osLabel({ platform, os_version: s.device_os_version ?? null })}`,
+      detail: `Axis app · ${osLabel({ platform, os_version: s.device_os_version ?? null })}`,
       kind: 'app',
       platform: APP_PLATFORM_ICON[platform],
     };

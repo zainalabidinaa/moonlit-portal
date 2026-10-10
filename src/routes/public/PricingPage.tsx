@@ -10,7 +10,7 @@ import { COMPARISON } from '../../lib/plans';
 const faqs = [
   { q: 'Can I change plans later?', a: 'Yes. Upgrade or downgrade from Billing at any time. The change applies on your next billing date.' },
   { q: 'What happens when I cancel?', a: 'Your profiles and library stay until the end of the paid period. Nothing is deleted on the day you cancel.' },
-  { q: 'What does an invite code do?', a: 'A Moonlit admin can invite friends and family onto their household catalog at no cost. You get up to four profiles without a subscription.' },
+  { q: 'What does an invite code do?', a: 'An Axis admin can invite friends and family onto their household catalog at no cost. You get up to four profiles without a subscription.' },
   { q: 'Do I need my own sources?', a: 'No. The catalog and stream ranking are managed for you on every plan. Studio lets power users add their own sources on top.' },
 ];
 

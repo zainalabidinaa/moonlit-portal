@@ -114,11 +114,11 @@ export default function MyCollectionsPage() {
         <div className="grid gap-6">
           <div>
             <h1 className="text-[34px] font-semibold tracking-tight">My collections</h1>
-            <p className="mt-1.5 text-[15px] text-muted">Your own catalog on top of Moonlit's.</p>
+            <p className="mt-1.5 text-[15px] text-muted">Your own catalog on top of Axis's.</p>
           </div>
           <div className="grid gap-3.5 rounded-2xl border border-accent/35 bg-[linear-gradient(135deg,rgba(255,122,61,.12),transparent_60%)] bg-surface p-[22px]">
             <b className="text-base font-semibold">Building your own collections is only available on Studio.</b>
-            <p className="text-sm text-muted">Make your own folders and add your own sources on top of the Moonlit catalog. Studio is $14.99 a month.</p>
+            <p className="text-sm text-muted">Make your own folders and add your own sources on top of the Axis catalog. Studio is $14.99 a month.</p>
             <a href="/billing" className="inline-flex h-[38px] w-fit items-center rounded-full bg-text px-4 text-sm font-semibold text-[#0a0a0c] hover:bg-white">Upgrade to Studio</a>
           </div>
         </div>

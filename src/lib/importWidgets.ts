@@ -195,7 +195,7 @@ export function parseWidgetsExport(text: string): ParsedWidgetsExport {
   }
 
   throw new Error(
-    "Unrecognised JSON — expected a Moonlit [HomeWidget] array or a Fusion {exportType:'fusionWidgets'} export.",
+    "Unrecognised JSON — expected an Axis [HomeWidget] array or a Fusion {exportType:'fusionWidgets'} export.",
   );
 }
 

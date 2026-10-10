@@ -119,11 +119,11 @@ export default function LandingPage() {
               Your own streaming service, already set up.
             </h1>
             <p className="mt-[18px] max-w-[34em] text-[17px] leading-relaxed text-[#d0d0d6]">
-              Collections picked by people, real 4K playback, and a profile for everyone at home. Open Moonlit on Mac, iPhone or the web and press play.
+              Collections picked by people, real 4K playback, and a profile for everyone at home. Open Axis on Mac, iPhone or the web and press play.
             </p>
             <div className="mt-7 flex flex-wrap gap-3">
               <Link to={session ? '/profiles' : '/signup'} className="group inline-flex h-[54px] items-center gap-2 rounded-full bg-text px-7 text-base font-semibold text-[#0a0a0c] transition-[transform,box-shadow] hover:-translate-y-px hover:bg-white hover:shadow-[0_10px_40px_-10px_rgba(255,255,255,.35)]">
-                {session ? 'Open Moonlit' : 'Start watching'}
+                {session ? 'Open Axis' : 'Start watching'}
                 <span aria-hidden="true" className="transition-transform group-hover:translate-x-0.5">→</span>
               </Link>
               <Link to="/catalog" className="inline-flex h-[54px] items-center rounded-full border border-border-strong bg-white/[.06] px-7 text-base font-semibold backdrop-blur transition-[transform,background] hover:-translate-y-px hover:bg-white/10">
@@ -144,7 +144,7 @@ export default function LandingPage() {
             </div>
             <img
               src="/screenshots/mac-home.webp"
-              alt="Moonlit for Mac: the Home screen with a featured title and a Continue Watching row"
+              alt="Axis for Mac: the Home screen with a featured title and a Continue Watching row"
               width="1500"
               height="904"
               fetchPriority="high"
@@ -169,7 +169,7 @@ export default function LandingPage() {
         </div>
       </div>
 
-      <PosterRails posters={rail} caption="A slice of what is on Moonlit this week. Artwork courtesy of TMDB." />
+      <PosterRails posters={rail} caption="A slice of what is on Axis this week. Artwork courtesy of TMDB." />
 
       <FeatureBento
         playerBackdrop={stills[0]?.src}

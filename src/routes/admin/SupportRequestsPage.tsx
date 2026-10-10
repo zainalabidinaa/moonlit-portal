@@ -247,7 +247,7 @@ export default function SupportRequestsPage() {
                 <div key={message.id} className={`max-w-[88%] rounded-2xl p-4 ${message.sender === 'support' ? 'ml-auto rounded-br-md border border-accent/25 bg-accent-light' : 'rounded-bl-md border border-border bg-surface-2'}`}>
                   {message.sender === 'support' && (
                     <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-text">
-                      <img src="/moonlit-icon-96.png" alt="" className="h-7 w-7 rounded-lg" /> Moonlit Support
+                      <img src="/moonlit-icon-96.png" alt="" className="h-7 w-7 rounded-lg" /> Axis Support
                     </div>
                   )}
                   <p className="whitespace-pre-wrap text-sm leading-6 text-text">{message.body}</p>
@@ -257,7 +257,7 @@ export default function SupportRequestsPage() {
             </div>
 
             <form className="border-t border-border bg-surface p-5" onSubmit={event => { event.preventDefault(); void sendReply(); }}>
-              <label htmlFor="support-reply" className="mb-2 block text-sm font-semibold text-text">Reply as Moonlit Support</label>
+              <label htmlFor="support-reply" className="mb-2 block text-sm font-semibold text-text">Reply as Axis Support</label>
               <textarea id="support-reply" value={draft} onChange={event => setDraft(event.target.value)} maxLength={5_000} rows={4} disabled={busy} placeholder="Write a reply…"
                 className="w-full resize-y rounded-xl border border-border-strong bg-bg2 px-4 py-3 text-sm leading-6 text-text outline-none transition-colors placeholder:text-faint focus:border-accent disabled:opacity-60" />
               <div className="mt-3 flex flex-wrap items-center justify-between gap-3">

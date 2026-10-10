@@ -15,7 +15,7 @@ export function Footer({ wide = false }: { wide?: boolean } = {}) {
           <div>
             <Link to="/" className="flex items-center gap-2.5 text-[19px] font-bold tracking-tight">
               <Logo />
-              Moonlit
+              Axis
             </Link>
             <p className="mt-3 max-w-[26em] text-sm text-muted">
               Curated streaming for the whole household. Collections picked by people, real 4K playback, and a profile for everyone.
@@ -33,8 +33,8 @@ export function Footer({ wide = false }: { wide?: boolean } = {}) {
           ))}
         </div>
         <div className="mt-10 flex flex-wrap justify-between gap-x-6 gap-y-2.5 border-t border-border pt-6 text-[12.5px] text-faint">
-          <span>© 2026 Moonlit</span>
-          <span>Artwork and metadata courtesy of The Movie Database (TMDB). Moonlit is not endorsed or certified by TMDB.</span>
+          <span>© 2026 Axis</span>
+          <span>Artwork and metadata courtesy of The Movie Database (TMDB). Axis is not endorsed or certified by TMDB.</span>
         </div>
       </div>
     </footer>

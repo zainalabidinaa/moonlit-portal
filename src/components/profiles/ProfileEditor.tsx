@@ -141,7 +141,7 @@ export function ProfileEditor({ profile, onClose, onSaved, userId, nextIndex, fo
       <div className="p-6 flex flex-col gap-5 max-h-[80vh] overflow-y-auto">
         {forceCreate && (
           <p className="text-sm text-muted -mt-1">
-            One last step — set up your profile to start using Moonlit.
+            One last step — set up your profile to start using Axis.
           </p>
         )}
         {/* Avatar preview */}

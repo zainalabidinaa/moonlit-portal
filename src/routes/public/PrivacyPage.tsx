@@ -9,17 +9,17 @@ const sections: { title: string; body: React.ReactNode }[] = [
     title: 'Who we are',
     body: (
       <p>
-        Moonlit is a media app that runs on iPhone, iPad, Mac, Apple TV, Windows, Android TV, Samsung TV and the web. This policy explains what
-        information Moonlit handles when you use the apps and this website, and what we do with it. Questions about it go to{' '}
+        Axis is a media app that runs on iPhone, iPad, Mac, Apple TV, Windows, Android TV, Samsung TV and the web. This policy explains what
+        information Axis handles when you use the apps and this website, and what we do with it. Questions about it go to{' '}
         <a href={`mailto:${SUPPORT_EMAIL}`} className="text-accent">{SUPPORT_EMAIL}</a>.
       </p>
     ),
   },
   {
-    title: 'What Moonlit does not do',
+    title: 'What Axis does not do',
     body: (
       <ul>
-        <li>Moonlit does not host, store or supply any movies, shows or other video. It displays and plays what your own Moonlit server provides.</li>
+        <li>Axis does not host, store or supply any movies, shows or other video. It displays and plays what your own Axis server provides.</li>
         <li>We do not sell your information, show advertising, or track you across other apps and websites.</li>
         <li>The apps do not use the camera, microphone, contacts, photos or your location.</li>
       </ul>
@@ -32,7 +32,7 @@ const sections: { title: string; body: React.ReactNode }[] = [
         <li><b>Account.</b> Your email address and sign-in details, so you can sign in and so we can reach you about your account.</li>
         <li><b>Profiles.</b> Profile names, avatars and the settings you choose for each profile (for example home layout, subtitle style and language preferences).</li>
         <li><b>Your library.</b> Watchlist, custom lists, favorites, upcoming titles you follow, and what you have watched, including how far you got in a title, so Continue Watching works across your devices.</li>
-        <li><b>Your Moonlit server connection.</b> The address, username and password for your Moonlit server, stored against your profile so each of your devices can sign in to it for you. While you watch, the app reports playback progress to that server.</li>
+        <li><b>Your Axis server connection.</b> The address, username and password for your Axis server, stored against your profile so each of your devices can sign in to it for you. While you watch, the app reports playback progress to that server.</li>
         <li><b>Device information.</b> A random identifier created on each device, the device type and app version. We use it to keep sessions working and to limit how many streams play at once. It is not your advertising ID.</li>
         <li><b>Purchases.</b> If you subscribe, Apple or Google processes the payment and tells us your plan status. We never see your card number.</li>
         <li><b>Support messages.</b> What you send us through the support form or by email, and the contact details you give.</li>
@@ -53,14 +53,14 @@ const sections: { title: string; body: React.ReactNode }[] = [
     title: 'Services we rely on',
     body: (
       <>
-        <p>We use other companies to run Moonlit. They handle your information only to provide their part of the service:</p>
+        <p>We use other companies to run Axis. They handle your information only to provide their part of the service:</p>
         <ul>
           <li><b>Supabase</b> hosts our accounts and database.</li>
           <li><b>The Movie Database (TMDB)</b> supplies posters, backdrops, cast and episode information. Looking at a title means asking TMDB for its details; your account details are not sent.</li>
           <li><b>Image services</b> that deliver poster artwork and badges.</li>
           <li><b>Apple, Google and our subscription provider</b> process purchases and subscriptions.</li>
         </ul>
-        <p>Your Moonlit server is run by us on your behalf, and it receives your playback requests and progress.</p>
+        <p>Your Axis server is run by us on your behalf, and it receives your playback requests and progress.</p>
       </>
     ),
   },
@@ -88,14 +88,14 @@ const sections: { title: string; body: React.ReactNode }[] = [
     title: 'Children',
     body: (
       <p>
-        Moonlit is not directed at children under 13, and we do not knowingly collect information from them. Profiles can be set up as restricted
+        Axis is not directed at children under 13, and we do not knowingly collect information from them. Profiles can be set up as restricted
         profiles by the account holder.
       </p>
     ),
   },
   {
     title: 'Security',
-    body: <p>Connections to Moonlit are encrypted. No system is perfectly secure, so please use a strong, unique password.</p>,
+    body: <p>Connections to Axis are encrypted. No system is perfectly secure, so please use a strong, unique password.</p>,
   },
   {
     title: 'Changes to this policy',

@@ -162,7 +162,7 @@ export default function BillingPage() {
 
           {role === 'admin' && (
             <>
-              <p className="mb-2 text-[14.5px] text-muted">You manage this Moonlit instance. No subscription required.</p>
+              <p className="mb-2 text-[14.5px] text-muted">You manage this Axis instance. No subscription required.</p>
               <Row label="Account">{user?.email}</Row>
             </>
           )}

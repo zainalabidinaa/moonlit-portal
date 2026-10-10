@@ -25,9 +25,9 @@ export default function DownloadPage() {
       <div className="mx-auto max-w-[1240px] px-5 pb-24 pt-[calc(var(--nav-h)+72px)] md:px-8 md:pt-[calc(var(--nav-h)+110px)]">
         <div className="mb-14 grid max-w-[720px] gap-4">
           <p className="text-xs font-semibold uppercase tracking-[.12em] text-accent">Download</p>
-          <h1 className="text-[clamp(40px,6vw,72px)] font-semibold leading-[1.05]">Moonlit on every screen.</h1>
+          <h1 className="text-[clamp(40px,6vw,72px)] font-semibold leading-[1.05]">Axis on every screen.</h1>
           <p className="max-w-[36em] text-lg text-muted">
-            Moonlit for Windows and Android TV is out now, and the Mac, iPhone and iPad betas are open on TestFlight. Apple TV is next. Moonlit also runs in any modern browser today.
+            Axis for Windows and Android TV is out now, and the Mac, iPhone and iPad betas are open on TestFlight. Apple TV is next. Axis also runs in any modern browser today.
           </p>
         </div>
 
@@ -36,8 +36,8 @@ export default function DownloadPage() {
             <div className="grid gap-3.5">
               <AppleIcon className={icon} />
               <span><StatusPill now>Public beta</StatusPill></span>
-              <h3 className="text-[22px] font-semibold tracking-tight">Moonlit for Mac</h3>
-              <p className="text-[14.5px] text-muted">The full Moonlit experience with native playback, Live TV and IPTV, automatic subtitle sync and Sign in with Apple.</p>
+              <h3 className="text-[22px] font-semibold tracking-tight">Axis for Mac</h3>
+              <p className="text-[14.5px] text-muted">The full Axis experience with native playback, Live TV and IPTV, automatic subtitle sync and Sign in with Apple.</p>
               <p className="text-[13px] text-faint">Requires {MAC_MIN_OS}. Apple silicon and Intel. Installed through TestFlight.</p>
               <div className="flex flex-wrap gap-2.5">
                 <a href={MAC_TESTFLIGHT_URL} target="_blank" rel="noreferrer noopener" className="inline-flex h-[46px] items-center rounded-full bg-text px-5 text-[15px] font-semibold text-[#0a0a0c] hover:bg-white">Get it on TestFlight</a>
@@ -46,7 +46,7 @@ export default function DownloadPage() {
             </div>
             <img
               src="/screenshots/mac-home.webp"
-              alt="Moonlit for Mac home screen"
+              alt="Axis for Mac home screen"
               width="1500"
               height="904"
               loading="lazy"
@@ -80,7 +80,7 @@ export default function DownloadPage() {
             <TvIcon className={icon} />
             <span><StatusPill>Coming soon</StatusPill></span>
             <h3 className="text-[22px] font-semibold tracking-tight">Apple TV</h3>
-            <p className="text-[14.5px] text-muted">The big-screen Moonlit, built for the Siri Remote.</p>
+            <p className="text-[14.5px] text-muted">The big-screen Axis, built for the Siri Remote.</p>
             <p className="text-[13px] text-faint">tvOS. In development. Already have the TV app? <Link to="/activate" className="text-accent">Link it here</Link>.</p>
           </Card>
 
@@ -110,7 +110,7 @@ export default function DownloadPage() {
 
         <div id="release-notes" className="mt-14 grid gap-10 scroll-mt-24 lg:grid-cols-[1fr_1.5fr] lg:gap-[72px]">
           <Reveal>
-            <SectionHead kicker="Release notes" title="What's new on Mac." lede="Moonlit for Mac updates through TestFlight. Here is what the last releases changed." />
+            <SectionHead kicker="Release notes" title="What's new on Mac." lede="Axis for Mac updates through TestFlight. Here is what the last releases changed." />
           </Reveal>
           <div className="grid gap-4">
             {notes.map((n) => (
@@ -130,7 +130,7 @@ export default function DownloadPage() {
               <ol className="mt-2.5 list-decimal space-y-1 pl-5">
                 <li>Install <span className="text-text">TestFlight</span> from the Mac App Store if you do not have it.</li>
                 <li>Open the invite with <span className="text-text">Get it on TestFlight</span> and click <span className="text-text">Accept</span>, then <span className="text-text">Install</span>.</li>
-                <li>Open Moonlit from Applications. TestFlight keeps it up to date.</li>
+                <li>Open Axis from Applications. TestFlight keeps it up to date.</li>
               </ol>
               <p className="mt-2.5">Sign in with the same account you use everywhere else.</p>
             </div>
@@ -139,7 +139,7 @@ export default function DownloadPage() {
               <ol className="mt-2.5 list-decimal space-y-1 pl-5">
                 <li>Run the downloaded <span className="text-text">.exe</span>.</li>
                 <li>Windows may say <span className="text-text">Windows protected your PC</span>. Click <span className="text-text">More info</span>, then <span className="text-text">Run anyway</span>.</li>
-                <li>Follow the installer, then open Moonlit from the Start menu.</li>
+                <li>Follow the installer, then open Axis from the Start menu.</li>
               </ol>
               <p className="mt-2.5">
                 That warning appears because the installer is signed with our own certificate rather than one Microsoft already recognises. To check your download, compare its SHA-256 checksum with{' '}
