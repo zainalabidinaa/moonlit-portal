@@ -69,7 +69,7 @@ export default function DownloadPage() {
             <GlobeIcon className={icon} />
             <span><StatusPill now>Available</StatusPill></span>
             <h3 className="text-[22px] font-semibold tracking-tight">Web</h3>
-            <p className="text-[14.5px] text-muted">Nothing to install. Sign in at trymoonlit.app and play in Safari, Chrome or Edge.</p>
+            <p className="text-[14.5px] text-muted">Nothing to install. Sign in at tryaxis.io and play in Safari, Chrome or Edge.</p>
             <p className="text-[13px] text-faint">Best in a current browser with hardware video decoding.</p>
             <div className="mt-auto flex flex-wrap gap-2.5 pt-1">
               <Link to="/login" className="inline-flex h-[46px] items-center rounded-full border border-border-strong bg-white/[.06] px-5 text-[15px] font-semibold hover:bg-white/10">Open in the browser</Link>

@@ -3,14 +3,113 @@
   "outputDirectory": "dist",
   "framework": "vite",
   "redirects": [
-    { "source": "/tv", "destination": "/downloads/Moonlit-TV-0.1.0.apk", "permanent": false }
+    {
+      "source": "/tv",
+      "destination": "/downloads/Moonlit-TV-0.1.0.apk",
+      "permanent": false
+    },
+    {
+      "source": "/pricing",
+      "has": [
+        {
+          "type": "host",
+          "value": "trymoonlit.app"
+        }
+      ],
+      "destination": "https://tryaxis.io/pricing",
+      "permanent": true
+    },
+    {
+      "source": "/signup",
+      "has": [
+        {
+          "type": "host",
+          "value": "trymoonlit.app"
+        }
+      ],
+      "destination": "https://tryaxis.io/signup",
+      "permanent": true
+    },
+    {
+      "source": "/catalog",
+      "has": [
+        {
+          "type": "host",
+          "value": "trymoonlit.app"
+        }
+      ],
+      "destination": "https://tryaxis.io/catalog",
+      "permanent": true
+    },
+    {
+      "source": "/download",
+      "has": [
+        {
+          "type": "host",
+          "value": "trymoonlit.app"
+        }
+      ],
+      "destination": "https://tryaxis.io/download",
+      "permanent": true
+    },
+    {
+      "source": "/contact",
+      "has": [
+        {
+          "type": "host",
+          "value": "trymoonlit.app"
+        }
+      ],
+      "destination": "https://tryaxis.io/contact",
+      "permanent": true
+    },
+    {
+      "source": "/support",
+      "has": [
+        {
+          "type": "host",
+          "value": "trymoonlit.app"
+        }
+      ],
+      "destination": "https://tryaxis.io/support",
+      "permanent": true
+    },
+    {
+      "source": "/privacy",
+      "has": [
+        {
+          "type": "host",
+          "value": "trymoonlit.app"
+        }
+      ],
+      "destination": "https://tryaxis.io/privacy",
+      "permanent": true
+    }
   ],
-  "rewrites": [{ "source": "/((?!\\.well-known/|.*\\.(?:png|jpg|jpeg|gif|svg|ico|webp|js|css|woff2?|json|map)$).*)", "destination": "/index.html" }],
+  "rewrites": [
+    {
+      "source": "/",
+      "has": [
+        {
+          "type": "host",
+          "value": "trymoonlit.app"
+        }
+      ],
+      "destination": "/launch.html"
+    },
+    {
+      "source": "/((?!\\.well-known/|.*\\.(?:png|jpg|jpeg|gif|svg|ico|webp|js|css|woff2?|json|map|html)$).*)",
+      "destination": "/index.html"
+    }
+  ],
   "headers": [
     {
       "source": "/.well-known/apple-app-site-association",
       "headers": [
-        { "key": "Content-Type", "value": "application/json" }
+        {
+          "key": "Content-Type",
+          "value": "application/json"
+        }
       ]
     }
   ]

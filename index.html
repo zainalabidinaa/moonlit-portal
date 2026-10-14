@@ -2,21 +2,30 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <script>
+      if (location.hostname === 'trymoonlit.app' && location.pathname === '/') {
+        location.replace('/launch.html' + location.search + location.hash)
+      }
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Axis</title>
-    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
-    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="application-name" content="Axis" />
+    <meta name="apple-mobile-web-app-title" content="Axis" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/axis-favicon-16.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/axis-favicon-32.png" />
+    <link rel="apple-touch-icon" href="/axis-touch-icon.png" />
     <meta property="og:title" content="Axis" />
+    <meta property="og:site_name" content="Axis" />
     <meta property="og:description" content="Curated streaming for the whole household. Collections picked by people, real 4K playback, and a profile for everyone at home." />
-    <meta property="og:image" content="https://trymoonlit.app/moonlit-icon.png" />
+    <meta property="og:image" content="https://www.tryaxis.io/axis-icon.png" />
     <meta property="og:image:width" content="1024" />
     <meta property="og:image:height" content="1024" />
-    <meta property="og:url" content="https://trymoonlit.app" />
+    <meta property="og:url" content="https://www.tryaxis.io" />
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary" />
     <meta name="twitter:title" content="Axis" />
     <meta name="twitter:description" content="Curated streaming for the whole household." />
-    <meta name="twitter:image" content="https://trymoonlit.app/moonlit-icon.png" />
+    <meta name="twitter:image" content="https://www.tryaxis.io/axis-icon.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />

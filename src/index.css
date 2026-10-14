@@ -20,6 +20,22 @@ body {
   overflow-x: hidden;
 }
 
+/* On narrow screens the account menu must anchor to the viewport, not the
+   small profile control that sits beside the mobile navigation button. */
+@media (max-width: 639px) {
+  .account-menu-popover {
+    position: fixed;
+    top: calc(var(--nav-h) + 12px);
+    right: max(24px, env(safe-area-inset-right));
+    left: auto;
+    width: min(380px, calc(100vw - 48px));
+    max-height: calc(100vh - var(--nav-h) - 24px);
+    max-height: calc(100dvh - var(--nav-h) - 24px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+}
+
 /* film grain — fixed behind nothing, over everything, barely there */
 body::after {
   content: '';

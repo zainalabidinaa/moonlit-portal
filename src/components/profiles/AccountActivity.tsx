@@ -33,6 +33,8 @@ export function AccountActivity() {
   const [confirming, setConfirming] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const [notice, setNotice] = useState('');
+  const [showAllDevices, setShowAllDevices] = useState(false);
+  const [showAllSignIns, setShowAllSignIns] = useState(false);
   const currentId = currentSessionId(session?.access_token);
 
   const load = useCallback(async () => {
@@ -58,10 +60,12 @@ export function AccountActivity() {
     return list.sort((a, b) => (a.s.id === currentId ? -1 : b.s.id === currentId ? 1 : 0));
   }, [sessions, currentId]);
   const signIns = useMemo(
-    () => [...(sessions ?? [])].sort((a, b) => b.created_at.localeCompare(a.created_at)).slice(0, 8),
+    () => [...(sessions ?? [])].sort((a, b) => b.created_at.localeCompare(a.created_at)).slice(0, 20),
     [sessions]
   );
   const others = devices.filter((d) => d.s.id !== currentId).length;
+  const visibleDevices = showAllDevices ? devices : devices.slice(0, 4);
+  const visibleSignIns = showAllSignIns ? signIns : signIns.slice(0, 3);
 
   async function handleSignOutOthers() {
     setSigningOut(true);
@@ -95,10 +99,10 @@ export function AccountActivity() {
             <li className="grid grid-cols-[34px_1fr_auto] items-center gap-3 border-b border-border py-3.5 last:border-0">
               <span className="grid h-[34px] w-[34px] place-items-center rounded-full bg-surface-2 text-text"><PlatformIcon platform={thisBrowser.platform} kind={thisBrowser.kind} /></span>
               <span className="min-w-0"><b className="block truncate text-sm font-semibold">{thisBrowser.name}</b><small className="text-xs text-muted">Active now</small></span>
-              <span className="rounded-full border border-accent/40 bg-accent-light px-2 py-0.5 text-[11px] font-semibold text-accent">This browser</span>
+              <span className="text-[11px] text-muted">This browser</span>
             </li>
           )}
-          {!loading && available && devices.map(({ s, info }) => {
+          {!loading && available && visibleDevices.map(({ s, info }) => {
             const last = s.updated_at ?? s.created_at;
             const online = now - new Date(last).getTime() < FIVE_MIN;
             const isCurrent = s.id === currentId;
@@ -115,7 +119,7 @@ export function AccountActivity() {
                   </small>
                 </span>
                 {isCurrent
-                  ? <span className="rounded-full border border-accent/40 bg-accent-light px-2 py-0.5 text-[11px] font-semibold text-accent">This browser</span>
+                  ? <span className="text-[11px] text-muted">This browser</span>
                   : <span className="font-mono text-[11px] text-faint">{maskIp(s.ip)}</span>}
               </li>
             );
@@ -123,6 +127,11 @@ export function AccountActivity() {
           {!loading && available && devices.length === 0 && <li className="py-4 text-sm text-faint">No other sessions.</li>}
         </ul>
 
+        {!loading && available && devices.length > 4 && (
+          <button type="button" onClick={() => setShowAllDevices(v => !v)} className="mt-2 text-xs text-muted underline decoration-border-strong underline-offset-4 hover:text-text">
+            {showAllDevices ? 'Show fewer devices' : `View all ${devices.length} devices`}
+          </button>
+        )}
         {error && <p className="mt-3 text-sm text-red-400">{error}</p>}
         {notice && <p className="mt-3 text-sm text-cyan">{notice}</p>}
 
@@ -147,7 +156,7 @@ export function AccountActivity() {
         {available ? (
           <ol className="relative mt-4 grid gap-4 border-l border-border pl-5">
             {loading && <li className="text-sm text-faint">Loading…</li>}
-            {!loading && signIns.map((s) => {
+            {!loading && visibleSignIns.map((s) => {
               const info = describeSession(s);
               return (
                 <li key={s.id} className="relative">
@@ -163,6 +172,11 @@ export function AccountActivity() {
           </ol>
         ) : (
           <p className="mt-4 rounded-xl border border-dashed border-border px-4 py-5 text-sm text-faint">Sign-in history will appear here.</p>
+        )}
+        {available && !loading && signIns.length > 3 && (
+          <button type="button" onClick={() => setShowAllSignIns(v => !v)} className="mt-4 text-xs text-muted underline decoration-border-strong underline-offset-4 hover:text-text">
+            {showAllSignIns ? 'Show fewer sign-ins' : 'View sign-in history'}
+          </button>
         )}
       </section>
     </div>

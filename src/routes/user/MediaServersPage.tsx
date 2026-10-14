@@ -105,7 +105,7 @@ export default function MediaServersPage() {
         action: 'plex_complete', pin_id: plexPinId, machine_identifier: plexMachineId,
         display_name: plexDisplayName, profile_ids: profileIds,
       });
-      setNotice('Plex server registered for your account.');
+      setNotice('Plex connection registered for your account.');
       setPlexPinId(null); setPlexAuthUrl(''); setPlexResources([]); setPlexMachineId(''); setPlexDisplayName('');
       setPlexLinked(false);
       await load();
@@ -128,7 +128,7 @@ export default function MediaServersPage() {
         secret, profile_ids: profileIds,
       });
       setDisplayName(''); setEndpoint(''); setUsername(''); setPassword('');
-      setNotice('Server registered for your account.');
+      setNotice('Connection registered for your account.');
       await load();
     } catch (cause) {
       setError((cause as Error).message);
@@ -142,7 +142,7 @@ export default function MediaServersPage() {
     setBusy(true); setError(''); setNotice('');
     try {
       await mediaServers({ action: 'remove', id: server.id });
-      setNotice(`${server.display_name} was removed.`);
+      setNotice(`${server.display_name} was removed from your connections.`);
       await load();
     } catch (cause) {
       setError((cause as Error).message);
@@ -158,16 +158,16 @@ export default function MediaServersPage() {
       <div className="mx-auto grid max-w-[820px] gap-7">
         <header>
           <p className="text-xs font-semibold uppercase tracking-[.13em] text-accent">Account settings</p>
-          <h1 className="mt-2 text-[34px] font-semibold tracking-tight">Media servers</h1>
-          <p className="mt-2 text-[15px] text-muted">See which servers are registered for your account and choose which profiles can use your personal servers.</p>
+          <h1 className="mt-2 text-[34px] font-semibold tracking-tight">Connections</h1>
+          <p className="mt-2 text-[15px] text-muted">Your Jellyfin and Plex connections sync with your account across devices. Choose which profiles can use personal connections.</p>
         </header>
 
         {error && <div role="alert" className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">{error}</div>}
         {notice && <div role="status" className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">{notice}</div>}
 
-        <section className="grid gap-3" aria-label="Registered servers">
-          {loading ? <div className="rounded-2xl border border-border bg-surface p-6 text-sm text-muted">Loading your servers…</div> : null}
-          {!loading && servers.length === 0 && <div className="rounded-2xl border border-dashed border-border-strong p-6 text-sm text-muted">No media servers are registered for this account yet.</div>}
+        <section className="grid gap-3" aria-label="Registered connections">
+          {loading ? <div className="rounded-2xl border border-border bg-surface p-6 text-sm text-muted">Loading your connections…</div> : null}
+          {!loading && servers.length === 0 && <div className="rounded-2xl border border-dashed border-border-strong p-6 text-sm text-muted">No connections are registered for this account yet.</div>}
           {servers.map((server) => {
             const granted = server.media_server_profile_grants?.map((grant) => profileName(grant.profile_id)) ?? [];
             return (
@@ -182,7 +182,7 @@ export default function MediaServersPage() {
                 </div>
                 <div className="flex flex-col items-end gap-2">
                   <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${server.is_managed ? 'bg-blue-400/10 text-blue-200' : 'bg-emerald-400/10 text-emerald-200'}`}>{server.is_managed ? 'Managed' : 'Registered'}</span>
-                  {!server.is_managed && isOwner && <button type="button" disabled={busy} onClick={() => void remove(server)} className="text-xs text-muted hover:text-red-300 disabled:opacity-50">Remove</button>}
+                  {!server.is_managed && isOwner && <button type="button" disabled={busy} onClick={() => void remove(server)} className="text-xs text-muted hover:text-red-300 disabled:opacity-50">Remove connection</button>}
                 </div>
               </article>
             );
@@ -191,9 +191,9 @@ export default function MediaServersPage() {
 
         {isOwner && (
           <section className="rounded-2xl border border-border bg-surface p-5 sm:p-6">
-            <h2 className="text-lg font-semibold">Set up your server</h2>
-            <p className="mt-1 text-sm text-muted">Add a Jellyfin or Plex server and select the profiles that can use it.</p>
-            <div className="mt-5 flex gap-2" role="group" aria-label="Server type">
+            <h2 className="text-lg font-semibold">Add a connection</h2>
+            <p className="mt-1 text-sm text-muted">Add Jellyfin or Plex and choose the profiles that can use this connection.</p>
+            <div className="mt-5 flex gap-2" role="group" aria-label="Connection provider">
               {(['jellyfin', 'plex'] as const).map((kind) => (
                 <button key={kind} type="button" onClick={() => setProvider(kind)} aria-pressed={provider === kind}
                   className={`rounded-lg border px-4 py-2 text-sm font-semibold capitalize ${provider === kind ? 'border-accent/60 bg-accent/10 text-accent' : 'border-border-strong bg-bg text-muted hover:text-text'}`}>{kind}</button>
@@ -213,7 +213,7 @@ export default function MediaServersPage() {
                 <label className="grid gap-1.5 text-xs font-medium text-muted">Jellyfin password
                   <input required type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} className="h-11 rounded-lg border border-border-strong bg-bg px-3 text-sm text-text outline-none focus:border-accent" />
                 </label>
-              </>}
+              </>
               <fieldset className="sm:col-span-2">
                 <legend className="text-xs font-medium text-muted">Allow profiles</legend>
                 <div className="mt-2 flex flex-wrap gap-2">
@@ -224,8 +224,8 @@ export default function MediaServersPage() {
                 </div>
               </fieldset>
               <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4 sm:col-span-2">
-                <p className="max-w-md text-xs text-muted">Credentials are stored in a private server table. This page never displays them after saving.</p>
-                <button type="submit" disabled={busy || profileIds.length === 0} className="rounded-lg bg-accent px-4 py-2.5 text-sm font-bold text-[#092016] disabled:cursor-not-allowed disabled:opacity-50">{busy ? 'Saving…' : 'Save server'}</button>
+                <p className="max-w-md text-xs text-muted">Sign-in details sync to your account and are never displayed after saving.</p>
+                <button type="submit" disabled={busy || profileIds.length === 0} className="rounded-lg bg-accent px-4 py-2.5 text-sm font-bold text-[#092016] disabled:cursor-not-allowed disabled:opacity-50">{busy ? 'Saving…' : 'Save connection'}</button>
               </div>
             </form> : <div className="mt-5 grid gap-4">
               {!plexPinId && <button type="button" disabled={busy} onClick={() => void startPlexLink()} className="h-11 w-fit rounded-lg border border-amber-300/40 bg-amber-300/10 px-4 text-sm font-semibold text-amber-200 disabled:opacity-50">Link your Plex account</button>}
@@ -248,8 +248,8 @@ export default function MediaServersPage() {
                   </label>)}</div>
                 </fieldset>
                 <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
-                  <p className="max-w-md text-xs text-muted">Plex authorization stays in Axis’s private server storage. This page never receives or displays the account token.</p>
-                  <button type="button" disabled={busy || !profileIds.length} onClick={() => void completePlexSetup()} className="rounded-lg bg-accent px-4 py-2.5 text-sm font-bold text-[#092016] disabled:opacity-50">{busy ? 'Saving…' : 'Save Plex server'}</button>
+                  <p className="max-w-md text-xs text-muted">The Plex token syncs to your account for signed-in devices. This page never displays it.</p>
+                  <button type="button" disabled={busy || !profileIds.length} onClick={() => void completePlexSetup()} className="rounded-lg bg-accent px-4 py-2.5 text-sm font-bold text-[#092016] disabled:opacity-50">{busy ? 'Saving…' : 'Save connection'}</button>
                 </div>
               </>}
             </div>}

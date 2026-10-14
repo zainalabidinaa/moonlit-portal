@@ -286,8 +286,8 @@ export default function CloudPage() {
         <span>© 2026 Axis</span>
         <span className="flex gap-3">
           <a className="hover:text-text" href="https://trymoonlit.app/terms">Terms</a>
-          <a className="hover:text-text" href="https://trymoonlit.app/privacy">Privacy</a>
-          <a className="hover:text-text" href="https://trymoonlit.app/support">Support</a>
+          <a className="hover:text-text" href="https://tryaxis.io/privacy">Privacy</a>
+          <a className="hover:text-text" href="https://tryaxis.io/support">Support</a>
         </span>
       </footer>
     </div>
