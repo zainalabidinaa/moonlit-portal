@@ -1,11 +1,11 @@
 {
-  "version": "1.0.0",
-  "notes": "First release of Moonlit for Windows.",
-  "pub_date": "2026-10-05T22:45:33Z",
+  "version": "1.1.0",
+  "notes": "Moonlit is now Axis, with the new star logo. This update replaces the old Moonlit app; your sign-in, settings and downloads are kept. New: Live TV from your Jellyfin server (On Now, a Guide timeline, bookmarks and an On Now row on Home), a redesigned Settings with search and Graphite / Slate / Pure Black backgrounds, a Library banner, Versions on film pages, and removing a show from Continue Watching. Show pages now fill in missing episodes, titles and pictures, and films that aren't out yet say so.",
+  "pub_date": "2026-11-25T20:28:13Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTb3AwTG9QN0E5UitVSU5wMkhzdmRYcmxFMlZQaWZsSGdRMzFva1EyVFplb0JMeE5HSHdNNlF3Y0tRYStjMVpnTng1clh3OTdBOVgwMFhkeTVEVDJFTW45bjl4U29uR2c0PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkxMjQwMzI1CWZpbGU6TW9vbmxpdF8xLjAuMF94NjQtc2V0dXAuZXhlCmlXYVZnNUZkR0JscGk0V3Fkb3FYUzBLd3VQSWhOQm9hV1llWG82UVAxNDFoZ2k4NEZFcWJKWEVPNlY4Yk9uRmRLcUswNnR1dzJ6ZG40OVZJNHpPN0N3PT0K",
-      "url": "https://trymoonlit.app/downloads/Moonlit_1.0.0_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTb3AwTG9QN0E5Ui9CZUI5SEwvM0UzdHRxMTZVWWl3UjJFTnhYRjJOeXNYSlV6b240TERQcWRIaXYxZm5DN0s5VW9PNE5BWld1L3JVU1p3bXhqdXplUVhHempUUFhLdndNPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1NjM4NDkyCWZpbGU6QXhpc18xLjEuMF94NjQtc2V0dXAuZXhlCjRCVnl3MC9qb2R4NTZWRnpNcWtwN1pNK1ZKSGd0NGo1bXVDcjRWaFRhaUxaM1dQTk02VUo3V0htMW9uY29BL3QrTm9TVlM4OFVnN1c3VUd2ME82akF3PT0K",
+      "url": "https://trymoonlit.app/downloads/Axis_1.1.0_x64-setup.exe"
     }
   }
 }

@@ -7,9 +7,9 @@ export const MAC_VERSION = '1.0.5';
 export const MAC_DOWNLOAD_URL = `/downloads/Moonlit-${MAC_VERSION}.dmg`;
 
 // Windows installer, built by the moonlit-web "Windows Release" workflow. Drop the installer,
-// its .sha256 and moonlit-signing.cer into public/downloads/ and bump WINDOWS_VERSION.
-export const WINDOWS_VERSION = '1.0.0';
-export const WINDOWS_INSTALLER = `Moonlit_${WINDOWS_VERSION}_x64-setup.exe`;
+// its .sha256, .sig, signing certificate and updater manifest into public/downloads/.
+export const WINDOWS_VERSION = '1.1.0';
+export const WINDOWS_INSTALLER = `Axis_${WINDOWS_VERSION}_x64-setup.exe`;
 export const WINDOWS_DOWNLOAD_URL = `/downloads/${WINDOWS_INSTALLER}`;
 export const WINDOWS_CHECKSUM_URL = `${WINDOWS_DOWNLOAD_URL}.sha256`;
 export const WINDOWS_CERT_URL = '/downloads/moonlit-signing.cer';
