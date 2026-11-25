@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { authedFetchJson, SessionExpiredError } from '../../lib/authed-fetch';
 import { supabase } from '../../lib/supabase';
@@ -216,6 +216,7 @@ export default function UsersPage() {
   const [setupDone, setSetupDone] = useState<string | null>(null);
   const [customUsers, setCustomUsers] = useState<Set<string>>(new Set());
   const [customValues, setCustomValues] = useState<Record<string, string>>({});
+  const didSelectInitialUser = useRef(false);
   const [expandedUser, setExpandedUser] = useState<string | null>(null);
   const [activityByUser, setActivityByUser] = useState<Record<string, { sessions: SessionInfo[]; activity: ActivityEntry[] }>>({});
   const [activityLoading, setActivityLoading] = useState<string | null>(null);
@@ -238,7 +239,10 @@ export default function UsersPage() {
           setUsers(nextUsers);
           // Open the first account on arrival so the detail panel is visible
           // immediately instead of leaving an empty column beside the table.
-          if (!expandedUser && nextUsers[0]) void toggleRow(nextUsers[0].user_id);
+          if (!didSelectInitialUser.current && nextUsers[0]) {
+            didSelectInitialUser.current = true;
+            void toggleRow(nextUsers[0].user_id);
+          }
         }
       } catch (e) {
         if (e instanceof SessionExpiredError) {
@@ -554,7 +558,6 @@ export default function UsersPage() {
                             key={u.id}
                             className={`cursor-pointer border-b border-border align-middle transition-colors last:border-0 hover:bg-white/[.03] ${open ? 'bg-white/[.04]' : ''}`}
                             onClick={() => toggleRow(u.user_id)}
-                            aria-expanded={open}
                           >
                             <td className="px-4 py-3.5">
                               <div className="truncate font-medium text-text">{u.email ?? u.user_id.slice(0, 8) + '…'}</div>
@@ -570,8 +573,19 @@ export default function UsersPage() {
                               <LastActiveCell lastActiveAt={u.last_active_at} />
                               <div className="mt-0.5 truncate text-xs text-faint">{summarizeDevices(u.devices ?? [])}</div>
                             </td>
-                            <td className="px-4 py-3.5 text-right">
-                              <span className={`inline-block h-2 w-2 rotate-45 border-b-[1.5px] border-r-[1.5px] border-muted transition-transform ${open ? '-rotate-[135deg]' : ''}`} aria-hidden="true" />
+                            <td className="px-0 py-3.5 text-center">
+                              <button
+                                type="button"
+                                className="inline-grid h-7 w-7 place-items-center rounded hover:bg-white/[.06]"
+                                aria-expanded={open}
+                                aria-label={`${open ? 'Collapse' : 'Expand'} options for ${u.email ?? u.user_id}`}
+                                onClick={event => {
+                                  event.stopPropagation();
+                                  void toggleRow(u.user_id);
+                                }}
+                              >
+                                <span className={`h-2 w-2 border-b-[1.5px] border-r-[1.5px] border-muted transition-transform ${open ? '-rotate-[135deg]' : 'rotate-45'}`} aria-hidden="true" />
+                              </button>
                             </td>
                           </tr>
                         );
@@ -585,9 +599,12 @@ export default function UsersPage() {
 
                 {selectedUser ? (
                   <aside className="max-h-[calc(100vh-150px)] overflow-y-auto rounded-2xl border border-border bg-bg2 p-4 xl:sticky xl:top-24" aria-label={`Details for ${selectedUser.email ?? 'selected user'}`}>
-                    <div className="mb-4 border-b border-border pb-4">
-                      <div className="break-all text-sm font-semibold text-text">{selectedUser.email ?? selectedUser.user_id}</div>
-                      <p className="mt-1 text-xs text-faint">Joined {new Date(selectedUser.created_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                    <div className="mb-4 flex items-start justify-between gap-2 border-b border-border pb-4">
+                      <div className="min-w-0">
+                        <div className="break-all text-sm font-semibold text-text">{selectedUser.email ?? selectedUser.user_id}</div>
+                        <p className="mt-1 text-xs text-faint">Joined {new Date(selectedUser.created_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                      </div>
+                      <Button size="sm" variant="ghost" onClick={() => setExpandedUser(null)}>Close</Button>
                     </div>
                     <div className="grid gap-4">
                       <section className="grid gap-2.5">
