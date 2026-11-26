@@ -3,6 +3,7 @@ import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
 import { cloudDate, cloudState, type CloudAccount, type CloudState } from '../../lib/cloudAccess';
 import { completeEmailLink } from '../../lib/emailLink';
+import { Logo } from '../../components/layout/Navbar';
 
 const CONNECT_ERRORS: Record<string, string> = {
   not_spotlight: 'Axis Cloud is included with an active Spotlight plan.',
@@ -213,7 +214,7 @@ export default function CloudPage() {
     <div className="min-h-screen bg-[#08070a] text-text">
       <header className="flex items-center justify-between border-b border-border px-5 py-4 sm:px-9">
         <div className="flex items-center gap-2.5 text-[15px] font-semibold">
-          <span className="block h-[26px] w-[26px] rounded-[7px] bg-gradient-to-br from-[#ff9d4d] to-[#9b3f12]" />
+          <Logo className="h-[26px] w-[26px]" />
           Axis Cloud
         </div>
         {signedIn && (
