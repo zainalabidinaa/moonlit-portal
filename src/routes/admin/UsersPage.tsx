@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { authedFetchJson, SessionExpiredError } from '../../lib/authed-fetch';
 import { supabase } from '../../lib/supabase';
@@ -216,7 +216,6 @@ export default function UsersPage() {
   const [setupDone, setSetupDone] = useState<string | null>(null);
   const [customUsers, setCustomUsers] = useState<Set<string>>(new Set());
   const [customValues, setCustomValues] = useState<Record<string, string>>({});
-  const didSelectInitialUser = useRef(false);
   const [expandedUser, setExpandedUser] = useState<string | null>(null);
   const [activityByUser, setActivityByUser] = useState<Record<string, { sessions: SessionInfo[]; activity: ActivityEntry[] }>>({});
   const [activityLoading, setActivityLoading] = useState<string | null>(null);
@@ -237,12 +236,6 @@ export default function UsersPage() {
         if (!cancelled) {
           const nextUsers = data.users ?? [];
           setUsers(nextUsers);
-          // Open the first account on arrival so the detail panel is visible
-          // immediately instead of leaving an empty column beside the table.
-          if (!didSelectInitialUser.current && nextUsers[0]) {
-            didSelectInitialUser.current = true;
-            void toggleRow(nextUsers[0].user_id);
-          }
         }
       } catch (e) {
         if (e instanceof SessionExpiredError) {
@@ -470,7 +463,6 @@ export default function UsersPage() {
     return new Date(iso).toLocaleDateString();
   }
 
-  const selectedUser = visibleUsers.find(u => u.user_id === expandedUser) ?? null;
 
   return (
     <AppShell>
@@ -531,7 +523,7 @@ export default function UsersPage() {
                 </span>
               </div>
 
-              <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_330px]">
+              <div>
                 <div className="min-w-0 overflow-hidden rounded-b-2xl">
                   <table className="w-full table-fixed text-sm">
                     <colgroup>
@@ -554,40 +546,82 @@ export default function UsersPage() {
                       {visibleUsers.map(u => {
                         const open = expandedUser === u.user_id;
                         return (
-                          <tr
-                            key={u.id}
-                            className={`cursor-pointer border-b border-border align-middle transition-colors last:border-0 hover:bg-white/[.03] ${open ? 'bg-white/[.04]' : ''}`}
-                            onClick={() => toggleRow(u.user_id)}
-                          >
-                            <td className="px-4 py-3.5">
-                              <div className="truncate font-medium text-text">{u.email ?? u.user_id.slice(0, 8) + '…'}</div>
-                              <div className="mt-0.5 truncate text-xs text-faint">Joined {new Date(u.created_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}</div>
-                            </td>
-                            <td className="px-4 py-3.5">
-                              {isRoleExpired(u) ? <Badge variant="warning">Expired</Badge> : <span className="text-sm text-text">{ROLE_LABELS[u.role]}</span>}
-                            </td>
-                            <td className="px-4 py-3.5 text-muted">
-                              {u.role === 'friends_family' ? (u.role_expires_at ? isoToDisplay(u.role_expires_at) : 'Never') : <span className="text-faint">—</span>}
-                            </td>
-                            <td className="px-4 py-3.5">
-                              <LastActiveCell lastActiveAt={u.last_active_at} />
-                              <div className="mt-0.5 truncate text-xs text-faint">{summarizeDevices(u.devices ?? [])}</div>
-                            </td>
-                            <td className="px-0 py-3.5 text-center">
-                              <button
-                                type="button"
-                                className="inline-grid h-7 w-7 place-items-center rounded hover:bg-white/[.06]"
-                                aria-expanded={open}
-                                aria-label={`${open ? 'Collapse' : 'Expand'} options for ${u.email ?? u.user_id}`}
-                                onClick={event => {
-                                  event.stopPropagation();
-                                  void toggleRow(u.user_id);
-                                }}
-                              >
-                                <span className={`h-2 w-2 border-b-[1.5px] border-r-[1.5px] border-muted transition-transform ${open ? '-rotate-[135deg]' : 'rotate-45'}`} aria-hidden="true" />
-                              </button>
-                            </td>
-                          </tr>
+                          <Fragment key={u.id}>
+                            <tr
+                              className={`cursor-pointer border-b border-border align-middle transition-colors last:border-0 hover:bg-white/[.03] ${open ? 'bg-white/[.04]' : ''}`}
+                              onClick={() => toggleRow(u.user_id)}
+                            >
+                              <td className="px-4 py-3.5">
+                                <div className="truncate font-medium text-text">{u.email ?? u.user_id.slice(0, 8) + '…'}</div>
+                                <div className="mt-0.5 truncate text-xs text-faint">Joined {new Date(u.created_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}</div>
+                              </td>
+                              <td className="px-4 py-3.5">
+                                {isRoleExpired(u) ? <Badge variant="warning">Expired</Badge> : <span className="text-sm text-text">{ROLE_LABELS[u.role]}</span>}
+                              </td>
+                              <td className="px-4 py-3.5 text-muted">
+                                {u.role === 'friends_family' ? (u.role_expires_at ? isoToDisplay(u.role_expires_at) : 'Never') : <span className="text-faint">—</span>}
+                              </td>
+                              <td className="px-4 py-3.5">
+                                <LastActiveCell lastActiveAt={u.last_active_at} />
+                                <div className="mt-0.5 truncate text-xs text-faint">{summarizeDevices(u.devices ?? [])}</div>
+                              </td>
+                              <td className="px-0 py-3.5 text-center">
+                                <button
+                                  type="button"
+                                  className="inline-grid h-7 w-7 place-items-center rounded hover:bg-white/[.06]"
+                                  aria-expanded={open}
+                                  aria-label={`${open ? 'Collapse' : 'Expand'} options for ${u.email ?? u.user_id}`}
+                                  onClick={event => {
+                                    event.stopPropagation();
+                                    void toggleRow(u.user_id);
+                                  }}
+                                >
+                                  <span className={`h-2 w-2 border-b-[1.5px] border-r-[1.5px] border-muted transition-transform ${open ? '-rotate-[135deg]' : 'rotate-45'}`} aria-hidden="true" />
+                                </button>
+                              </td>
+                            </tr>
+                            {open && (
+                              <tr className="border-b border-border bg-white/[.02]">
+                                <td colSpan={5} className="px-4 pb-5 pt-1">
+                                  <div role="region" className="grid gap-5 md:grid-cols-3" aria-label={`Details for ${u.email ?? 'selected user'}`}>
+                                    <section className="grid content-start gap-2.5">
+                                      <p className="text-[11px] font-semibold uppercase tracking-[.08em] text-muted">Plan access</p>
+                                      <label className="grid gap-1.5">
+                                        <span className="text-xs text-muted">Plan</span>
+                                        <select value={u.role} onChange={e => handleRoleChange(u.user_id, e.target.value as UserRole)} disabled={changingRole === u.user_id} className={`${adminSelect} h-9 w-full text-sm`}>
+                                          {(Object.keys(ROLE_LABELS) as UserRole[]).map(role => (
+                                            <option key={role} value={role}>{role === 'friends_family' ? 'Friends & Family' : ROLE_LABELS[role]}</option>
+                                          ))}
+                                        </select>
+                                      </label>
+                                      {u.role === 'friends_family' && (
+                                        <label className="grid gap-1.5">
+                                          <span className="text-xs text-muted">Access ends</span>
+                                          <select value={customUsers.has(u.user_id) ? 'custom' : expiryPreset(u.role_expires_at)} onChange={e => handleExpiryPreset(u.user_id, e.target.value)} disabled={changingExpiry === u.user_id} className={`${adminSelect} h-9 w-full text-sm`}>
+                                            <option value="7d">In 7 days</option><option value="30d">In 30 days</option><option value="90d">In 90 days</option><option value="custom">Custom date…</option><option value="never">Never</option>
+                                          </select>
+                                          {customUsers.has(u.user_id) && <input type="datetime-local" value={customValues[u.user_id] ?? toDateTimeInput(u.role_expires_at)} onChange={e => handleCustomExpiry(u.user_id, e.target.value)} className={`${adminSelect} h-9 w-full text-sm`} />}
+                                        </label>
+                                      )}
+                                    </section>
+                                    <section className="grid content-start gap-2.5">
+                                      <p className="text-[11px] font-semibold uppercase tracking-[.08em] text-muted">Server access</p>
+                                      <ServerAccessCell user={u} busy={changingServer === u.user_id} onGrant={preset => patchServerAccess(u.user_id, true, grantExpiry(preset))} onRevoke={() => patchServerAccess(u.user_id, false, null)} />
+                                    </section>
+                                    <section className="grid content-start gap-2.5">
+                                      <p className="text-[11px] font-semibold uppercase tracking-[.08em] text-muted">Devices and activity</p>
+                                      <ActivityDrawer loading={activityLoading === u.user_id} error={activityError[u.user_id]} data={activityByUser[u.user_id]} devices={u.devices ?? []} />
+                                    </section>
+                                  </div>
+                                  <div className="mt-4 flex flex-wrap gap-2 border-t border-border pt-4">
+                                    <Button size="sm" variant="ghost" loading={runningSetup === u.user_id} onClick={() => handleRunSetup(u.user_id)}>{setupDone === u.user_id ? 'Setup done ✓' : 'Run setup again'}</Button>
+                                    {u.role !== 'admin' && <Button size="sm" variant="ghost" className="hover:!border-red-400/50 hover:!text-red-400" onClick={() => setDeleteTarget(u)}>Delete account</Button>}
+                                    <Button size="sm" variant="ghost" className="ml-auto" onClick={() => setExpandedUser(null)}>Close</Button>
+                                  </div>
+                                </td>
+                              </tr>
+                            )}
+                          </Fragment>
                         );
                       })}
                       {visibleUsers.length === 0 && (
@@ -597,56 +631,6 @@ export default function UsersPage() {
                   </table>
                 </div>
 
-                {selectedUser ? (
-                  <aside className="max-h-[calc(100vh-150px)] overflow-y-auto rounded-2xl border border-border bg-bg2 p-4 xl:sticky xl:top-24" aria-label={`Details for ${selectedUser.email ?? 'selected user'}`}>
-                    <div className="mb-4 flex items-start justify-between gap-2 border-b border-border pb-4">
-                      <div className="min-w-0">
-                        <div className="break-all text-sm font-semibold text-text">{selectedUser.email ?? selectedUser.user_id}</div>
-                        <p className="mt-1 text-xs text-faint">Joined {new Date(selectedUser.created_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}</p>
-                      </div>
-                      <Button size="sm" variant="ghost" onClick={() => setExpandedUser(null)}>Close</Button>
-                    </div>
-                    <div className="grid gap-4">
-                      <section className="grid gap-2.5">
-                        <p className="text-[11px] font-semibold uppercase tracking-[.08em] text-muted">Plan access</p>
-                        <label className="grid gap-1.5">
-                          <span className="text-xs text-muted">Plan</span>
-                          <select value={selectedUser.role} onChange={e => handleRoleChange(selectedUser.user_id, e.target.value as UserRole)} disabled={changingRole === selectedUser.user_id} className={`${adminSelect} h-9 w-full text-sm`}>
-                            {(Object.keys(ROLE_LABELS) as UserRole[]).map(role => (
-                              <option key={role} value={role}>{role === 'friends_family' ? 'Friends & Family' : ROLE_LABELS[role]}</option>
-                            ))}
-                          </select>
-                        </label>
-                        {selectedUser.role === 'friends_family' && (
-                          <label className="grid gap-1.5">
-                            <span className="text-xs text-muted">Access ends</span>
-                            <select value={customUsers.has(selectedUser.user_id) ? 'custom' : expiryPreset(selectedUser.role_expires_at)} onChange={e => handleExpiryPreset(selectedUser.user_id, e.target.value)} disabled={changingExpiry === selectedUser.user_id} className={`${adminSelect} h-9 w-full text-sm`}>
-                              <option value="7d">In 7 days</option><option value="30d">In 30 days</option><option value="90d">In 90 days</option><option value="custom">Custom date…</option><option value="never">Never</option>
-                            </select>
-                            {customUsers.has(selectedUser.user_id) && <input type="datetime-local" value={customValues[selectedUser.user_id] ?? toDateTimeInput(selectedUser.role_expires_at)} onChange={e => handleCustomExpiry(selectedUser.user_id, e.target.value)} className={`${adminSelect} h-9 w-full text-sm`} />}
-                          </label>
-                        )}
-                      </section>
-                      <section className="grid gap-2.5 border-t border-border pt-4">
-                        <p className="text-[11px] font-semibold uppercase tracking-[.08em] text-muted">Server access</p>
-                        <ServerAccessCell user={selectedUser} busy={changingServer === selectedUser.user_id} onGrant={preset => patchServerAccess(selectedUser.user_id, true, grantExpiry(preset))} onRevoke={() => patchServerAccess(selectedUser.user_id, false, null)} />
-                      </section>
-                      <section className="grid gap-2.5 border-t border-border pt-4">
-                        <p className="text-[11px] font-semibold uppercase tracking-[.08em] text-muted">Devices and activity</p>
-                        <ActivityDrawer loading={activityLoading === selectedUser.user_id} error={activityError[selectedUser.user_id]} data={activityByUser[selectedUser.user_id]} devices={selectedUser.devices ?? []} />
-                      </section>
-                      <div className="flex flex-wrap gap-2 border-t border-border pt-4">
-                        <Button size="sm" variant="ghost" loading={runningSetup === selectedUser.user_id} onClick={() => handleRunSetup(selectedUser.user_id)}>{setupDone === selectedUser.user_id ? 'Setup done ✓' : 'Run setup again'}</Button>
-                        {selectedUser.role !== 'admin' && <Button size="sm" variant="ghost" className="hover:!border-red-400/50 hover:!text-red-400" onClick={() => setDeleteTarget(selectedUser)}>Delete account</Button>}
-                      </div>
-                    </div>
-                  </aside>
-                ) : (
-                  <aside className="grid min-h-56 content-center justify-items-start rounded-2xl border border-border bg-bg2 p-5">
-                    <p className="text-sm font-semibold text-text">Select an account</p>
-                    <p className="mt-1.5 text-sm text-muted">Plan settings, server access and recent activity will appear here.</p>
-                  </aside>
-                )}
               </div>
             </div>
           </>

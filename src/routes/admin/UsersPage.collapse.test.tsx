@@ -24,26 +24,30 @@ vi.mock('../../lib/authed-fetch', () => ({
   },
 }));
 
-it('closes via the row toggle and panel button, and stays closed after refresh', async () => {
+it('opens details under the row and closes them via the toggle, row and Close button', async () => {
   render(<UsersPage />);
-  const panel = { name: 'Details for example@example.com' };
-  const expand = { name: 'Expand options for example@example.com' };
-  const collapse = await screen.findByRole('button', { name: 'Collapse options for example@example.com' });
+  const details = { name: 'Details for example@example.com' };
+  const expand = await screen.findByRole('button', { name: 'Expand options for example@example.com' });
 
-  fireEvent.click(collapse);
-  expect(screen.queryByRole('complementary', panel)).toBeNull();
+  // Nothing opens on its own.
+  expect(expand).toHaveAttribute('aria-expanded', 'false');
+  expect(screen.queryByRole('region', details)).toBeNull();
 
-  fireEvent.click(screen.getByRole('button', expand));
-  expect(screen.getByRole('complementary', panel)).toBeInTheDocument();
-
-  fireEvent.click(screen.getByRole('button', { name: 'Close' }));
-  fireEvent.click(screen.getByRole('button', { name: 'Refresh' }));
-  expect(await screen.findByRole('button', expand)).toHaveAttribute('aria-expanded', 'false');
-  expect(screen.queryByRole('complementary', panel)).toBeNull();
+  fireEvent.click(expand);
+  expect(screen.getByRole('region', details)).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Collapse options for example@example.com' }));
+  expect(screen.queryByRole('region', details)).toBeNull();
 
   const row = screen.getByRole('row', { name: /example@example.com/ });
   fireEvent.click(row);
-  expect(screen.getByRole('complementary', panel)).toBeInTheDocument();
+  expect(screen.getByRole('region', details)).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+  expect(screen.queryByRole('region', details)).toBeNull();
+
   fireEvent.click(row);
-  expect(screen.queryByRole('complementary', panel)).toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: 'Refresh' }));
+  expect(await screen.findByRole('button', { name: 'Collapse options for example@example.com' })).toHaveAttribute('aria-expanded', 'true');
+  // The list re-renders on refresh, so find the row again.
+  fireEvent.click(screen.getAllByRole('row', { name: /example@example.com/ })[0]);
+  expect(screen.queryByRole('region', details)).toBeNull();
 });
